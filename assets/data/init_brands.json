@@ -1,0 +1,10 @@
+[
+  { "id": 1, "name": "Poh Kong", "logo": "assets/images/brands/logo_pohkong.png", "description": "" },
+  { "id": 2, "name": "Chiang Heng", "logo": "assets/images/brands/logo_chiangheng.png", "description": "" },
+  { "id": 3, "name": "Tomei", "logo": "assets/images/brands/logo_tomei.png", "description": "" },
+  { "id": 4, "name": "Emas Juvita", "logo": "assets/images/brands/logo_emasjuvita.png", "description": "" },
+  { "id": 5, "name": "Tian Si", "logo": "assets/images/brands/logo_tiansi.png", "description": "" },
+  { "id": 6, "name": "SK Jewellery", "logo": "assets/images/brands/logo_skjewellery.png", "description": "" },
+  { "id": 7, "name": "Wah Chan", "logo": "assets/images/brands/logo_wahchan.png", "description": "" },
+  { "id": 8, "name": "Habib", "logo": "assets/images/brands/logo_habib.png", "description": "" }
+]
