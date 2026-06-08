@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
 import 'dart:convert';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
-import '../components/badges.dart';
 
 class ListingPage extends StatefulWidget {
   const ListingPage({Key? key}) : super(key: key);
@@ -32,15 +30,10 @@ class _ListingPageState extends State<ListingPage> {
     _loadData();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _loadData();
-    }
-  }
-
   void _loadData() {
+    if (!mounted) return;
     setState(() {
+      // Fix: HiveService methods return non-nullable lists, no need for ?? []
       brands = HiveService.getAllBrands();
       types = HiveService.getAllJewelleryTypes();
       filteredJewellery = HiveService.getAllJewellery();
@@ -49,6 +42,7 @@ class _ListingPageState extends State<ListingPage> {
   }
 
   void _applyFilters() {
+    // Fix: HiveService.getAllJewellery() returns non-nullable List<Jewellery>
     var result = HiveService.getAllJewellery();
 
     if (selectedBrand != null && selectedBrand!.isNotEmpty) {
@@ -60,12 +54,16 @@ class _ListingPageState extends State<ListingPage> {
     }
 
     if (selectedTypeId != null) {
-      result = result.where((j) => j.jewelleryTypeId == selectedTypeId).toList();
+      result = result
+          .where((j) => j.jewelleryTypeId == selectedTypeId)
+          .toList();
     }
 
-    setState(() {
-      filteredJewellery = result;
-    });
+    if (mounted) {
+      setState(() {
+        filteredJewellery = result;
+      });
+    }
   }
 
   @override
@@ -73,64 +71,96 @@ class _ListingPageState extends State<ListingPage> {
     final appTheme = _getAppTheme(context);
 
     return Scaffold(
-      appBar: AppHeader(
-        title: 'Jewellery Listing',
-        showBackButton: false,
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                selectedBrand = null;
-                selectedPurity = null;
-                selectedTypeId = null;
-              });
-              _applyFilters();
-            },
-            child: Text('All', style: TextStyle(color: appTheme.accentPrimary)),
-          ),
-        ],
-      ),
+      appBar: AppHeader(title: 'Jewellery Listing', showBackButton: false),
       body: Column(
         children: [
-          // Filters
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          // Fix: Filter section restructured into 2 rows for stability
+          Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
               children: [
-                _FilterChip(
-                  label: 'Brand',
-                  items: brands.map((b) => b.name).toList(),
-                  selected: selectedBrand,
-                  onChanged: (value) {
-                    setState(() => selectedBrand = value);
-                    _applyFilters();
-                  },
-                  appTheme: appTheme,
+                // Row 1: Brand and Purity filters with fixed width
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 160,
+                      child: _FilterChip(
+                        label: 'Brand',
+                        items: brands.map((b) => b.name).toList(),
+                        selected: selectedBrand,
+                        onChanged: (value) {
+                          setState(() => selectedBrand = value);
+                          _applyFilters();
+                        },
+                        appTheme: appTheme,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 160,
+                      child: _FilterChip(
+                        label: 'Purity',
+                        items: ['916', '999'],
+                        selected: selectedPurity,
+                        onChanged: (value) {
+                          setState(() => selectedPurity = value);
+                          _applyFilters();
+                        },
+                        appTheme: appTheme,
+                      ),
+                    ),
+                    const Spacer(),
+                    // Fix: Reset Filter button
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          selectedBrand = null;
+                          selectedPurity = null;
+                          selectedTypeId = null;
+                        });
+                        _applyFilters();
+                      },
+                      child: Text(
+                        'Reset Filter',
+                        style: TextStyle(color: appTheme.accentPrimary),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Purity',
-                  items: ['916', '999'],
-                  selected: selectedPurity,
-                  onChanged: (value) {
-                    setState(() => selectedPurity = value);
-                    _applyFilters();
-                  },
-                  appTheme: appTheme,
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Type',
-                  items: types.map((t) => t.name).toList(),
-                  selected: selectedTypeId != null ? types.firstWhere((t) => t.id == selectedTypeId).name : null,
-                  onChanged: (value) {
-                    setState(() {
-                      selectedTypeId = value != null ? types.firstWhere((t) => t.name == value).id : null;
-                    });
-                    _applyFilters();
-                  },
-                  appTheme: appTheme,
+                const SizedBox(height: 12),
+                // Row 2: Type filter with fixed width, left-aligned
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 160,
+                      child: _FilterChip(
+                        label: 'Type',
+                        items: types.map((t) => t.name).toList(),
+                        selected: selectedTypeId != null
+                            ? types
+                                  .firstWhere(
+                                    (t) => t.id == selectedTypeId,
+                                    orElse: () => types.first,
+                                  )
+                                  .name
+                            : null,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedTypeId = value != null
+                                ? types
+                                      .firstWhere(
+                                        (t) => t.name == value,
+                                        orElse: () => types.first,
+                                      )
+                                      .id
+                                : null;
+                          });
+                          _applyFilters();
+                        },
+                        appTheme: appTheme,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -141,27 +171,28 @@ class _ListingPageState extends State<ListingPage> {
                 ? Center(
                     child: Text(
                       'No jewellery found',
-                      style: TextStyle(
-                        color: appTheme.textBody,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: appTheme.textBody, fontSize: 16),
                     ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: filteredJewellery.length,
                     itemBuilder: (context, index) {
+                      // Fix: ListView.builder provides itemCount indices starting from 0,
+                      // so we're guaranteed safe access here. No need for bounds check.
                       final item = filteredJewellery[index];
+                      
                       final currency = HiveService.getCurrency(1);
                       return _JewelleryCard(
                         jewellery: item,
                         currency: currency,
                         appTheme: appTheme,
                         onTap: () async {
-                          await GoRouter.of(context).push(
-                            '/details',
-                            extra: item.id,
-                          );
+                          await GoRouter.of(
+                            context,
+                          ).push('/details', extra: item.id);
+                          // Fix: Added mounted check to prevent setState after deactivation
+                          if (!mounted) return;
                           _loadData();
                         },
                       );
@@ -170,10 +201,7 @@ class _ListingPageState extends State<ListingPage> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: 1,
-        onTap: _onNavTap,
-      ),
+      bottomNavigationBar: BottomNavigation(currentIndex: 1, onTap: _onNavTap),
     );
   }
 
@@ -182,6 +210,8 @@ class _ListingPageState extends State<ListingPage> {
       GoRouter.of(context).go('/');
     } else if (index == 2) {
       await GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
+      // Fix: Added mounted check to prevent setState after deactivation
+      if (!mounted) return;
       _loadData();
     } else if (index == 3) {
       GoRouter.of(context).go('/users');
@@ -221,38 +251,45 @@ class _FilterChip extends StatefulWidget {
 class _FilterChipState extends State<_FilterChip> {
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
+    // Fix: Changed display format to "Brand: All" / "Brand: Value"
+    final displayValue = widget.selected ?? 'All';
+    // Fix: Guard empty items list to prevent hit test failures
+    final hasItems = widget.items.isNotEmpty;
+
+    return PopupMenuButton<String?>(
+      enabled: hasItems, // Disable if no items to prevent hit test errors
       onSelected: widget.onChanged,
       itemBuilder: (BuildContext context) {
+        // Fix: Ensure menu always has at least "All" option
         return [
-          PopupMenuItem(
-            value: null,
-            child: Text('Clear ${widget.label}'),
-          ),
-          const PopupMenuDivider(),
-          ...widget.items.map((item) {
-            return PopupMenuItem(
-              value: item,
-              child: Text(item),
-            );
-          }),
+          // Fix: Changed first option to "All" instead of "Clear X"
+          PopupMenuItem<String?>(value: null, child: const Text('All')),
+          if (widget.items.isNotEmpty) const PopupMenuDivider(),
+          if (widget.items.isNotEmpty)
+            ...widget.items.map((item) {
+              return PopupMenuItem<String?>(value: item, child: Text(item));
+            }),
         ];
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           border: Border.all(
-          color: widget.appTheme.borderColor.withValues(alpha: 0.3),
+            color: widget.appTheme.borderColor.withValues(alpha: 0.3),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
+            // Fix: Display label format as "Brand: All" or "Brand: Value"
             Text(
-              widget.selected != null ? widget.selected! : widget.label,
+              '${widget.label}: $displayValue',
               style: TextStyle(
-                color: widget.appTheme.textHeading,
+                color: hasItems
+                    ? widget.appTheme.textHeading
+                    : widget.appTheme.textBody.withValues(alpha: 0.5),
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
@@ -261,7 +298,9 @@ class _FilterChipState extends State<_FilterChip> {
             Icon(
               Icons.expand_more,
               size: 16,
-              color: widget.appTheme.accentSecondary,
+              color: hasItems
+                  ? widget.appTheme.accentSecondary
+                  : widget.appTheme.textBody.withValues(alpha: 0.5),
             ),
           ],
         ),
@@ -300,232 +339,222 @@ class _JewelleryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final jewelType = jewellery.jewelleryTypeId != null 
-        ? HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name ?? 'N/A' 
-        : 'N/A';
-    final ownerName = jewellery.ownerId != null 
-        ? HiveService.getUser(jewellery.ownerId!)?.name ?? 'N/A' 
+    // Fix: Guard against null values and provide safe defaults
+    final jewelType = jewellery.jewelleryTypeId != null
+        ? HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name ??
+              'N/A'
         : 'N/A';
     final dateOfPurchase = DateFormat('dd/MM/yyyy').format(jewellery.date);
-    final priceText = jewellery.totalPrice != null 
-        ? '${currency?.symbol ?? 'RM'} ${jewellery.totalPrice!.toStringAsFixed(2)}' 
+    
+    // Fix: Ensure totalPrice is never null in display
+    final totalPrice = jewellery.totalPrice ?? 0.0;
+    final priceText = totalPrice > 0
+        ? '${currency?.symbol ?? 'RM'} ${totalPrice.toStringAsFixed(2)}'
         : '${currency?.symbol ?? 'RM'} 0.00';
+    
+    // Fix: brand and goldPurity are non-nullable strings with defaults
+    // Just check if they're empty
+    final brandName = jewellery.brand.isNotEmpty ? jewellery.brand : 'N/A';
+    final purity = jewellery.goldPurity.isNotEmpty ? jewellery.goldPurity : '916';
+    
+    // Fix: Safely access jewelleryPhoto which is always initialized to non-null list by fromJson
+    final photos = jewellery.jewelleryPhoto;
+    final hasPhotos = photos.isNotEmpty;
+    final firstPhoto = hasPhotos ? photos.first : '';
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: appTheme.backgroundSurface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: appTheme.borderColor.withValues(alpha: 0.3),
-            width: 1,
+    // Fix: Use IntrinsicHeight to measure natural heights first, then stretch
+    // This prevents infinite height constraint errors in ListView
+    return RepaintBoundary(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: appTheme.backgroundSurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: appTheme.borderColor.withValues(alpha: 0.3),
+              width: 1,
+            ),
           ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image Section (15-20%)
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: appTheme.backgroundSubtle,
-              ),
-              child: jewellery.jewelleryPhoto != null && jewellery.jewelleryPhoto!.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: _buildImageFromBase64(jewellery.jewelleryPhoto!.first),
-                    )
-                  : Icon(
-                      Icons.image,
-                      color: appTheme.accentSecondary,
-                      size: 40,
-                    ),
-            ),
-            const SizedBox(width: 12),
-            // Middle Details Section
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Row 1: Product Name
-                  Text(
-                    jewellery.name,
-                    style: TextStyle(
-                      color: appTheme.textHeading,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.04,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  // Row 2: Brand and Type
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Brand: ',
-                                style: TextStyle(
-                                  color: appTheme.accentPrimary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              TextSpan(
-                                text: jewellery.brand,
-                                style: TextStyle(
-                                  color: appTheme.textBody,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Type: ',
-                                style: TextStyle(
-                                  color: appTheme.accentPrimary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              TextSpan(
-                                text: jewelType,
-                                style: TextStyle(
-                                  color: appTheme.textBody,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  // Row 3: Purity and Owner
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Purity: ',
-                                style: TextStyle(
-                                  color: appTheme.accentPrimary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              TextSpan(
-                                text: jewellery.goldPurity,
-                                style: TextStyle(
-                                  color: appTheme.textBody,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Owner: ',
-                                style: TextStyle(
-                                  color: appTheme.accentPrimary,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              TextSpan(
-                                text: ownerName,
-                                style: TextStyle(
-                                  color: appTheme.textBody,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  // Row 4: Date
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Date: ',
-                          style: TextStyle(
-                            color: appTheme.accentPrimary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextSpan(
-                          text: dateOfPurchase,
-                          style: TextStyle(
-                            color: appTheme.textBody,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Right Section: Total Price (10-15%)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Fix: Wrap in IntrinsicHeight to properly measure and stretch children
+          // This solves the "infinite height" constraint error from ListView
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  priceText,
-                  style: TextStyle(
-                    color: appTheme.accentPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                // Column 1: Image (fixed width SizedBox)
+                SizedBox(
+                  width: 100,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: appTheme.backgroundSubtle,
+                    ),
+                    child: hasPhotos
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: _buildImageFromBase64(firstPhoto),
+                          )
+                        : Icon(
+                            Icons.image,
+                            color: appTheme.accentSecondary,
+                            size: 40,
+                          ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
+                ),
+                const SizedBox(width: 12),
+                // Column 2: Name, Brand, Purity, Type, Date (stacked vertically)
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Product Name
+                      Text(
+                        jewellery.name ?? 'Untitled',
+                        style: TextStyle(
+                          color: appTheme.textHeading,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.04,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                      ),
+                      const SizedBox(height: 8),
+                      // Brand info
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Brand: ',
+                              style: TextStyle(
+                                color: appTheme.accentPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(
+                              text: brandName,
+                              style: TextStyle(
+                                color: appTheme.textBody,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      // Purity info
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Purity: ',
+                              style: TextStyle(
+                                color: appTheme.accentPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(
+                              text: purity,
+                              style: TextStyle(
+                                color: appTheme.textBody,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      // Type info
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Type: ',
+                              style: TextStyle(
+                                color: appTheme.accentPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(
+                              text: jewelType,
+                              style: TextStyle(
+                                color: appTheme.textBody,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      // Date info
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Date: ',
+                              style: TextStyle(
+                                color: appTheme.accentPrimary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(
+                              text: dateOfPurchase,
+                              style: TextStyle(
+                                color: appTheme.textBody,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Column 3: Price pinned to bottom using MainAxisAlignment.end
+                // Fix: Use a Column with MainAxisAlignment.end instead of Align.bottomRight
+                // This works properly with IntrinsicHeight's stretched children
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        priceText,
+                        style: TextStyle(
+                          color: appTheme.accentPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

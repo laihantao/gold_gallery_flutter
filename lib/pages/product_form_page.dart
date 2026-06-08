@@ -74,11 +74,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
   }
 
   void _loadData() {
-    brands = HiveService.getAllBrands();
+    brands = HiveService.getAllBrands() ?? [];
     brands.sort((a, b) => a.name.compareTo(b.name));
-    types = HiveService.getAllJewelleryTypes();
-    users = HiveService.getAllUsers();
-    currencies = HiveService.getAllCurrencies();
+    types = HiveService.getAllJewelleryTypes() ?? [];
+    users = HiveService.getAllUsers() ?? [];
+    currencies = HiveService.getAllCurrencies() ?? [];
 
     // Set default currency to id 1
     _selectedCurrencyId = '1';
@@ -87,14 +87,18 @@ class _ProductFormPageState extends State<ProductFormPage> {
       _existingJewellery = HiveService.getJewellery(widget.productId!);
       if (_existingJewellery != null) {
         _dateController.text = DateFormat('dd/MM/yyyy').format(_existingJewellery!.date);
-        _nameController.text = _existingJewellery!.name;
+        _nameController.text = _existingJewellery!.name ?? '';
         _selectedBrand = _existingJewellery!.brand;
-        _selectedPurity = _existingJewellery!.goldPurity;
+        _selectedPurity = _existingJewellery!.goldPurity ?? '916';
         _selectedPayerId = _existingJewellery!.payerId;
         _selectedOwnerId = _existingJewellery!.ownerId;
         _selectedTypeId = _existingJewellery!.jewelleryTypeId;
         _sizeController.text = _existingJewellery!.size?.toString() ?? '';
         _measurementController.text = _existingJewellery!.measurement?.toString() ?? '';
+        // Fix: Load measurement unit in edit mode if measurement value exists
+        if (_existingJewellery!.measurement != null && _existingJewellery!.measurement! > 0) {
+          _selectedMeasurement = 'mm'; // Default to mm, can be enhanced to store unit separately
+        }
         _pricePerGramController.text = _existingJewellery!.pricePerGram?.toString() ?? '';
         _weightController.text = _existingJewellery!.weight?.toString() ?? '';
         _laborFeesController.text = _existingJewellery!.laborFees?.toString() ?? '';
@@ -105,7 +109,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
       }
     }
 
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _calculateTotalPrice() {
@@ -153,9 +159,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
       final now = DateTime.now();
 
       // Convert images to base64 for persistence
-      List<String>? encodedImages;
+      final List<String> encodedImages = [];
       if (_selectedXFiles.isNotEmpty) {
-        encodedImages = [];
         for (var xfile in _selectedXFiles) {
           final bytes = await xfile.readAsBytes();
           final base64String = base64Encode(bytes);
@@ -186,6 +191,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
       );
 
       HiveService.saveJewellery(jewellery);
+      if (!mounted) return;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Product saved successfully')),
       );
@@ -193,11 +200,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
         GoRouter.of(context).pop();
       }
     } catch (e) {
+      if (!mounted) return;
       _showValidationError('Error saving product: $e');
     }
   }
 
   void _showValidationError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),

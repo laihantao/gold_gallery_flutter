@@ -14,7 +14,7 @@ class Jewellery {
   final double? laborFees;
   final double? totalPrice;
   final String? purchaseLocation;
-  final List<String>? jewelleryPhoto;
+  final List<String> jewelleryPhoto;
   final String? remarks;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -35,7 +35,7 @@ class Jewellery {
     this.laborFees,
     this.totalPrice,
     this.purchaseLocation,
-    this.jewelleryPhoto,
+    required this.jewelleryPhoto,
     this.remarks,
     required this.createdAt,
     required this.updatedAt,
@@ -111,25 +111,25 @@ class Jewellery {
 
   factory Jewellery.fromJson(Map<String, dynamic> json) {
     return Jewellery(
-      id: json['id'],
-      date: DateTime.parse(json['date']),
-      name: json['name'],
+      id: json['id'] ?? 0,
+      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      name: json['name'] ?? '',
       payerId: json['payerId'],
       ownerId: json['ownerId'],
-      size: json['size']?.toDouble(),
-      measurement: json['measurement']?.toDouble(),
+      size: json['size'] != null ? (json['size'] as num).toDouble() : null,
+      measurement: json['measurement'] != null ? (json['measurement'] as num).toDouble() : null,
       jewelleryTypeId: json['jewelleryTypeId'],
-      brand: json['brand'],
-      goldPurity: json['goldPurity'],
+      brand: json['brand'] ?? '',
+      goldPurity: json['goldPurity'] ?? '916',
       pricePerGram: json['pricePerGram'],
-      weight: json['weight']?.toDouble(),
-      laborFees: json['laborFees']?.toDouble(),
-      totalPrice: json['totalPrice']?.toDouble(),
+      weight: json['weight'] != null ? (json['weight'] as num).toDouble() : null,
+      laborFees: json['laborFees'] != null ? (json['laborFees'] as num).toDouble() : null,
+      totalPrice: json['totalPrice'] != null ? (json['totalPrice'] as num).toDouble() : null,
       purchaseLocation: json['purchaseLocation'],
-      jewelleryPhoto: List<String>.from(json['jewelleryPhoto'] ?? []),
+      jewelleryPhoto: json['jewelleryPhoto'] != null ? List<String>.from(json['jewelleryPhoto'] ?? []) : [],
       remarks: json['remarks'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
     );
   }
 }

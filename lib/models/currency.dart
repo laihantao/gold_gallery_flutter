@@ -31,9 +31,9 @@ class Currency {
 
   factory Currency.fromJson(Map<String, dynamic> json) {
     return Currency(
-      id: json['id'],
-      name: json['name'],
-      symbol: json['symbol'],
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      symbol: json['symbol'] ?? 'RM',
     );
   }
 }

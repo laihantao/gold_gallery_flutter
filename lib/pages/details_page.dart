@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../models/index.dart';
@@ -44,6 +45,7 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   void _onPageChanged() {
+    if (!mounted) return;
     setState(() {
       _currentImageIndex = _pageController.page?.round() ?? 0;
     });
@@ -62,7 +64,9 @@ class _DetailsPageState extends State<DetailsPage> {
           ? HiveService.getJewelleryType(jewellery!.jewelleryTypeId!)
           : null;
       currency = HiveService.getCurrency(1);
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     }
   }
 
@@ -89,93 +93,110 @@ class _DetailsPageState extends State<DetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Photo section
-            if (jewellery!.jewelleryPhoto != null && jewellery!.jewelleryPhoto!.isNotEmpty)
-              Column(
-                children: [
-                  // Main image viewer
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SizedBox(
-                      height: 300,
-                      child: GestureDetector(
-                        onTap: () {
+            // Fix: Image section - Always render, with fallback for no images
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                height: 300,
+                child: GestureDetector(
+                  onTap: jewellery!.jewelleryPhoto.isNotEmpty
+                      ? () {
                           GoRouter.of(context).push(
                             '/photo-viewer',
                             extra: {
-                              'imagePaths': jewellery!.jewelleryPhoto!,
+                              'imagePaths': jewellery!.jewelleryPhoto,
                               'initialIndex': _currentImageIndex,
                             },
                           );
-                        },
-                        child: PageView.builder(
+                        }
+                      : null,
+                  child: jewellery!.jewelleryPhoto.isNotEmpty
+                      ? PageView.builder(
                           controller: _pageController,
-                          itemCount: jewellery!.jewelleryPhoto!.length,
+                          itemCount: jewellery!.jewelleryPhoto.length,
                           itemBuilder: (context, index) {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 color: appTheme.backgroundSubtle,
                                 child: _buildDetailsImageWidget(
-                                  jewellery!.jewelleryPhoto![index],
+                                  jewellery!.jewelleryPhoto[index],
                                   appTheme,
                                 ),
                               ),
                             );
                           },
+                        )
+                      : ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            color: appTheme.backgroundSubtle,
+                            child: Image.asset(
+                              'assets/images/defaults/default_jewellery.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    color: appTheme.accentSecondary,
+                                    size: 80,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  // Thumbnail row
-                  if (jewellery!.jewelleryPhoto!.length > 1)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: List.generate(
-                            jewellery!.jewelleryPhoto!.length,
-                            (index) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: GestureDetector(
-                                onTap: () {
-                                  _pageController.animateToPage(
-                                    index,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  );
-                                },
-                                child: Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: _currentImageIndex == index
-                                          ? appTheme.accentPrimary
-                                          : appTheme.borderColor.withValues(alpha: 0.3),
-                                      width: _currentImageIndex == index ? 2 : 1,
-                                    ),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: _buildDetailsImageWidget(
-                                      jewellery!.jewelleryPhoto![index],
-                                      appTheme,
-                                    ),
-                                  ),
-                                ),
+                ),
+              ),
+            ),
+            // Fix: Thumbnail row only shows if images exist
+            if (jewellery!.jewelleryPhoto.isNotEmpty &&
+                jewellery!.jewelleryPhoto.length > 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: List.generate(
+                      jewellery!.jewelleryPhoto.length,
+                      (index) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () {
+                            _pageController.animateToPage(
+                              index,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _currentImageIndex == index
+                                    ? appTheme.accentPrimary
+                                    : appTheme.borderColor.withValues(alpha: 0.3),
+                                width: _currentImageIndex == index ? 2 : 1,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _buildDetailsImageWidget(
+                                jewellery!.jewelleryPhoto[index],
+                                appTheme,
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  const SizedBox(height: 12),
-                ],
+                  ),
+                ),
               ),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -196,6 +217,8 @@ class _DetailsPageState extends State<DetailsPage> {
                                 'id': jewellery!.id,
                               },
                             );
+                            // Fix: Added mounted check to prevent setState after deactivation
+                            if (!mounted) return;
                             _refreshData();
                           },
                         ),
@@ -259,24 +282,26 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   Widget _buildDetailsTable(AppTheme appTheme) {
+    // Fix: Reordered fields to match required sequence and show dashes for empty values
     final List<MapEntry<String, String>> rows = [];
     
-    // Build row data
-    rows.add(MapEntry('Product Name', jewellery!.name));
-    rows.add(MapEntry('Purity', jewellery!.goldPurity));
-    rows.add(MapEntry('Brand', jewellery!.brand));
-    if (jewelleryType != null) rows.add(MapEntry('Type', jewelleryType!.name));
-    if (payer != null) rows.add(MapEntry('Payer', payer!.name));
-    if (owner != null) rows.add(MapEntry('Owner', owner!.name));
-    rows.add(MapEntry('Date of Purchase', '${jewellery!.date.day}/${jewellery!.date.month}/${jewellery!.date.year}'));
-    if (jewellery!.weight != null) rows.add(MapEntry('Weight', '${jewellery!.weight} g'));
-    if (jewellery!.size != null) rows.add(MapEntry('Size', '${jewellery!.size}'));
-    if (jewellery!.measurement != null) rows.add(MapEntry('Measurement Unit', '${jewellery!.measurement}'));
-    if (jewellery!.pricePerGram != null) rows.add(MapEntry('Price Per Gram', '${currency?.symbol ?? 'RM'} ${jewellery!.pricePerGram}'));
-    if (jewellery!.laborFees != null) rows.add(MapEntry('Labor Fees', '${currency?.symbol ?? 'RM'} ${jewellery!.laborFees}'));
-    if (jewellery!.totalPrice != null) rows.add(MapEntry('Total Price', '${currency?.symbol ?? 'RM'} ${jewellery!.totalPrice}'));
-    if (jewellery!.purchaseLocation != null) rows.add(MapEntry('Purchase Location', jewellery!.purchaseLocation!));
-    if (jewellery!.remarks != null && jewellery!.remarks!.isNotEmpty) rows.add(MapEntry('Remarks', jewellery!.remarks!));
+    // Build row data in correct order
+    rows.add(MapEntry('Name', jewellery!.name ?? '—'));
+    rows.add(MapEntry('Date of Purchase', DateFormat('dd/MM/yyyy').format(jewellery!.date)));
+    rows.add(MapEntry('Brand', jewellery!.brand ?? '—'));
+    rows.add(MapEntry('Purity', jewellery!.goldPurity ?? '—'));
+    rows.add(MapEntry('Owner', owner?.name ?? '—'));
+    rows.add(MapEntry('Payer', payer?.name ?? '—'));
+    rows.add(MapEntry('Jewellery Type', jewelleryType?.name ?? '—'));
+    rows.add(MapEntry('Size', jewellery!.size != null ? jewellery!.size.toString() : '—'));
+    rows.add(MapEntry('Measurement Unit', jewellery!.measurement != null ? jewellery!.measurement.toString() : '—'));
+    rows.add(MapEntry('Currency', currency?.name ?? '—'));
+    rows.add(MapEntry('Price Per Gram', jewellery!.pricePerGram != null ? '${currency?.symbol ?? 'RM'} ${jewellery!.pricePerGram}' : '—'));
+    rows.add(MapEntry('Weight', jewellery!.weight != null ? '${jewellery!.weight} g' : '—'));
+    rows.add(MapEntry('Labor Fees', jewellery!.laborFees != null ? '${currency?.symbol ?? 'RM'} ${jewellery!.laborFees}' : '—'));
+    rows.add(MapEntry('Total Price', jewellery!.totalPrice != null ? '${currency?.symbol ?? 'RM'} ${jewellery!.totalPrice}' : '—'));
+    rows.add(MapEntry('Purchase Location', jewellery!.purchaseLocation ?? '—'));
+    rows.add(MapEntry('Remarks', jewellery!.remarks?.isNotEmpty == true ? jewellery!.remarks! : '—'));
 
     return Table(
       columnWidths: const {
@@ -308,7 +333,7 @@ class _DetailsPageState extends State<DetailsPage> {
                     style: TextStyle(
                       color: appTheme.textBody,
                       fontSize: 12,
-                      fontWeight: FontWeight.normal,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -336,6 +361,17 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   Widget _buildDetailsImageWidget(String imagePath, AppTheme appTheme) {
+    // Fix: Check if path is an asset first
+    if (imagePath.startsWith('assets/')) {
+      return Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
+        },
+      );
+    }
+    
     try {
       // Try to decode as base64 (new format)
       final bytes = base64Decode(imagePath);
