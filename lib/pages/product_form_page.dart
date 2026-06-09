@@ -16,11 +16,8 @@ class ProductFormPage extends StatefulWidget {
   final String mode;
   final int? productId;
 
-  const ProductFormPage({
-    Key? key,
-    required this.mode,
-    this.productId,
-  }) : super(key: key);
+  const ProductFormPage({Key? key, required this.mode, this.productId})
+    : super(key: key);
 
   @override
   State<ProductFormPage> createState() => _ProductFormPageState();
@@ -30,7 +27,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
   late TextEditingController _dateController;
   late TextEditingController _nameController;
   late TextEditingController _sizeController;
-  late TextEditingController _measurementController;
   late TextEditingController _pricePerGramController;
   late TextEditingController _weightController;
   late TextEditingController _laborFeesController;
@@ -44,9 +40,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
   int? _selectedPayerId;
   int? _selectedOwnerId;
   String? _selectedCurrencyId;
-  String? _selectedMeasurement;
+  String? _selectedMeasurementUnit;
   List<String> _selectedPhotos = [];
-  List<XFile> _selectedXFiles = [];  // Store XFile for web preview
+  final List<XFile> _selectedXFiles = []; // Store XFile for web preview
   bool _autoCalculateTotal = true;
 
   List<Brand> brands = [];
@@ -59,10 +55,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
   @override
   void initState() {
     super.initState();
-    _dateController = TextEditingController(text: DateFormat('dd/MM/yyyy').format(DateTime.now()));
+    _dateController = TextEditingController(
+      text: DateFormat('dd/MM/yyyy').format(DateTime.now()),
+    );
     _nameController = TextEditingController();
     _sizeController = TextEditingController();
-    _measurementController = TextEditingController();
     _pricePerGramController = TextEditingController();
     _weightController = TextEditingController();
     _laborFeesController = TextEditingController();
@@ -74,11 +71,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
   }
 
   void _loadData() {
-    brands = HiveService.getAllBrands() ?? [];
+    if (!mounted) return;
+
+    brands = HiveService.getAllBrands();
     brands.sort((a, b) => a.name.compareTo(b.name));
-    types = HiveService.getAllJewelleryTypes() ?? [];
-    users = HiveService.getAllUsers() ?? [];
-    currencies = HiveService.getAllCurrencies() ?? [];
+    types = HiveService.getAllJewelleryTypes();
+    users = HiveService.getAllUsers();
+    currencies = HiveService.getAllCurrencies();
 
     // Set default currency to id 1
     _selectedCurrencyId = '1';
@@ -86,32 +85,32 @@ class _ProductFormPageState extends State<ProductFormPage> {
     if (widget.mode == 'edit' && widget.productId != null) {
       _existingJewellery = HiveService.getJewellery(widget.productId!);
       if (_existingJewellery != null) {
-        _dateController.text = DateFormat('dd/MM/yyyy').format(_existingJewellery!.date);
-        _nameController.text = _existingJewellery!.name ?? '';
+        _dateController.text = DateFormat(
+          'dd/MM/yyyy',
+        ).format(_existingJewellery!.date);
+        _nameController.text = _existingJewellery!.name;
         _selectedBrand = _existingJewellery!.brand;
-        _selectedPurity = _existingJewellery!.goldPurity ?? '916';
+        _selectedPurity = _existingJewellery!.goldPurity;
         _selectedPayerId = _existingJewellery!.payerId;
         _selectedOwnerId = _existingJewellery!.ownerId;
         _selectedTypeId = _existingJewellery!.jewelleryTypeId;
         _sizeController.text = _existingJewellery!.size?.toString() ?? '';
-        _measurementController.text = _existingJewellery!.measurement?.toString() ?? '';
-        // Fix: Load measurement unit in edit mode if measurement value exists
-        if (_existingJewellery!.measurement != null && _existingJewellery!.measurement! > 0) {
-          _selectedMeasurement = 'mm'; // Default to mm, can be enhanced to store unit separately
-        }
-        _pricePerGramController.text = _existingJewellery!.pricePerGram?.toString() ?? '';
+        _selectedMeasurementUnit = _existingJewellery!.measurementUnit;
+        _pricePerGramController.text =
+            _existingJewellery!.pricePerGram?.toString() ?? '';
         _weightController.text = _existingJewellery!.weight?.toString() ?? '';
-        _laborFeesController.text = _existingJewellery!.laborFees?.toString() ?? '';
-        _totalPriceController.text = _existingJewellery!.totalPrice?.toString() ?? '';
+        _laborFeesController.text =
+            _existingJewellery!.laborFees?.toString() ?? '';
+        _totalPriceController.text =
+            _existingJewellery!.totalPrice?.toString() ?? '';
         _locationController.text = _existingJewellery!.purchaseLocation ?? '';
         _remarksController.text = _existingJewellery!.remarks ?? '';
-        _selectedPhotos = _existingJewellery!.jewelleryPhoto ?? [];
+        _selectedPhotos = List<String>.from(_existingJewellery!.jewelleryPhoto);
       }
     }
 
-    if (mounted) {
-      setState(() {});
-    }
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _calculateTotalPrice() {
@@ -130,21 +129,95 @@ class _ProductFormPageState extends State<ProductFormPage> {
   Future<void> _pickImages() async {
     final ImagePicker picker = ImagePicker();
     final List<XFile> images = await picker.pickMultiImage();
+    if (!mounted) return;
+
     if (images.isNotEmpty) {
       setState(() {
         _selectedPhotos.addAll(images.map((img) => img.path).toList());
-        _selectedXFiles.addAll(images);  // Store XFile for web display
+        _selectedXFiles.addAll(images); // Store XFile for web display
       });
     }
   }
 
   void _removePhoto(int index) {
+    if (index < 0 || index >= _selectedPhotos.length) return;
+
     setState(() {
+      final removedPath = _selectedPhotos[index];
       _selectedPhotos.removeAt(index);
-      if (index < _selectedXFiles.length) {
+
+      final xFileIndex = _selectedXFiles.indexWhere(
+        (file) => file.path == removedPath,
+      );
+      if (xFileIndex >= 0) {
+        _selectedXFiles.removeAt(xFileIndex);
+      } else if (index < _selectedXFiles.length &&
+          !_looksLikeBase64Image(removedPath)) {
         _selectedXFiles.removeAt(index);
       }
     });
+  }
+
+  bool _looksLikeBase64Image(String imagePath) {
+    return _decodeBase64ImageBytes(imagePath) != null;
+  }
+
+  Uint8List? _decodeBase64ImageBytes(String imagePath) {
+    final source = imagePath.trim();
+    final commaIndex = source.indexOf(',');
+    final payload = source.startsWith('data:image') && commaIndex >= 0
+        ? source.substring(commaIndex + 1)
+        : source;
+
+    if (payload.length < 100 ||
+        payload.startsWith('file:') ||
+        payload.contains(r'\') ||
+        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(payload)) {
+      return null;
+    }
+
+    if (payload.startsWith('/') && !payload.startsWith('/9j/')) {
+      return null;
+    }
+
+    try {
+      return base64Decode(payload);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  XFile? _xFileForPath(String imagePath) {
+    for (final file in _selectedXFiles) {
+      if (file.path == imagePath) return file;
+    }
+    return null;
+  }
+
+  Future<List<String>> _encodePhotosForSave() async {
+    final List<String> encodedImages = [];
+
+    for (final imagePath in _selectedPhotos) {
+      if (_looksLikeBase64Image(imagePath)) {
+        encodedImages.add(imagePath);
+        continue;
+      }
+
+      final matchingXFile = _xFileForPath(imagePath);
+      if (matchingXFile != null) {
+        encodedImages.add(base64Encode(await matchingXFile.readAsBytes()));
+        continue;
+      }
+
+      if (!kIsWeb) {
+        final file = File(imagePath);
+        if (file.existsSync()) {
+          encodedImages.add(base64Encode(await file.readAsBytes()));
+        }
+      }
+    }
+
+    return encodedImages;
   }
 
   void _savProduct() async {
@@ -158,15 +231,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
       final date = DateFormat('dd/MM/yyyy').parse(_dateController.text);
       final now = DateTime.now();
 
-      // Convert images to base64 for persistence
-      final List<String> encodedImages = [];
-      if (_selectedXFiles.isNotEmpty) {
-        for (var xfile in _selectedXFiles) {
-          final bytes = await xfile.readAsBytes();
-          final base64String = base64Encode(bytes);
-          encodedImages.add(base64String);
-        }
-      }
+      final encodedImages = await _encodePhotosForSave();
 
       final jewellery = Jewellery(
         id: _existingJewellery?.id ?? HiveService.getNextJewelleryId(),
@@ -175,7 +240,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
         payerId: _selectedPayerId,
         ownerId: _selectedOwnerId,
         size: double.tryParse(_sizeController.text),
-        measurement: double.tryParse(_measurementController.text),
+        measurementUnit: _selectedMeasurementUnit?.isNotEmpty == true
+            ? _selectedMeasurementUnit
+            : null,
         jewelleryTypeId: _selectedTypeId,
         brand: _selectedBrand ?? '',
         goldPurity: _selectedPurity ?? '916',
@@ -192,13 +259,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
       HiveService.saveJewellery(jewellery);
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Product saved successfully')),
       );
-      if (mounted) {
-        GoRouter.of(context).pop();
-      }
+      GoRouter.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       _showValidationError('Error saving product: $e');
@@ -208,10 +273,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
   void _showValidationError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -220,7 +282,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _dateController.dispose();
     _nameController.dispose();
     _sizeController.dispose();
-    _measurementController.dispose();
     _pricePerGramController.dispose();
     _weightController.dispose();
     _laborFeesController.dispose();
@@ -235,23 +296,32 @@ class _ProductFormPageState extends State<ProductFormPage> {
     final appTheme = _getAppTheme(context);
 
     return Scaffold(
-      appBar: AppHeader(title: widget.mode == 'add' ? 'Add Product' : 'Edit Product'),
+      appBar: AppHeader(
+        title: widget.mode == 'add' ? 'Add Product' : 'Edit Product',
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildFormField('Date of Purchase *', _dateController, appTheme, onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime(2000),
-                lastDate: DateTime.now(),
-              );
-              if (picked != null) {
-                _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
-              }
-            }),
+            _buildFormField(
+              'Date of Purchase *',
+              _dateController,
+              appTheme,
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) {
+                  _dateController.text = DateFormat(
+                    'dd/MM/yyyy',
+                  ).format(picked);
+                }
+              },
+            ),
             const SizedBox(height: 16),
             _buildFormField('Product Name *', _nameController, appTheme),
             const SizedBox(height: 16),
@@ -279,11 +349,16 @@ class _ProductFormPageState extends State<ProductFormPage> {
               setState(() => _selectedPayerId = value);
             }, appTheme),
             const SizedBox(height: 16),
-            _buildTypeDropdown('Jewellery Type', _selectedTypeId, types, (value) {
+            _buildTypeDropdown('Jewellery Type', _selectedTypeId, types, (
+              value,
+            ) {
               setState(() => _selectedTypeId = value);
             }, appTheme),
             const SizedBox(height: 16),
-            _buildFormField('Size', _sizeController, appTheme,
+            _buildFormField(
+              'Size',
+              _sizeController,
+              appTheme,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
@@ -291,41 +366,57 @@ class _ProductFormPageState extends State<ProductFormPage> {
             const SizedBox(height: 16),
             _buildDropdown(
               'Measurement Unit',
-              _selectedMeasurement,
+              _selectedMeasurementUnit,
               ['', 'mm', 'cm'],
-              (value) => setState(() => _selectedMeasurement = value),
+              (value) => setState(() => _selectedMeasurementUnit = value),
               appTheme,
             ),
             const SizedBox(height: 16),
-            _buildCurrencyDropdown('Currency', _selectedCurrencyId, currencies, (value) {
-              setState(() => _selectedCurrencyId = value);
-            }, appTheme),
+            _buildCurrencyDropdown(
+              'Currency',
+              _selectedCurrencyId,
+              currencies,
+              (value) {
+                setState(() => _selectedCurrencyId = value);
+              },
+              appTheme,
+            ),
             const SizedBox(height: 16),
-            _buildFormField('Price Per Gram', _pricePerGramController, appTheme,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+            _buildFormField(
+              'Price Per Gram',
+              _pricePerGramController,
+              appTheme,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onChanged: (_) => _calculateTotalPrice(),
             ),
             const SizedBox(height: 16),
-            _buildFormField('Weight', _weightController, appTheme,
+            _buildFormField(
+              'Weight',
+              _weightController,
+              appTheme,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
               ],
               onChanged: (_) => _calculateTotalPrice(),
             ),
             const SizedBox(height: 16),
-            _buildFormField('Labor Fees', _laborFeesController, appTheme,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-              ],
+            _buildFormField(
+              'Labor Fees',
+              _laborFeesController,
+              appTheme,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onChanged: (_) => _calculateTotalPrice(),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: _buildFormField('Total Price', _totalPriceController, appTheme, enabled: !_autoCalculateTotal),
+                  child: _buildFormField(
+                    'Total Price',
+                    _totalPriceController,
+                    appTheme,
+                    enabled: !_autoCalculateTotal,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Checkbox(
@@ -382,7 +473,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
                               shape: BoxShape.circle,
                               color: Colors.red,
                             ),
-                            child: const Icon(Icons.close, color: Colors.white, size: 16),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                           ),
                         ),
                       ),
@@ -391,17 +486,16 @@ class _ProductFormPageState extends State<ProductFormPage> {
                 },
               ),
             const SizedBox(height: 12),
-            PrimaryButton(
-              label: 'Add Photos',
-              onPressed: _pickImages,
-            ),
+            PrimaryButton(label: 'Add Photos', onPressed: _pickImages),
             const SizedBox(height: 16),
-            _buildFormField('Remarks', _remarksController, appTheme, maxLines: 3),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              label: 'Save Product',
-              onPressed: _savProduct,
+            _buildFormField(
+              'Remarks',
+              _remarksController,
+              appTheme,
+              maxLines: 3,
             ),
+            const SizedBox(height: 24),
+            PrimaryButton(label: 'Save Product', onPressed: _savProduct),
             const SizedBox(height: 16),
           ],
         ),
@@ -441,11 +535,15 @@ class _ProductFormPageState extends State<ProductFormPage> {
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.borderColor.withValues(alpha: 0.3)),
+              borderSide: BorderSide(
+                color: appTheme.borderColor.withValues(alpha: 0.3),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.borderColor.withValues(alpha: 0.3)),
+              borderSide: BorderSide(
+                color: appTheme.borderColor.withValues(alpha: 0.3),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -488,11 +586,15 @@ class _ProductFormPageState extends State<ProductFormPage> {
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.borderColor.withValues(alpha: 0.3)),
+              borderSide: BorderSide(
+                color: appTheme.borderColor.withValues(alpha: 0.3),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.borderColor.withValues(alpha: 0.3)),
+              borderSide: BorderSide(
+                color: appTheme.borderColor.withValues(alpha: 0.3),
+              ),
             ),
             filled: true,
             fillColor: appTheme.backgroundSurface,
@@ -522,16 +624,21 @@ class _ProductFormPageState extends State<ProductFormPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<int?>(
-          value: value,
+          initialValue: value,
           items: [
             const DropdownMenuItem(value: null, child: Text('Select')),
-            ...items.map((item) => DropdownMenuItem(value: item.id, child: Text(item.name))),
+            ...items.map(
+              (item) =>
+                  DropdownMenuItem(value: item.id, child: Text(item.name)),
+            ),
           ],
           onChanged: onChanged,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.borderColor.withValues(alpha: 0.3)),
+              borderSide: BorderSide(
+                color: appTheme.borderColor.withValues(alpha: 0.3),
+              ),
             ),
             filled: true,
             fillColor: appTheme.backgroundSurface,
@@ -561,16 +668,21 @@ class _ProductFormPageState extends State<ProductFormPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<int?>(
-          value: value,
+          initialValue: value,
           items: [
             const DropdownMenuItem(value: null, child: Text('Select')),
-            ...items.map((item) => DropdownMenuItem(value: item.id, child: Text(item.name))),
+            ...items.map(
+              (item) =>
+                  DropdownMenuItem(value: item.id, child: Text(item.name)),
+            ),
           ],
           onChanged: onChanged,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.borderColor.withValues(alpha: 0.3)),
+              borderSide: BorderSide(
+                color: appTheme.borderColor.withValues(alpha: 0.3),
+              ),
             ),
             filled: true,
             fillColor: appTheme.backgroundSurface,
@@ -600,19 +712,23 @@ class _ProductFormPageState extends State<ProductFormPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String?>(
-          value: value,
+          initialValue: value,
           items: [
             const DropdownMenuItem(value: null, child: Text('Select')),
-            ...items.map((item) => DropdownMenuItem(
-              value: item.id.toString(),
-              child: Text('${item.symbol} - ${item.name}'),
-            )),
+            ...items.map(
+              (item) => DropdownMenuItem(
+                value: item.id.toString(),
+                child: Text('${item.symbol} - ${item.name}'),
+              ),
+            ),
           ],
           onChanged: onChanged,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.borderColor.withValues(alpha: 0.3)),
+              borderSide: BorderSide(
+                color: appTheme.borderColor.withValues(alpha: 0.3),
+              ),
             ),
             filled: true,
             fillColor: appTheme.backgroundSurface,
@@ -630,11 +746,35 @@ class _ProductFormPageState extends State<ProductFormPage> {
     return AppTheme.gold;
   }
 
-  Widget _buildImageWidget(String imagePath, int index, {required BoxFit fit, required AppTheme appTheme}) {
+  Widget _buildImageWidget(
+    String imagePath,
+    int index, {
+    required BoxFit fit,
+    required AppTheme appTheme,
+  }) {
+    if (_looksLikeBase64Image(imagePath)) {
+      try {
+        final bytes = _decodeBase64ImageBytes(imagePath);
+        if (bytes == null) {
+          return Icon(Icons.image, color: appTheme.accentSecondary);
+        }
+        return Image.memory(
+          bytes,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(Icons.image, color: appTheme.accentSecondary);
+          },
+        );
+      } catch (e) {
+        return Icon(Icons.image, color: appTheme.accentSecondary);
+      }
+    }
+
     // For web, try to use XFile data if available
-    if (kIsWeb && index < _selectedXFiles.length) {
+    final matchingXFile = _xFileForPath(imagePath);
+    if (kIsWeb && matchingXFile != null) {
       return FutureBuilder<Uint8List>(
-        future: _selectedXFiles[index].readAsBytes(),
+        future: matchingXFile.readAsBytes(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return Image.memory(
@@ -654,7 +794,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
         },
       );
     }
-    
+
     // For native platforms, use File directly
     try {
       final file = File(imagePath);

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:photo_view/photo_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
@@ -54,12 +54,16 @@ class _DetailsPageState extends State<DetailsPage> {
   void _loadData() {
     jewellery = HiveService.getJewellery(widget.jeweleryId);
     if (jewellery != null) {
-      payer = jewellery!.payerId != null ? HiveService.getUser(jewellery!.payerId!) : null;
-      owner = jewellery!.ownerId != null ? HiveService.getUser(jewellery!.ownerId!) : null;
+      payer = jewellery!.payerId != null
+          ? HiveService.getUser(jewellery!.payerId!)
+          : null;
+      owner = jewellery!.ownerId != null
+          ? HiveService.getUser(jewellery!.ownerId!)
+          : null;
       brand = HiveService.getAllBrands().cast<Brand?>().firstWhere(
-            (b) => b?.name == jewellery!.brand,
-            orElse: () => null,
-          );
+        (b) => b?.name == jewellery!.brand,
+        orElse: () => null,
+      );
       jewelleryType = jewellery!.jewelleryTypeId != null
           ? HiveService.getJewelleryType(jewellery!.jewelleryTypeId!)
           : null;
@@ -82,7 +86,10 @@ class _DetailsPageState extends State<DetailsPage> {
       return Scaffold(
         appBar: AppHeader(title: 'Details'),
         body: Center(
-          child: Text('Jewellery not found', style: TextStyle(color: appTheme.textBody)),
+          child: Text(
+            'Jewellery not found',
+            style: TextStyle(color: appTheme.textBody),
+          ),
         ),
       );
     }
@@ -122,6 +129,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                 child: _buildDetailsImageWidget(
                                   jewellery!.jewelleryPhoto[index],
                                   appTheme,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             );
@@ -178,7 +186,9 @@ class _DetailsPageState extends State<DetailsPage> {
                               border: Border.all(
                                 color: _currentImageIndex == index
                                     ? appTheme.accentPrimary
-                                    : appTheme.borderColor.withValues(alpha: 0.3),
+                                    : appTheme.borderColor.withValues(
+                                        alpha: 0.3,
+                                      ),
                                 width: _currentImageIndex == index ? 2 : 1,
                               ),
                             ),
@@ -187,6 +197,7 @@ class _DetailsPageState extends State<DetailsPage> {
                               child: _buildDetailsImageWidget(
                                 jewellery!.jewelleryPhoto[index],
                                 appTheme,
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),
@@ -212,10 +223,7 @@ class _DetailsPageState extends State<DetailsPage> {
                           onPressed: () async {
                             await GoRouter.of(context).push(
                               '/add-product',
-                              extra: {
-                                'mode': 'edit',
-                                'id': jewellery!.id,
-                              },
+                              extra: {'mode': 'edit', 'id': jewellery!.id},
                             );
                             // Fix: Added mounted check to prevent setState after deactivation
                             if (!mounted) return;
@@ -258,7 +266,10 @@ class _DetailsPageState extends State<DetailsPage> {
         actions: [
           TextButton(
             onPressed: () => GoRouter.of(context).pop(),
-            child: Text('Cancel', style: TextStyle(color: appTheme.accentSecondary)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: appTheme.accentSecondary),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -284,121 +295,200 @@ class _DetailsPageState extends State<DetailsPage> {
   Widget _buildDetailsTable(AppTheme appTheme) {
     // Fix: Reordered fields to match required sequence and show dashes for empty values
     final List<MapEntry<String, String>> rows = [];
-    
+    final sizeText = jewellery!.size != null
+        ? [
+            jewellery!.size.toString(),
+            if (jewellery!.measurementUnit?.trim().isNotEmpty == true)
+              jewellery!.measurementUnit!.trim(),
+          ].join(' ')
+        : '—';
+
     // Build row data in correct order
-    rows.add(MapEntry('Name', jewellery!.name ?? '—'));
-    rows.add(MapEntry('Date of Purchase', DateFormat('dd/MM/yyyy').format(jewellery!.date)));
-    rows.add(MapEntry('Brand', jewellery!.brand ?? '—'));
-    rows.add(MapEntry('Purity', jewellery!.goldPurity ?? '—'));
+    rows.add(MapEntry('Name', jewellery!.name));
+    rows.add(
+      MapEntry(
+        'Date of Purchase',
+        DateFormat('dd/MM/yyyy').format(jewellery!.date),
+      ),
+    );
+    rows.add(MapEntry('Brand', jewellery!.brand));
+    rows.add(MapEntry('Purity', jewellery!.goldPurity));
     rows.add(MapEntry('Owner', owner?.name ?? '—'));
     rows.add(MapEntry('Payer', payer?.name ?? '—'));
     rows.add(MapEntry('Jewellery Type', jewelleryType?.name ?? '—'));
-    rows.add(MapEntry('Size', jewellery!.size != null ? jewellery!.size.toString() : '—'));
-    rows.add(MapEntry('Measurement Unit', jewellery!.measurement != null ? jewellery!.measurement.toString() : '—'));
+    rows.add(MapEntry('Size', sizeText));
     rows.add(MapEntry('Currency', currency?.name ?? '—'));
-    rows.add(MapEntry('Price Per Gram', jewellery!.pricePerGram != null ? '${currency?.symbol ?? 'RM'} ${jewellery!.pricePerGram}' : '—'));
-    rows.add(MapEntry('Weight', jewellery!.weight != null ? '${jewellery!.weight} g' : '—'));
-    rows.add(MapEntry('Labor Fees', jewellery!.laborFees != null ? '${currency?.symbol ?? 'RM'} ${jewellery!.laborFees}' : '—'));
-    rows.add(MapEntry('Total Price', jewellery!.totalPrice != null ? '${currency?.symbol ?? 'RM'} ${jewellery!.totalPrice}' : '—'));
+    rows.add(
+      MapEntry(
+        'Price Per Gram',
+        jewellery!.pricePerGram != null
+            ? '${currency?.symbol ?? 'RM'} ${jewellery!.pricePerGram}'
+            : '—',
+      ),
+    );
+    rows.add(
+      MapEntry(
+        'Weight',
+        jewellery!.weight != null ? '${jewellery!.weight} g' : '—',
+      ),
+    );
+    rows.add(
+      MapEntry(
+        'Labor Fees',
+        jewellery!.laborFees != null
+            ? '${currency?.symbol ?? 'RM'} ${jewellery!.laborFees}'
+            : '—',
+      ),
+    );
+    rows.add(
+      MapEntry(
+        'Total Price',
+        jewellery!.totalPrice != null
+            ? '${currency?.symbol ?? 'RM'} ${jewellery!.totalPrice}'
+            : '—',
+      ),
+    );
     rows.add(MapEntry('Purchase Location', jewellery!.purchaseLocation ?? '—'));
-    rows.add(MapEntry('Remarks', jewellery!.remarks?.isNotEmpty == true ? jewellery!.remarks! : '—'));
+    rows.add(
+      MapEntry(
+        'Remarks',
+        jewellery!.remarks?.isNotEmpty == true ? jewellery!.remarks! : '—',
+      ),
+    );
 
     return Table(
-      columnWidths: const {
-        0: FlexColumnWidth(4),
-        1: FlexColumnWidth(6),
-      },
+      columnWidths: const {0: FlexColumnWidth(4), 1: FlexColumnWidth(6)},
       border: TableBorder(
         horizontalInside: BorderSide(
           color: appTheme.borderColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
-      children: List.generate(
-        rows.length,
-        (index) {
-          final isAlternate = index % 2 == 1;
-          final backgroundColor = isAlternate ? appTheme.backgroundSubtle : appTheme.backgroundSurface;
-          
-          return TableRow(
-            decoration: BoxDecoration(color: backgroundColor),
-            children: [
-              TableCell(
-                verticalAlignment: TableCellVerticalAlignment.middle,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Text(
-                    rows[index].key,
-                    textAlign: TextAlign.left,
-                    style: TextStyle(
-                      color: appTheme.textBody,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+      children: List.generate(rows.length, (index) {
+        final isAlternate = index % 2 == 1;
+        final backgroundColor = isAlternate
+            ? appTheme.backgroundSubtle
+            : appTheme.backgroundSurface;
+
+        return TableRow(
+          decoration: BoxDecoration(color: backgroundColor),
+          children: [
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Text(
+                  rows[index].key,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    color: appTheme.textBody,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              TableCell(
-                verticalAlignment: TableCellVerticalAlignment.middle,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Text(
-                    rows[index].value,
-                    textAlign: TextAlign.left,
-                    style: TextStyle(
-                      color: appTheme.textHeading,
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Text(
+                  rows[index].value,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    color: appTheme.textHeading,
+                    fontSize: 12,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        );
+      }),
     );
   }
 
-  Widget _buildDetailsImageWidget(String imagePath, AppTheme appTheme) {
+  Uint8List? _decodeBase64ImageBytes(String imagePath) {
+    final source = imagePath.trim();
+    final commaIndex = source.indexOf(',');
+    final payload = source.startsWith('data:image') && commaIndex >= 0
+        ? source.substring(commaIndex + 1)
+        : source;
+
+    if (payload.length < 100 ||
+        payload.startsWith('file:') ||
+        payload.contains(r'\') ||
+        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(payload)) {
+      return null;
+    }
+
+    if (payload.startsWith('/') && !payload.startsWith('/9j/')) {
+      return null;
+    }
+
+    try {
+      return base64Decode(payload);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildDetailsImageWidget(
+    String imagePath,
+    AppTheme appTheme, {
+    BoxFit fit = BoxFit.cover,
+  }) {
     // Fix: Check if path is an asset first
     if (imagePath.startsWith('assets/')) {
       return Image.asset(
         imagePath,
-        fit: BoxFit.cover,
+        fit: fit,
         errorBuilder: (context, error, stackTrace) {
           return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
         },
       );
     }
-    
+
+    final bytes = _decodeBase64ImageBytes(imagePath);
+    if (bytes != null) {
+      return SizedBox.expand(
+        child: Image.memory(
+          bytes,
+          fit: fit,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
+          },
+        ),
+      );
+    }
+
     try {
-      // Try to decode as base64 (new format)
-      final bytes = base64Decode(imagePath);
-      return Image.memory(
-        bytes,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-        },
-      );
-    } catch (e) {
-      // If not base64, try to load as file path (legacy format)
-      try {
-        final file = File(imagePath);
-        if (file.existsSync()) {
-          return Image.file(
+      final file = File(imagePath);
+      if (file.existsSync()) {
+        return SizedBox.expand(
+          child: Image.file(
             file,
-            fit: BoxFit.cover,
+            fit: fit,
             errorBuilder: (context, error, stackTrace) {
-              return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
+              return Icon(
+                Icons.image,
+                color: appTheme.accentSecondary,
+                size: 48,
+              );
             },
-          );
-        }
-      } catch (_) {}
-      
-      return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-    }
+          ),
+        );
+      }
+    } catch (_) {}
+
+    return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
   }
 }
 

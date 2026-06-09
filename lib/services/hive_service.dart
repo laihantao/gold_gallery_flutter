@@ -22,7 +22,7 @@ class HiveService {
     _brandBox = await Hive.openBox<String>(boxBrand);
     _jewelleryTypeBox = await Hive.openBox<String>(boxJewelleryType);
     _currencyBox = await Hive.openBox<String>(boxCurrency);
-    
+
     await _seedData();
   }
 
@@ -34,7 +34,9 @@ class HiveService {
 
   static Future<void> _seedBrands() async {
     if (_brandBox.isEmpty) {
-      final String jsonString = await rootBundle.loadString('assets/data/init_brands.json');
+      final String jsonString = await rootBundle.loadString(
+        'assets/data/init_brands.json',
+      );
       final List<dynamic> jsonList = jsonDecode(jsonString);
       final now = DateTime.now();
       for (final item in jsonList) {
@@ -53,7 +55,9 @@ class HiveService {
 
   static Future<void> _seedCurrency() async {
     if (_currencyBox.isEmpty) {
-      final String jsonString = await rootBundle.loadString('assets/data/init_currency.json');
+      final String jsonString = await rootBundle.loadString(
+        'assets/data/init_currency.json',
+      );
       final List<dynamic> jsonList = jsonDecode(jsonString);
       for (final item in jsonList) {
         final currency = Currency(
@@ -61,14 +65,19 @@ class HiveService {
           name: item['name'],
           symbol: item['symbol'],
         );
-        await _currencyBox.put(currency.id.toString(), jsonEncode(currency.toJson()));
+        await _currencyBox.put(
+          currency.id.toString(),
+          jsonEncode(currency.toJson()),
+        );
       }
     }
   }
 
   static Future<void> _seedJewelleryTypes() async {
     if (_jewelleryTypeBox.isEmpty) {
-      final String jsonString = await rootBundle.loadString('assets/data/init_jewellery_types.json');
+      final String jsonString = await rootBundle.loadString(
+        'assets/data/init_jewellery_types.json',
+      );
       final List<dynamic> jsonList = jsonDecode(jsonString);
       final now = DateTime.now();
       for (final item in jsonList) {
@@ -78,14 +87,20 @@ class HiveService {
           createdAt: now,
           updatedAt: now,
         );
-        await _jewelleryTypeBox.put(type.id.toString(), jsonEncode(type.toJson()));
+        await _jewelleryTypeBox.put(
+          type.id.toString(),
+          jsonEncode(type.toJson()),
+        );
       }
     }
   }
 
   // Jewellery methods
   static Future<void> saveJewellery(Jewellery jewellery) async {
-    await _jeweleryBox.put(jewellery.id.toString(), jsonEncode(jewellery.toJson()));
+    await _jeweleryBox.put(
+      jewellery.id.toString(),
+      jsonEncode(jewellery.toJson()),
+    );
   }
 
   static Future<void> deleteJewellery(int id) async {
@@ -229,5 +244,65 @@ class HiveService {
       items.add(Currency.fromJson(jsonDecode(json)));
     }
     return items;
+  }
+
+  static Map<String, List<Map<String, dynamic>>> exportRawData() {
+    return {
+      boxJewellery: _decodeBoxValues(_jeweleryBox),
+      boxUser: _decodeBoxValues(_userBox),
+      boxBrand: _decodeBoxValues(_brandBox),
+      boxJewelleryType: _decodeBoxValues(_jewelleryTypeBox),
+      boxCurrency: _decodeBoxValues(_currencyBox),
+    };
+  }
+
+  static Future<Map<String, int>> importRawData(
+    Map<String, dynamic> boxes,
+  ) async {
+    final importedCounts = <String, int>{};
+
+    importedCounts[boxUser] = await _upsertBoxValues(_userBox, boxes[boxUser]);
+    importedCounts[boxBrand] = await _upsertBoxValues(
+      _brandBox,
+      boxes[boxBrand],
+    );
+    importedCounts[boxJewelleryType] = await _upsertBoxValues(
+      _jewelleryTypeBox,
+      boxes[boxJewelleryType],
+    );
+    importedCounts[boxCurrency] = await _upsertBoxValues(
+      _currencyBox,
+      boxes[boxCurrency],
+    );
+    importedCounts[boxJewellery] = await _upsertBoxValues(
+      _jeweleryBox,
+      boxes[boxJewellery],
+    );
+
+    return importedCounts;
+  }
+
+  static List<Map<String, dynamic>> _decodeBoxValues(Box<String> box) {
+    return box.values
+        .map((json) => Map<String, dynamic>.from(jsonDecode(json)))
+        .toList();
+  }
+
+  static Future<int> _upsertBoxValues(Box<String> box, dynamic values) async {
+    if (values is! List) return 0;
+
+    var count = 0;
+    for (final value in values) {
+      if (value is! Map) continue;
+
+      final item = Map<String, dynamic>.from(value);
+      final id = item['id'];
+      if (id == null) continue;
+
+      await box.put(id.toString(), jsonEncode(item));
+      count++;
+    }
+
+    return count;
   }
 }

@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 import '../components/buttons.dart';
+import '../services/backup_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -13,6 +14,9 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  bool _isExporting = false;
+  bool _isImporting = false;
+
   @override
   void initState() {
     super.initState();
@@ -86,14 +90,14 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Column(
                 children: [
                   PrimaryButton(
-                    label: 'Export Data',
+                    label: _isExporting ? 'Exporting...' : 'Export Data',
                     onPressed: () {
                       _exportData(context, appTheme);
                     },
                   ),
                   const SizedBox(height: 12),
                   GhostButton(
-                    label: 'Import Data',
+                    label: _isImporting ? 'Importing...' : 'Import Data',
                     onPressed: () {
                       _importData(context, appTheme);
                     },
@@ -108,20 +112,65 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _exportData(BuildContext context, AppTheme appTheme) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Export feature coming soon'),
-        backgroundColor: appTheme.accentPrimary,
-      ),
-    );
+  Future<void> _exportData(BuildContext context, AppTheme appTheme) async {
+    if (_isExporting || _isImporting) return;
+
+    setState(() => _isExporting = true);
+    try {
+      final savePath = await BackupService.exportBackup();
+      if (!mounted) return;
+
+      _showSnackBar(
+        savePath == null
+            ? 'Export cancelled'
+            : savePath == 'shared'
+            ? 'JSON backup shared successfully'
+            : 'JSON backup exported successfully',
+        appTheme,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Export failed: $e', appTheme, isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
   }
 
-  void _importData(BuildContext context, AppTheme appTheme) {
+  Future<void> _importData(BuildContext context, AppTheme appTheme) async {
+    if (_isExporting || _isImporting) return;
+
+    setState(() => _isImporting = true);
+    try {
+      final result = await BackupService.importBackup();
+      if (!mounted) return;
+
+      _showSnackBar(
+        result == null
+            ? 'Import cancelled'
+            : 'Imported ${result.totalImported} records successfully',
+        appTheme,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Import failed: $e', appTheme, isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isImporting = false);
+      }
+    }
+  }
+
+  void _showSnackBar(
+    String message,
+    AppTheme appTheme, {
+    bool isError = false,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Import feature coming soon'),
-        backgroundColor: appTheme.accentPrimary,
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : appTheme.accentPrimary,
       ),
     );
   }

@@ -24,6 +24,14 @@ class _ListingPageState extends State<ListingPage> {
   String? selectedPurity;
   int? selectedTypeId;
 
+  String? get _selectedTypeName {
+    if (selectedTypeId == null) return null;
+    for (final type in types) {
+      if (type.id == selectedTypeId) return type.name;
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -136,24 +144,18 @@ class _ListingPageState extends State<ListingPage> {
                       child: _FilterChip(
                         label: 'Type',
                         items: types.map((t) => t.name).toList(),
-                        selected: selectedTypeId != null
-                            ? types
-                                  .firstWhere(
-                                    (t) => t.id == selectedTypeId,
-                                    orElse: () => types.first,
-                                  )
-                                  .name
-                            : null,
+                        selected: _selectedTypeName,
                         onChanged: (value) {
                           setState(() {
-                            selectedTypeId = value != null
-                                ? types
-                                      .firstWhere(
-                                        (t) => t.name == value,
-                                        orElse: () => types.first,
-                                      )
-                                      .id
-                                : null;
+                            selectedTypeId = null;
+                            if (value != null) {
+                              for (final type in types) {
+                                if (type.name == value) {
+                                  selectedTypeId = type.id;
+                                  break;
+                                }
+                              }
+                            }
                           });
                           _applyFilters();
                         },
@@ -181,7 +183,7 @@ class _ListingPageState extends State<ListingPage> {
                       // Fix: ListView.builder provides itemCount indices starting from 0,
                       // so we're guaranteed safe access here. No need for bounds check.
                       final item = filteredJewellery[index];
-                      
+
                       final currency = HiveService.getCurrency(1);
                       return _JewelleryCard(
                         jewellery: item,
@@ -249,6 +251,8 @@ class _FilterChip extends StatefulWidget {
 }
 
 class _FilterChipState extends State<_FilterChip> {
+  static const String _allValue = '__all__';
+
   @override
   Widget build(BuildContext context) {
     // Fix: Changed display format to "Brand: All" / "Brand: Value"
@@ -256,18 +260,19 @@ class _FilterChipState extends State<_FilterChip> {
     // Fix: Guard empty items list to prevent hit test failures
     final hasItems = widget.items.isNotEmpty;
 
-    return PopupMenuButton<String?>(
-      enabled: hasItems, // Disable if no items to prevent hit test errors
-      onSelected: widget.onChanged,
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        widget.onChanged(value == _allValue ? null : value);
+      },
       itemBuilder: (BuildContext context) {
         // Fix: Ensure menu always has at least "All" option
         return [
           // Fix: Changed first option to "All" instead of "Clear X"
-          PopupMenuItem<String?>(value: null, child: const Text('All')),
+          const PopupMenuItem<String>(value: _allValue, child: Text('All')),
           if (widget.items.isNotEmpty) const PopupMenuDivider(),
           if (widget.items.isNotEmpty)
             ...widget.items.map((item) {
-              return PopupMenuItem<String?>(value: item, child: Text(item));
+              return PopupMenuItem<String>(value: item, child: Text(item));
             }),
         ];
       },
@@ -337,26 +342,76 @@ class _JewelleryCard extends StatelessWidget {
     }
   }
 
+  String? _nonBlank(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(
+              color: appTheme.accentPrimary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: TextStyle(color: appTheme.textBody, fontSize: 11),
+          ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildInfoStack(List<MapEntry<String, String>> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final item in items) ...[
+          _buildInfoRow(item.key, item.value),
+          if (item != items.last) const SizedBox(height: 4),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Fix: Guard against null values and provide safe defaults
     final jewelType = jewellery.jewelleryTypeId != null
-        ? HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name ??
-              'N/A'
-        : 'N/A';
+        ? _nonBlank(
+            HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name,
+          )
+        : null;
+    final ownerName = jewellery.ownerId != null
+        ? _nonBlank(HiveService.getUser(jewellery.ownerId!)?.name)
+        : null;
     final dateOfPurchase = DateFormat('dd/MM/yyyy').format(jewellery.date);
-    
+
     // Fix: Ensure totalPrice is never null in display
     final totalPrice = jewellery.totalPrice ?? 0.0;
     final priceText = totalPrice > 0
         ? '${currency?.symbol ?? 'RM'} ${totalPrice.toStringAsFixed(2)}'
         : '${currency?.symbol ?? 'RM'} 0.00';
-    
-    // Fix: brand and goldPurity are non-nullable strings with defaults
-    // Just check if they're empty
-    final brandName = jewellery.brand.isNotEmpty ? jewellery.brand : 'N/A';
-    final purity = jewellery.goldPurity.isNotEmpty ? jewellery.goldPurity : '916';
-    
+
+    final productInfo = [
+      if (_nonBlank(jewellery.brand) case final brand?)
+        MapEntry('Brand', brand),
+      if (jewelType case final type?) MapEntry('Type', type),
+      MapEntry('Date', dateOfPurchase),
+    ];
+    final ownerInfo = [
+      if (_nonBlank(jewellery.goldPurity) case final purity?)
+        MapEntry('Purity', purity),
+      if (ownerName case final owner?) MapEntry('Owner', owner),
+    ];
+
     // Fix: Safely access jewelleryPhoto which is always initialized to non-null list by fromJson
     final photos = jewellery.jewelleryPhoto;
     final hasPhotos = photos.isNotEmpty;
@@ -404,17 +459,17 @@ class _JewelleryCard extends StatelessWidget {
                           ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                // Column 2: Name, Brand, Purity, Type, Date (stacked vertically)
+                const SizedBox(width: 14),
+                // Column 2: Name and nullable product/owner metadata.
                 Expanded(
-                  flex: 2,
+                  flex: 4,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       // Product Name
                       Text(
-                        jewellery.name ?? 'Untitled',
+                        _nonBlank(jewellery.name) ?? 'Untitled',
                         style: TextStyle(
                           color: appTheme.textHeading,
                           fontSize: 13,
@@ -426,128 +481,35 @@ class _JewelleryCard extends StatelessWidget {
                         softWrap: true,
                       ),
                       const SizedBox(height: 8),
-                      // Brand info
-                      RichText(
-                        text: TextSpan(
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            TextSpan(
-                              text: 'Brand: ',
-                              style: TextStyle(
-                                color: appTheme.accentPrimary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(
-                              text: brandName,
-                              style: TextStyle(
-                                color: appTheme.textBody,
-                                fontSize: 11,
+                            Expanded(child: _buildInfoStack(productInfo)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _buildInfoStack(ownerInfo)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    priceText,
+                                    style: TextStyle(
+                                      color: appTheme.accentPrimary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      // Purity info
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Purity: ',
-                              style: TextStyle(
-                                color: appTheme.accentPrimary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(
-                              text: purity,
-                              style: TextStyle(
-                                color: appTheme.textBody,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      // Type info
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Type: ',
-                              style: TextStyle(
-                                color: appTheme.accentPrimary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(
-                              text: jewelType,
-                              style: TextStyle(
-                                color: appTheme.textBody,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      // Date info
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Date: ',
-                              style: TextStyle(
-                                color: appTheme.accentPrimary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            TextSpan(
-                              text: dateOfPurchase,
-                              style: TextStyle(
-                                color: appTheme.textBody,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Column 3: Price pinned to bottom using MainAxisAlignment.end
-                // Fix: Use a Column with MainAxisAlignment.end instead of Align.bottomRight
-                // This works properly with IntrinsicHeight's stretched children
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        priceText,
-                        style: TextStyle(
-                          color: appTheme.accentPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
                       ),
                     ],
                   ),
