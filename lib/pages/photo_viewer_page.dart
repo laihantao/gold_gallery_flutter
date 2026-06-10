@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:photo_view/photo_view.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 
 class PhotoViewerPage extends StatefulWidget {
   final List<String> imagePaths;
@@ -57,7 +59,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -237,11 +239,4 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     );
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
-  }
 }

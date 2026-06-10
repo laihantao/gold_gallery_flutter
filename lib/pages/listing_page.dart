@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 
@@ -76,22 +78,20 @@ class _ListingPageState extends State<ListingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
       appBar: AppHeader(title: 'Jewellery Listing', showBackButton: false),
       body: Column(
         children: [
-          // Fix: Filter section restructured into 2 rows for stability
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
             child: Column(
               children: [
-                // Row 1: Brand and Purity filters with fixed width
                 Row(
                   children: [
-                    SizedBox(
-                      width: 160,
+                    Expanded(
+                      flex: 3,
                       child: _FilterChip(
                         label: 'Brand',
                         items: brands.map((b) => b.name).toList(),
@@ -103,12 +103,12 @@ class _ListingPageState extends State<ListingPage> {
                         appTheme: appTheme,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 160,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
                       child: _FilterChip(
                         label: 'Purity',
-                        items: ['916', '999'],
+                        items: const ['916', '999'],
                         selected: selectedPurity,
                         onChanged: (value) {
                           setState(() => selectedPurity = value);
@@ -117,30 +117,13 @@ class _ListingPageState extends State<ListingPage> {
                         appTheme: appTheme,
                       ),
                     ),
-                    const Spacer(),
-                    // Fix: Reset Filter button
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          selectedBrand = null;
-                          selectedPurity = null;
-                          selectedTypeId = null;
-                        });
-                        _applyFilters();
-                      },
-                      child: Text(
-                        'Reset Filter',
-                        style: TextStyle(color: appTheme.accentPrimary),
-                      ),
-                    ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                // Row 2: Type filter with fixed width, left-aligned
+                const SizedBox(height: 8),
                 Row(
                   children: [
-                    SizedBox(
-                      width: 160,
+                    Expanded(
+                      flex: 2,
                       child: _FilterChip(
                         label: 'Type',
                         items: types.map((t) => t.name).toList(),
@@ -160,6 +143,25 @@ class _ListingPageState extends State<ListingPage> {
                           _applyFilters();
                         },
                         appTheme: appTheme,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          selectedBrand = null;
+                          selectedPurity = null;
+                          selectedTypeId = null;
+                        });
+                        _applyFilters();
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Reset',
+                        style: TextStyle(color: appTheme.accentPrimary),
                       ),
                     ),
                   ],
@@ -222,13 +224,6 @@ class _ListingPageState extends State<ListingPage> {
     }
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
-  }
 }
 
 class _FilterChip extends StatefulWidget {
@@ -277,7 +272,8 @@ class _FilterChipState extends State<_FilterChip> {
         ];
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           border: Border.all(
             color: widget.appTheme.borderColor.withValues(alpha: 0.3),
@@ -286,20 +282,21 @@ class _FilterChipState extends State<_FilterChip> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Fix: Display label format as "Brand: All" or "Brand: Value"
-            Text(
-              '${widget.label}: $displayValue',
-              style: TextStyle(
-                color: hasItems
-                    ? widget.appTheme.textHeading
-                    : widget.appTheme.textBody.withValues(alpha: 0.5),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            Expanded(
+              child: Text(
+                '${widget.label}: $displayValue',
+                style: TextStyle(
+                  color: hasItems
+                      ? widget.appTheme.textHeading
+                      : widget.appTheme.textBody.withValues(alpha: 0.5),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 4),
             Icon(
               Icons.expand_more,
               size: 16,
@@ -334,11 +331,11 @@ class _JewelleryCard extends StatelessWidget {
         bytes,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          return Icon(Icons.image, color: appTheme.accentSecondary, size: 40);
+          return Icon(Icons.image, color: appTheme.accentSecondary, size: 28);
         },
       );
     } catch (e) {
-      return Icon(Icons.image, color: appTheme.accentSecondary, size: 40);
+      return Icon(Icons.image, color: appTheme.accentSecondary, size: 28);
     }
   }
 
@@ -417,14 +414,14 @@ class _JewelleryCard extends StatelessWidget {
     final hasPhotos = photos.isNotEmpty;
     final firstPhoto = hasPhotos ? photos.first : '';
 
-    // Fix: Use IntrinsicHeight to measure natural heights first, then stretch
-    // This prevents infinite height constraint errors in ListView
+    const imageSize = 100.0;
+
     return RepaintBoundary(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: appTheme.backgroundSurface,
             borderRadius: BorderRadius.circular(10),
@@ -433,89 +430,73 @@ class _JewelleryCard extends StatelessWidget {
               width: 1,
             ),
           ),
-          // Fix: Wrap in IntrinsicHeight to properly measure and stretch children
-          // This solves the "infinite height" constraint error from ListView
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Column 1: Image (fixed width SizedBox)
-                SizedBox(
-                  width: 100,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: appTheme.backgroundSubtle,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: imageSize,
+                height: imageSize,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: appTheme.backgroundSubtle,
+                  ),
+                  child: hasPhotos
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: _buildImageFromBase64(firstPhoto),
+                        )
+                      : Icon(
+                          Icons.image,
+                          color: appTheme.accentSecondary,
+                          size: 28,
+                        ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _nonBlank(jewellery.name) ?? 'Untitled',
+                      style: TextStyle(
+                        color: appTheme.textHeading,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.04,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    child: hasPhotos
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: _buildImageFromBase64(firstPhoto),
-                          )
-                        : Icon(
-                            Icons.image,
-                            color: appTheme.accentSecondary,
-                            size: 40,
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                // Column 2: Name and nullable product/owner metadata.
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      // Product Name
-                      Text(
-                        _nonBlank(jewellery.name) ?? 'Untitled',
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: _buildInfoStack(productInfo)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildInfoStack(ownerInfo)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        priceText,
                         style: TextStyle(
-                          color: appTheme.textHeading,
-                          fontSize: 13,
+                          color: appTheme.accentPrimary,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.04,
                         ),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        softWrap: true,
+                        textAlign: TextAlign.right,
                       ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(child: _buildInfoStack(productInfo)),
-                            const SizedBox(width: 12),
-                            Expanded(child: _buildInfoStack(ownerInfo)),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    priceText,
-                                    style: TextStyle(
-                                      color: appTheme.accentPrimary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

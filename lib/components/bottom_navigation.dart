@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 
 class BottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -12,7 +14,7 @@ class BottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Container(
       decoration: BoxDecoration(
@@ -71,13 +73,6 @@ class BottomNavigation extends StatelessWidget {
     );
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
-  }
 }
 
 class _BottomNavItem extends StatelessWidget {

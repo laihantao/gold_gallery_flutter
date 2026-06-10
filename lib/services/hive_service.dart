@@ -60,11 +60,7 @@ class HiveService {
       );
       final List<dynamic> jsonList = jsonDecode(jsonString);
       for (final item in jsonList) {
-        final currency = Currency(
-          id: item['id'],
-          name: item['name'],
-          symbol: item['symbol'],
-        );
+        final currency = Currency.fromJson(Map<String, dynamic>.from(item));
         await _currencyBox.put(
           currency.id.toString(),
           jsonEncode(currency.toJson()),
@@ -244,6 +240,25 @@ class HiveService {
       items.add(Currency.fromJson(jsonDecode(json)));
     }
     return items;
+  }
+
+  static Currency? getCurrencyByCode(String code) {
+    final normalized = code.toUpperCase();
+    for (final json in _currencyBox.values) {
+      final currency = Currency.fromJson(jsonDecode(json));
+      if (currency.code.toUpperCase() == normalized) {
+        return currency;
+      }
+    }
+
+    if (normalized == 'MYR') {
+      for (final json in _currencyBox.values) {
+        final currency = Currency.fromJson(jsonDecode(json));
+        if (currency.symbol == 'RM') return currency;
+      }
+    }
+
+    return null;
   }
 
   static Map<String, List<Map<String, dynamic>>> exportRawData() {

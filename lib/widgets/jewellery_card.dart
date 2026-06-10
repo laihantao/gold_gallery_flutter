@@ -1,0 +1,307 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
+import '../models/index.dart';
+import '../services/hive_service.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
+
+class JewelleryCard extends StatelessWidget {
+  final JewelleryDisplayItem item;
+  final VoidCallback? onTap;
+
+  const JewelleryCard({
+    super.key,
+    required this.item,
+    this.onTap,
+  });
+
+  double _imageSize(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final scaled = width >= 600 ? 80.0 : 72.0;
+    return scaled.clamp(60.0, 80.0);
+  }
+
+  String? _nonBlank(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final jewellery = item.jewellery;
+    final imageSize = _imageSize(context);
+    final typeName = jewellery.jewelleryTypeId != null
+        ? _nonBlank(
+            HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name,
+          )
+        : null;
+    final dateText = DateFormat('dd/MM/yyyy').format(jewellery.date);
+    final totalPrice = jewellery.totalPrice ?? 0.0;
+    final priceText =
+        '${item.currencySymbol} ${totalPrice.toStringAsFixed(2)}';
+    final purity = _nonBlank(jewellery.goldPurity) ?? '—';
+    final firstPhoto = jewellery.jewelleryPhoto.isNotEmpty
+        ? jewellery.jewelleryPhoto.first
+        : null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: appTheme.backgroundSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: appTheme.borderColor.withValues(alpha: 0.45),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: imageSize,
+                height: imageSize,
+                child: _JewelleryThumbnail(
+                  base64Photo: firstPhoto,
+                  appTheme: appTheme,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _nonBlank(jewellery.name) ?? 'Untitled',
+                    style: TextStyle(
+                      color: appTheme.textHeading,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  _MetaGrid(
+                    appTheme: appTheme,
+                    entries: [
+                      _MetaEntry('Brand', _nonBlank(jewellery.brand) ?? '—'),
+                      _MetaEntry('Owner', item.ownerName),
+                      _MetaEntry('Type', typeName ?? '—'),
+                      _MetaEntry('Date', dateText),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _PurityBadge(
+                        purity: purity,
+                        appTheme: appTheme,
+                      ),
+                      const Spacer(),
+                      Text(
+                        priceText,
+                        style: TextStyle(
+                          color: appTheme.priceHighlight,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JewelleryThumbnail extends StatelessWidget {
+  final String? base64Photo;
+  final AppTheme appTheme;
+
+  const _JewelleryThumbnail({
+    required this.base64Photo,
+    required this.appTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (base64Photo == null || base64Photo!.isEmpty) {
+      return ColoredBox(
+        color: appTheme.backgroundSubtle,
+        child: Center(
+          child: Icon(
+            Icons.diamond_outlined,
+            color: appTheme.accentSecondary,
+            size: 28,
+          ),
+        ),
+      );
+    }
+
+    try {
+      final bytes = base64Decode(base64Photo!);
+      return Image.memory(
+        bytes,
+        key: ValueKey('thumb_$base64Photo'),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return ColoredBox(
+            color: appTheme.backgroundSubtle,
+            child: Center(
+              child: Icon(
+                Icons.diamond_outlined,
+                color: appTheme.accentSecondary,
+                size: 28,
+              ),
+            ),
+          );
+        },
+      );
+    } catch (_) {
+      return ColoredBox(
+        color: appTheme.backgroundSubtle,
+        child: Center(
+          child: Icon(
+            Icons.diamond_outlined,
+            color: appTheme.accentSecondary,
+            size: 28,
+          ),
+        ),
+      );
+    }
+  }
+}
+
+class _MetaEntry {
+  final String label;
+  final String value;
+
+  const _MetaEntry(this.label, this.value);
+}
+
+class _MetaGrid extends StatelessWidget {
+  final AppTheme appTheme;
+  final List<_MetaEntry> entries;
+
+  const _MetaGrid({
+    required this.appTheme,
+    required this.entries,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 8) / 2;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: entries
+              .map(
+                (entry) => SizedBox(
+                  width: itemWidth,
+                  child: _MetaCell(
+                    label: entry.label,
+                    value: entry.value,
+                    appTheme: appTheme,
+                  ),
+                ),
+              )
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _MetaCell extends StatelessWidget {
+  final String label;
+  final String value;
+  final AppTheme appTheme;
+
+  const _MetaCell({
+    required this.label,
+    required this.value,
+    required this.appTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(
+              color: appTheme.textBody.withValues(alpha: 0.85),
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              color: appTheme.textHeading.withValues(alpha: 0.95),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PurityBadge extends StatelessWidget {
+  final String purity;
+  final AppTheme appTheme;
+
+  const _PurityBadge({
+    required this.purity,
+    required this.appTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: appTheme.accentPrimary.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: appTheme.accentPrimary.withValues(alpha: 0.55),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        purity,
+        style: TextStyle(
+          color: appTheme.accentSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}

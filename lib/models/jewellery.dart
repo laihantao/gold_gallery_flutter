@@ -13,6 +13,7 @@ class Jewellery {
   final double? weight;
   final double? laborFees;
   final double? totalPrice;
+  final int? currencyId;
   final String? purchaseLocation;
   final List<String> jewelleryPhoto;
   final String? remarks;
@@ -34,6 +35,7 @@ class Jewellery {
     this.weight,
     this.laborFees,
     this.totalPrice,
+    this.currencyId,
     this.purchaseLocation,
     required this.jewelleryPhoto,
     this.remarks,
@@ -56,6 +58,7 @@ class Jewellery {
     double? weight,
     double? laborFees,
     double? totalPrice,
+    int? currencyId,
     String? purchaseLocation,
     List<String>? jewelleryPhoto,
     String? remarks,
@@ -77,6 +80,7 @@ class Jewellery {
       weight: weight ?? this.weight,
       laborFees: laborFees ?? this.laborFees,
       totalPrice: totalPrice ?? this.totalPrice,
+      currencyId: currencyId ?? this.currencyId,
       purchaseLocation: purchaseLocation ?? this.purchaseLocation,
       jewelleryPhoto: jewelleryPhoto ?? this.jewelleryPhoto,
       remarks: remarks ?? this.remarks,
@@ -101,6 +105,7 @@ class Jewellery {
       'weight': weight,
       'laborFees': laborFees,
       'totalPrice': totalPrice,
+      'currencyId': currencyId,
       'purchaseLocation': purchaseLocation,
       'jewelleryPhoto': jewelleryPhoto,
       'remarks': remarks,
@@ -133,6 +138,7 @@ class Jewellery {
       totalPrice: json['totalPrice'] != null
           ? (json['totalPrice'] as num).toDouble()
           : null,
+      currencyId: json['currencyId'],
       purchaseLocation: json['purchaseLocation'],
       jewelleryPhoto: json['jewelleryPhoto'] != null
           ? List<String>.from(json['jewelleryPhoto'] ?? [])

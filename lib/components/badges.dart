@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 
 class PurityBadge extends StatelessWidget {
   final String purity;
@@ -8,7 +10,7 @@ class PurityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -28,13 +30,6 @@ class PurityBadge extends StatelessWidget {
     );
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
-  }
 }
 
 class PriceText extends StatelessWidget {

@@ -6,9 +6,11 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/buttons.dart';
 
@@ -39,7 +41,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
   int? _selectedTypeId;
   int? _selectedPayerId;
   int? _selectedOwnerId;
-  String? _selectedCurrencyId;
+  Currency? _selectedCurrency;
   String? _selectedMeasurementUnit;
   List<String> _selectedPhotos = [];
   final List<XFile> _selectedXFiles = []; // Store XFile for web preview
@@ -78,9 +80,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
     types = HiveService.getAllJewelleryTypes();
     users = HiveService.getAllUsers();
     currencies = HiveService.getAllCurrencies();
-
-    // Set default currency to id 1
-    _selectedCurrencyId = '1';
+    _selectedCurrency = _findCurrencyByCode('MYR') ??
+        (currencies.isNotEmpty ? currencies.first : null);
 
     if (widget.mode == 'edit' && widget.productId != null) {
       _existingJewellery = HiveService.getJewellery(widget.productId!);
@@ -106,6 +107,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
         _locationController.text = _existingJewellery!.purchaseLocation ?? '';
         _remarksController.text = _existingJewellery!.remarks ?? '';
         _selectedPhotos = List<String>.from(_existingJewellery!.jewelleryPhoto);
+        _selectedCurrency = _findCurrencyById(_existingJewellery!.currencyId) ??
+            _findCurrencyByCode('MYR') ??
+            (currencies.isNotEmpty ? currencies.first : null);
       }
     }
 
@@ -250,6 +254,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
         weight: double.tryParse(_weightController.text),
         laborFees: double.tryParse(_laborFeesController.text),
         totalPrice: double.tryParse(_totalPriceController.text),
+        currencyId: _selectedCurrency?.id,
         purchaseLocation: _locationController.text,
         jewelleryPhoto: encodedImages,
         remarks: _remarksController.text,
@@ -268,6 +273,23 @@ class _ProductFormPageState extends State<ProductFormPage> {
       if (!mounted) return;
       _showValidationError('Error saving product: $e');
     }
+  }
+
+  Currency? _findCurrencyByCode(String code) {
+    for (final currency in currencies) {
+      if (currency.code.toUpperCase() == code.toUpperCase()) {
+        return currency;
+      }
+    }
+    return null;
+  }
+
+  Currency? _findCurrencyById(int? id) {
+    if (id == null) return null;
+    for (final currency in currencies) {
+      if (currency.id == id) return currency;
+    }
+    return HiveService.getCurrency(id);
   }
 
   void _showValidationError(String message) {
@@ -293,7 +315,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
       appBar: AppHeader(
@@ -374,10 +396,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
             const SizedBox(height: 16),
             _buildCurrencyDropdown(
               'Currency',
-              _selectedCurrencyId,
+              _selectedCurrency?.id.toString(),
               currencies,
               (value) {
-                setState(() => _selectedCurrencyId = value);
+                setState(() {
+                  _selectedCurrency = _findCurrencyById(int.tryParse(value ?? ''));
+                });
               },
               appTheme,
             ),
@@ -736,14 +760,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
         ),
       ],
     );
-  }
-
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
   }
 
   Widget _buildImageWidget(

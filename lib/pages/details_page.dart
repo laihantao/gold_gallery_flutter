@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
-import 'dart:convert';
-import 'dart:typed_data';
+import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/buttons.dart';
+import '../widgets/jewellery_image_viewer.dart';
 
 class DetailsPage extends StatefulWidget {
   final int jeweleryId;
@@ -26,29 +26,11 @@ class _DetailsPageState extends State<DetailsPage> {
   Brand? brand;
   JewelleryType? jewelleryType;
   Currency? currency;
-  late PageController _pageController;
-  int _currentImageIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
-    _pageController.addListener(_onPageChanged);
     _loadData();
-  }
-
-  @override
-  void dispose() {
-    _pageController.removeListener(_onPageChanged);
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _onPageChanged() {
-    if (!mounted) return;
-    setState(() {
-      _currentImageIndex = _pageController.page?.round() ?? 0;
-    });
   }
 
   void _loadData() {
@@ -67,7 +49,9 @@ class _DetailsPageState extends State<DetailsPage> {
       jewelleryType = jewellery!.jewelleryTypeId != null
           ? HiveService.getJewelleryType(jewellery!.jewelleryTypeId!)
           : null;
-      currency = HiveService.getCurrency(1);
+      currency = jewellery!.currencyId != null
+          ? HiveService.getCurrency(jewellery!.currencyId!)
+          : HiveService.getCurrencyByCode('MYR');
       if (mounted) {
         setState(() {});
       }
@@ -80,7 +64,7 @@ class _DetailsPageState extends State<DetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     if (jewellery == null) {
       return Scaffold(
@@ -100,113 +84,24 @@ class _DetailsPageState extends State<DetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fix: Image section - Always render, with fallback for no images
             Padding(
               padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                height: 300,
-                child: GestureDetector(
-                  onTap: jewellery!.jewelleryPhoto.isNotEmpty
-                      ? () {
-                          GoRouter.of(context).push(
-                            '/photo-viewer',
-                            extra: {
-                              'imagePaths': jewellery!.jewelleryPhoto,
-                              'initialIndex': _currentImageIndex,
-                            },
-                          );
-                        }
-                      : null,
-                  child: jewellery!.jewelleryPhoto.isNotEmpty
-                      ? PageView.builder(
-                          controller: _pageController,
-                          itemCount: jewellery!.jewelleryPhoto.length,
-                          itemBuilder: (context, index) {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                color: appTheme.backgroundSubtle,
-                                child: _buildDetailsImageWidget(
-                                  jewellery!.jewelleryPhoto[index],
-                                  appTheme,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            );
+              child: JewelleryImageViewer(
+                imagePaths: jewellery!.jewelleryPhoto,
+                appTheme: appTheme,
+                onImageTap: jewellery!.jewelleryPhoto.isNotEmpty
+                    ? (index) {
+                        GoRouter.of(context).push(
+                          '/photo-viewer',
+                          extra: {
+                            'imagePaths': jewellery!.jewelleryPhoto,
+                            'initialIndex': index,
                           },
-                        )
-                      : ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            color: appTheme.backgroundSubtle,
-                            child: Image.asset(
-                              'assets/images/defaults/default_jewellery.png',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Icon(
-                                    Icons.image,
-                                    color: appTheme.accentSecondary,
-                                    size: 80,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                ),
+                        );
+                      }
+                    : null,
               ),
             ),
-            // Fix: Thumbnail row only shows if images exist
-            if (jewellery!.jewelleryPhoto.isNotEmpty &&
-                jewellery!.jewelleryPhoto.length > 1)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: List.generate(
-                      jewellery!.jewelleryPhoto.length,
-                      (index) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: GestureDetector(
-                          onTap: () {
-                            _pageController.animateToPage(
-                              index,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          },
-                          child: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _currentImageIndex == index
-                                    ? appTheme.accentPrimary
-                                    : appTheme.borderColor.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                width: _currentImageIndex == index ? 2 : 1,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: _buildDetailsImageWidget(
-                                jewellery!.jewelleryPhoto[index],
-                                appTheme,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -282,14 +177,6 @@ class _DetailsPageState extends State<DetailsPage> {
         ],
       ),
     );
-  }
-
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
   }
 
   Widget _buildDetailsTable(AppTheme appTheme) {
@@ -402,9 +289,15 @@ class _DetailsPageState extends State<DetailsPage> {
                   rows[index].value,
                   textAlign: TextAlign.left,
                   style: TextStyle(
-                    color: appTheme.textHeading,
-                    fontSize: 12,
-                    fontWeight: FontWeight.normal,
+                    color: rows[index].key == 'Total Price'
+                        ? appTheme.priceHighlight
+                        : appTheme.textHeading,
+                    fontSize: rows[index].key == 'Total Price' ? 15 : 12,
+                    fontWeight: rows[index].key == 'Total Price'
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    letterSpacing:
+                        rows[index].key == 'Total Price' ? 0.3 : 0,
                   ),
                 ),
               ),
@@ -415,81 +308,6 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
-  Uint8List? _decodeBase64ImageBytes(String imagePath) {
-    final source = imagePath.trim();
-    final commaIndex = source.indexOf(',');
-    final payload = source.startsWith('data:image') && commaIndex >= 0
-        ? source.substring(commaIndex + 1)
-        : source;
-
-    if (payload.length < 100 ||
-        payload.startsWith('file:') ||
-        payload.contains(r'\') ||
-        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(payload)) {
-      return null;
-    }
-
-    if (payload.startsWith('/') && !payload.startsWith('/9j/')) {
-      return null;
-    }
-
-    try {
-      return base64Decode(payload);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Widget _buildDetailsImageWidget(
-    String imagePath,
-    AppTheme appTheme, {
-    BoxFit fit = BoxFit.cover,
-  }) {
-    // Fix: Check if path is an asset first
-    if (imagePath.startsWith('assets/')) {
-      return Image.asset(
-        imagePath,
-        fit: fit,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-        },
-      );
-    }
-
-    final bytes = _decodeBase64ImageBytes(imagePath);
-    if (bytes != null) {
-      return SizedBox.expand(
-        child: Image.memory(
-          bytes,
-          fit: fit,
-          errorBuilder: (context, error, stackTrace) {
-            return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-          },
-        ),
-      );
-    }
-
-    try {
-      final file = File(imagePath);
-      if (file.existsSync()) {
-        return SizedBox.expand(
-          child: Image.file(
-            file,
-            fit: fit,
-            errorBuilder: (context, error, stackTrace) {
-              return Icon(
-                Icons.image,
-                color: appTheme.accentSecondary,
-                size: 48,
-              );
-            },
-          ),
-        );
-      }
-    } catch (_) {}
-
-    return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-  }
 }
 
 class _DetailRow extends StatelessWidget {

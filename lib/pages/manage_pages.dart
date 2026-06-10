@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 
 class BrandManagePage extends StatefulWidget {
@@ -29,7 +31,7 @@ class _BrandManagePageState extends State<BrandManagePage> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
       appBar: AppHeader(
@@ -185,13 +187,6 @@ class _BrandManagePageState extends State<BrandManagePage> {
     );
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
-  }
 }
 
 // Jewellery Type Manage Page
@@ -219,7 +214,7 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
       appBar: AppHeader(
@@ -338,11 +333,4 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
     );
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
-  }
 }

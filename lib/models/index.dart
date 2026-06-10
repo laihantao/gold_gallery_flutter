@@ -3,3 +3,7 @@ export 'user.dart';
 export 'brand.dart';
 export 'jewellery_type.dart';
 export 'currency.dart';
+export 'filter_option.dart';
+export 'sort_options.dart';
+export 'jewellery_display_item.dart';
+export 'gold_price.dart';

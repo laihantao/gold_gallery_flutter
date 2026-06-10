@@ -1,5 +1,5 @@
 export 'home_page.dart';
-export 'listing_page.dart';
+export 'jewellery_listing_page.dart';
 export 'details_page.dart';
 export 'users_page.dart';
 export 'settings_page.dart';

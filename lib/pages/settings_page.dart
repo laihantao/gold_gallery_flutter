@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 import '../components/buttons.dart';
@@ -24,7 +26,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
       appBar: AppHeader(title: 'Settings', showBackButton: false),
@@ -43,17 +45,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   _ThemeCircle(
                     theme: AppTheme.gold,
                     isActive: appTheme == AppTheme.gold,
-                    onTap: () {},
+                    onTap: () =>
+                        context.read<ThemeNotifier>().setTheme(AppTheme.gold),
                   ),
                   _ThemeCircle(
                     theme: AppTheme.blush,
                     isActive: appTheme == AppTheme.blush,
-                    onTap: () {},
+                    onTap: () =>
+                        context.read<ThemeNotifier>().setTheme(AppTheme.blush),
                   ),
                   _ThemeCircle(
                     theme: AppTheme.sky,
                     isActive: appTheme == AppTheme.sky,
-                    onTap: () {},
+                    onTap: () =>
+                        context.read<ThemeNotifier>().setTheme(AppTheme.sky),
                   ),
                 ],
               ),
@@ -186,14 +191,6 @@ class _SettingsPageState extends State<SettingsPage> {
       GoRouter.of(context).go('/users');
     }
   }
-}
-
-AppTheme _getAppTheme(BuildContext context) {
-  final primary = Theme.of(context).colorScheme.primary;
-  if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-  if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-  if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-  return AppTheme.gold;
 }
 
 class _SettingSection extends StatelessWidget {

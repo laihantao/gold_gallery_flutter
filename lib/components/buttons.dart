@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_notifier.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String label;
@@ -18,7 +20,7 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return SizedBox(
       width: width ?? double.infinity,
@@ -53,16 +55,6 @@ class PrimaryButton extends StatelessWidget {
     );
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    // Determine current theme from context
-    final primary = Theme.of(context).colorScheme.primary;
-
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-
-    return AppTheme.gold;
-  }
 }
 
 class GhostButton extends StatelessWidget {
@@ -82,7 +74,7 @@ class GhostButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = _getAppTheme(context);
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return SizedBox(
       width: width ?? double.infinity,
@@ -119,11 +111,4 @@ class GhostButton extends StatelessWidget {
     );
   }
 
-  AppTheme _getAppTheme(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    if (primary == GoldTheme.accentPrimary) return AppTheme.gold;
-    if (primary == BlushTheme.accentPrimary) return AppTheme.blush;
-    if (primary == SkyTheme.accentPrimary) return AppTheme.sky;
-    return AppTheme.gold;
-  }
 }

@@ -10,7 +10,7 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/listing',
-      builder: (context, state) => const ListingPage(),
+      builder: (context, state) => const JewelleryListingPage(),
     ),
     GoRoute(
       path: '/details',

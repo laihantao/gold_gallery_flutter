@@ -13,6 +13,7 @@ class GoldTheme {
   static const Color accentSecondary = Color(0xFFE8B84B); // Bright Gold
   static const Color textHeading = Color(0xFFF5D07A); // Pale Gold
   static const Color textBody = Color(0xFFA89B78); // Warm Muted
+  static const Color priceHighlight = Color(0xFFFFE066); // Vivid lemon-gold
 
   static ThemeData buildTheme() {
     return ThemeData(
@@ -56,6 +57,7 @@ class BlushTheme {
   static const Color accentSecondary = Color(0xFFE896B0); // Dusky Rose
   static const Color textHeading = Color(0xFF7A3550); // Deep Rose
   static const Color textBody = Color(0xFFC47A92); // Warm Pink Muted
+  static const Color priceHighlight = Color(0xFF9E1B4D); // Vivid rose on light surfaces
 
   static ThemeData buildTheme() {
     return ThemeData(
@@ -99,6 +101,7 @@ class SkyTheme {
   static const Color accentSecondary = Color(0xFF8ABCDF); // Calm Sky
   static const Color textHeading = Color(0xFF1E4F7A); // Deep Navy
   static const Color textBody = Color(0xFF5A8FB5); // Steel Blue Muted
+  static const Color priceHighlight = Color(0xFF0D47A1); // Vivid blue on light surfaces
 
   static ThemeData buildTheme() {
     return ThemeData(
@@ -211,6 +214,14 @@ enum AppTheme {
       AppTheme.gold => GoldTheme.textBody,
       AppTheme.blush => BlushTheme.textBody,
       AppTheme.sky => SkyTheme.textBody,
+    };
+  }
+
+  Color get priceHighlight {
+    return switch (this) {
+      AppTheme.gold => GoldTheme.priceHighlight,
+      AppTheme.blush => BlushTheme.priceHighlight,
+      AppTheme.sky => SkyTheme.priceHighlight,
     };
   }
 }
