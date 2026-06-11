@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
@@ -27,7 +26,7 @@ class _UsersPageState extends State<UsersPage> {
 
   void _setRefreshListener() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      GoRouter.of(context).routeInformationProvider?.addListener(_onRouteChanged);
+      GoRouter.of(context).routeInformationProvider.addListener(_onRouteChanged);
     });
   }
 
@@ -37,7 +36,7 @@ class _UsersPageState extends State<UsersPage> {
 
   @override
   void dispose() {
-    GoRouter.of(context).routeInformationProvider?.removeListener(_onRouteChanged);
+    GoRouter.of(context).routeInformationProvider.removeListener(_onRouteChanged);
     super.dispose();
   }
 

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:photo_view/photo_view.dart';
 import 'dart:io';
 import 'dart:convert';
-import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 
 class PhotoViewerPage extends StatefulWidget {

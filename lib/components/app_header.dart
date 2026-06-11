@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 
 class AppHeader extends StatelessWidget implements PreferredSizeWidget {

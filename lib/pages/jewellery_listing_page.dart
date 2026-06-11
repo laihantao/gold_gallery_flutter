@@ -6,7 +6,6 @@ import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 import '../models/index.dart';
 import '../providers/jewellery_listing_notifier.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/filter_chip_bar.dart';
 import '../widgets/jewellery_card.dart';
