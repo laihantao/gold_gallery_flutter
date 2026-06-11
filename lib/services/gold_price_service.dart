@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
 import '../models/gold_price.dart';
@@ -42,7 +43,12 @@ class PohKongPriceSource implements GoldPriceSource {
       double? price999;
 
       for (final element in rteElements) {
-        final text = element.text;
+        // Each price ("999 Gold/Gram - RM680", "916 Gold/Gram - RM630") sits in
+        // its own block element. Reading `element.text` concatenates them with
+        // no separator, so the 999 value glues onto the next "916" label and is
+        // parsed as "680916". Insert breaks at element boundaries to keep each
+        // price on its own line before extracting.
+        final text = _textWithLineBreaks(element);
         price916 ??= _extractPriceAfter(text, _pricePattern916);
         price999 ??= _extractPriceAfter(text, _pricePattern999);
       }
@@ -155,11 +161,33 @@ class GoldPriceService {
       sources.map((source) => source.fetch()).toList();
 }
 
+/// Concatenates an element's text while inserting a newline at every element
+/// boundary, so sibling blocks (e.g. separate price lines) don't merge into a
+/// single run of characters.
+String _textWithLineBreaks(dom.Node node) {
+  final buffer = StringBuffer();
+  for (final child in node.nodes) {
+    if (child is dom.Text) {
+      buffer.write(child.text);
+    } else if (child is dom.Element) {
+      buffer.write(_textWithLineBreaks(child));
+      buffer.write('\n');
+    }
+  }
+  return buffer.toString();
+}
+
 double? _extractPriceAfter(String text, String pattern) {
   final index = text.indexOf(pattern);
   if (index < 0) return null;
 
-  final remainder = text.substring(index + pattern.length).trim();
+  // Only look at the current line. Even if upstream text wasn't separated,
+  // this prevents a price from swallowing digits of a following label.
+  final remainder = text
+      .substring(index + pattern.length)
+      .split('\n')
+      .first
+      .trim();
   final match = RegExp(r'[\d,]+(?:\.\d+)?').firstMatch(remainder);
   if (match == null) return null;
 

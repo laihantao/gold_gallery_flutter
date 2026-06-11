@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../pages/index.dart';
 
@@ -51,6 +52,27 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: '/gold-history',
+      pageBuilder: (context, state) {
+        final shopName = state.extra as String?;
+        final page = shopName != null
+            ? GoldPriceHistoryPage(shopName: shopName)
+            : const HomePage();
+        return CustomTransitionPage(
+          key: state.pageKey,
+          child: page,
+          transitionDuration: const Duration(milliseconds: 280),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(
+                  parent: animation, curve: Curves.easeOut),
+              child: child,
+            );
+          },
+        );
+      },
     ),
     GoRoute(
       path: '/brands',

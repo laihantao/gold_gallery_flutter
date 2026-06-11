@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/gold_price_notifier.dart';
@@ -22,13 +23,32 @@ class GoldPriceSection extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Gold Price Today',
-                  style: TextStyle(
-                    color: appTheme.textHeading,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.04,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gold Price Today',
+                        style: TextStyle(
+                          color: appTheme.textHeading,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.04,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tap a card to view its price trend',
+                        style: TextStyle(
+                          color: appTheme.textBody.withValues(alpha: 0.6),
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
@@ -51,16 +71,19 @@ class GoldPriceSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            Column(
               children: [
                 for (var index = 0; index < sources.length; index++) ...[
-                  if (index > 0) const SizedBox(width: 12),
-                  Expanded(
-                    child: GoldPriceCard(
-                      shopName: sources[index].shopName,
-                      logoAsset: sources[index].logoAsset,
-                      state: notifier.stateFor(sources[index].shopName),
-                      appTheme: appTheme,
+                  if (index > 0) const SizedBox(height: 12),
+                  GoldPriceCard(
+                    shopName: sources[index].shopName,
+                    logoAsset: sources[index].logoAsset,
+                    state: notifier.stateFor(sources[index].shopName),
+                    appTheme: appTheme,
+                    onRetry: () => notifier.retry(sources[index].shopName),
+                    onTap: () => context.push(
+                      '/gold-history',
+                      extra: sources[index].shopName,
                     ),
                   ),
                 ],

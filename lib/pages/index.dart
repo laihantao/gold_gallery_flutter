@@ -1,4 +1,5 @@
 export 'home_page.dart';
+export 'gold_price_history_page.dart';
 export 'jewellery_listing_page.dart';
 export 'details_page.dart';
 export 'users_page.dart';
