@@ -14,10 +14,10 @@ class UserFormPage extends StatefulWidget {
   final int? userId;
 
   const UserFormPage({
-    Key? key,
+    super.key,
     required this.mode,
     this.userId,
-  }) : super(key: key);
+  });
 
   @override
   State<UserFormPage> createState() => _UserFormPageState();
@@ -192,7 +192,7 @@ class _UserFormPageState extends State<UserFormPage> {
 class UserDetailsPage extends StatefulWidget {
   final int userId;
 
-  const UserDetailsPage({Key? key, required this.userId}) : super(key: key);
+  const UserDetailsPage({super.key, required this.userId});
 
   @override
   State<UserDetailsPage> createState() => _UserDetailsPageState();

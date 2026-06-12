@@ -103,9 +103,9 @@ class FilePickerWindows extends FilePicker {
     if (!SUCCEEDED(hr)) throw WindowsException(hr);
 
     final options = optionsPointer.value |
-        FILEOPENDIALOGOPTIONS.FOS_PICKFOLDERS |
-        FILEOPENDIALOGOPTIONS.FOS_FORCEFILESYSTEM |
-        FILEOPENDIALOGOPTIONS.FOS_NOCHANGEDIR;
+        FOS_PICKFOLDERS |
+        FOS_FORCEFILESYSTEM |
+        FOS_NOCHANGEDIR;
     hr = fileDialog.setOptions(options);
     if (!SUCCEEDED(hr)) throw WindowsException(hr);
 
@@ -145,7 +145,7 @@ class FilePickerWindows extends FilePicker {
 
     final item = IShellItem(ppsi);
     final pathPtr = calloc<Pointer<Utf16>>();
-    hr = item.getDisplayName(SIGDN.SIGDN_FILESYSPATH, pathPtr);
+    hr = item.getDisplayName(SIGDN_FILESYSPATH, pathPtr);
     if (!SUCCEEDED(hr)) throw WindowsException(hr);
 
     final path = pathPtr.value.toDartString();
@@ -226,7 +226,7 @@ class FilePickerWindows extends FilePicker {
     }
   }
 
-  validateFileName(String fileName) {
+  void validateFileName(String fileName) {
     if (fileName.contains(RegExp(r'[<>:\/\\|?*"]'))) {
       throw IllegalCharacterInFileNameException(
           'Reserved characters may not be used in file names. See: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions');
@@ -261,7 +261,7 @@ class FilePickerWindows extends FilePicker {
     bool lastCharWasNull = false;
     // ignore: literal_only_boolean_expressions
     while (true) {
-      final char = openFileNameW.lpstrFile.cast<Uint16>().elementAt(i).value;
+      final char = (openFileNameW.lpstrFile.cast<Uint16>() + i).value;
       final currentCharIsNull = char == 0;
       if (currentCharIsNull && lastCharWasNull) {
         break;

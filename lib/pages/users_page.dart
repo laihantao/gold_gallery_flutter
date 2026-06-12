@@ -8,7 +8,7 @@ import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 
 class UsersPage extends StatefulWidget {
-  const UsersPage({Key? key}) : super(key: key);
+  const UsersPage({super.key});
 
   @override
   State<UsersPage> createState() => _UsersPageState();

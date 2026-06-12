@@ -11,7 +11,7 @@ import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 
 class ListingPage extends StatefulWidget {
-  const ListingPage({Key? key}) : super(key: key);
+  const ListingPage({super.key});
 
   @override
   State<ListingPage> createState() => _ListingPageState();

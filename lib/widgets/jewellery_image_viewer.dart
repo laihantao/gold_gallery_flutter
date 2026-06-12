@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
+// ---------------------------------------------------------------------------
+// Base64 decoding helper (module-level, side-effect free)
+// ---------------------------------------------------------------------------
+
 Uint8List? _decodeBase64(String path) {
   final source = path.trim();
   final commaIndex = source.indexOf(',');
@@ -20,9 +24,7 @@ Uint8List? _decodeBase64(String path) {
     return null;
   }
 
-  if (payload.startsWith('/') && !payload.startsWith('/9j/')) {
-    return null;
-  }
+  if (payload.startsWith('/') && !payload.startsWith('/9j/')) return null;
 
   try {
     return base64Decode(payload);
@@ -30,6 +32,10 @@ Uint8List? _decodeBase64(String path) {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Public widget
+// ---------------------------------------------------------------------------
 
 class JewelleryImageViewer extends StatefulWidget {
   final List<String> imagePaths;
@@ -49,107 +55,112 @@ class JewelleryImageViewer extends StatefulWidget {
 
 class _JewelleryImageViewerState extends State<JewelleryImageViewer> {
   late final PageController _pageController;
-  int _currentIndex = 0;
+
+  // ValueNotifier so only the thumbnail row rebuilds on page change,
+  // leaving the PageView and its heavy image tiles untouched.
+  final ValueNotifier<int> _currentIndex = ValueNotifier(0);
+
+  // Bytes decoded once in initState; never re-decoded on rebuild.
+  late final List<Uint8List?> _cachedBytes;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _cachedBytes = widget.imagePaths.map(_decodeBase64).toList();
+  }
+
+  @override
+  void didUpdateWidget(JewelleryImageViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imagePaths != widget.imagePaths) {
+      // Re-decode only if the list reference changed.
+      _cachedBytes
+        ..clear()
+        ..addAll(widget.imagePaths.map(_decodeBase64));
+      _currentIndex.value = 0;
+    }
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _currentIndex.dispose();
     super.dispose();
   }
 
-  void _openImageAt(int index) {
-    widget.onImageTap?.call(index);
+  void _navigateTo(int index) {
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (widget.imagePaths.isEmpty) {
-      return Column(
-        children: [
-          SizedBox(
-            height: 300,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                color: widget.appTheme.backgroundSubtle,
-                child: Image.asset(
-                  'assets/images/defaults/default_jewellery.png',
-                  key: const ValueKey('default_jewellery_placeholder'),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(
-                      child: Icon(
-                        Icons.image,
-                        color: widget.appTheme.accentSecondary,
-                        size: 80,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
+      return _Placeholder(appTheme: widget.appTheme);
     }
 
     return Column(
       children: [
         SizedBox(
           height: 300,
-          child: GestureDetector(
-            onTap: () => _openImageAt(_currentIndex),
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() => _currentIndex = index);
-              },
-              itemCount: widget.imagePaths.length,
-              itemBuilder: (context, index) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    color: widget.appTheme.backgroundSubtle,
-                    child: _JewelleryImageTile(
-                      imagePath: widget.imagePaths[index],
-                      appTheme: widget.appTheme,
-                      fit: BoxFit.contain,
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (i) => _currentIndex.value = i,
+            itemCount: widget.imagePaths.length,
+            itemBuilder: (context, index) {
+              return RepaintBoundary(
+                child: GestureDetector(
+                  onTap: () => widget.onImageTap?.call(index),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: ColoredBox(
+                      color: widget.appTheme.backgroundSubtle,
+                      child: _ImageTile(
+                        // Stable key by position — avoids key comparison on
+                        // long base64 strings and prevents spurious rebuilds.
+                        key: ValueKey(index),
+                        imagePath: widget.imagePaths[index],
+                        cachedBytes: _cachedBytes[index],
+                        appTheme: widget.appTheme,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         ),
         if (widget.imagePaths.length > 1) ...[
           const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(widget.imagePaths.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _JewelleryThumbnailTile(
-                    imagePath: widget.imagePaths[index],
-                    appTheme: widget.appTheme,
-                    isSelected: index == _currentIndex,
-                    onTap: () {
-                      _pageController.animateToPage(
-                        index,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
+          // ValueListenableBuilder scopes rebuilds to the thumbnail row only.
+          ValueListenableBuilder<int>(
+            valueListenable: _currentIndex,
+            builder: (context, currentIdx, _) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(
+                    widget.imagePaths.length,
+                    (index) => Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _ThumbnailTile(
+                        key: ValueKey(index),
+                        imagePath: widget.imagePaths[index],
+                        cachedBytes: _cachedBytes[index],
+                        appTheme: widget.appTheme,
+                        isSelected: index == currentIdx,
+                        onTap: () => _navigateTo(index),
+                      ),
+                    ),
                   ),
-                );
-              }),
-            ),
+                ),
+              );
+            },
           ),
         ],
       ],
@@ -157,13 +168,50 @@ class _JewelleryImageViewerState extends State<JewelleryImageViewer> {
   }
 }
 
-class _JewelleryImageTile extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Empty-state placeholder
+// ---------------------------------------------------------------------------
+
+class _Placeholder extends StatelessWidget {
+  final AppTheme appTheme;
+  const _Placeholder({required this.appTheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 300,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: ColoredBox(
+          color: appTheme.backgroundSubtle,
+          child: Image.asset(
+            'assets/images/defaults/default_jewellery.png',
+            key: const ValueKey('default_jewellery_placeholder'),
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => Center(
+              child: Icon(Icons.image, color: appTheme.accentSecondary, size: 80),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full-size image tile (used inside PageView)
+// ---------------------------------------------------------------------------
+
+class _ImageTile extends StatelessWidget {
   final String imagePath;
+  final Uint8List? cachedBytes;
   final AppTheme appTheme;
   final BoxFit fit;
 
-  const _JewelleryImageTile({
+  const _ImageTile({
+    super.key,
     required this.imagePath,
+    required this.cachedBytes,
     required this.appTheme,
     this.fit = BoxFit.cover,
   });
@@ -173,24 +221,17 @@ class _JewelleryImageTile extends StatelessWidget {
     if (imagePath.startsWith('assets/')) {
       return Image.asset(
         imagePath,
-        key: ValueKey('asset_$imagePath'),
         fit: fit,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-        },
+        errorBuilder: _errorIcon,
       );
     }
 
-    final bytes = _decodeBase64(imagePath);
-    if (bytes != null) {
+    if (cachedBytes != null) {
       return SizedBox.expand(
         child: Image.memory(
-          bytes,
-          key: ValueKey('img_$imagePath'),
+          cachedBytes!,
           fit: fit,
-          errorBuilder: (context, error, stackTrace) {
-            return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-          },
+          errorBuilder: _errorIcon,
         ),
       );
     }
@@ -199,30 +240,35 @@ class _JewelleryImageTile extends StatelessWidget {
       final file = File(imagePath);
       if (file.existsSync()) {
         return SizedBox.expand(
-          child: Image.file(
-            file,
-            key: ValueKey('file_$imagePath'),
-            fit: fit,
-            errorBuilder: (context, error, stackTrace) {
-              return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
-            },
-          ),
+          child: Image.file(file, fit: fit, errorBuilder: _errorIcon),
         );
       }
     } catch (_) {}
 
-    return Icon(Icons.image, color: appTheme.accentSecondary, size: 48);
+    return Center(
+      child: Icon(Icons.image, color: appTheme.accentSecondary, size: 48),
+    );
   }
+
+  Widget _errorIcon(BuildContext ctx, Object err, StackTrace? st) =>
+      Center(child: Icon(Icons.image, color: appTheme.accentSecondary, size: 48));
 }
 
-class _JewelleryThumbnailTile extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Thumbnail tile
+// ---------------------------------------------------------------------------
+
+class _ThumbnailTile extends StatelessWidget {
   final String imagePath;
+  final Uint8List? cachedBytes;
   final AppTheme appTheme;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _JewelleryThumbnailTile({
+  const _ThumbnailTile({
+    super.key,
     required this.imagePath,
+    required this.cachedBytes,
     required this.appTheme,
     required this.isSelected,
     required this.onTap,
@@ -246,9 +292,10 @@ class _JewelleryThumbnailTile extends StatelessWidget {
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: _JewelleryImageTile(
+          borderRadius: BorderRadius.circular(7),
+          child: _ImageTile(
             imagePath: imagePath,
+            cachedBytes: cachedBytes,
             appTheme: appTheme,
             fit: BoxFit.cover,
           ),

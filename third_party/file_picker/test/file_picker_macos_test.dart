@@ -1,4 +1,5 @@
 @TestOn('mac-os')
+library file_picker_macos_test;
 
 import 'package:file_picker/src/file_picker.dart';
 import 'package:file_picker/src/file_picker_macos.dart';

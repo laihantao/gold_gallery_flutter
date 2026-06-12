@@ -13,7 +13,7 @@ import '../widgets/jewellery_image_viewer.dart';
 class DetailsPage extends StatefulWidget {
   final int jeweleryId;
 
-  const DetailsPage({Key? key, required this.jeweleryId}) : super(key: key);
+  const DetailsPage({super.key, required this.jeweleryId});
 
   @override
   State<DetailsPage> createState() => _DetailsPageState();
@@ -223,7 +223,7 @@ class _DetailsPageState extends State<DetailsPage> {
       MapEntry(
         'Labor Fees',
         jewellery!.laborFees != null
-            ? '${currency?.symbol ?? 'RM'} ${jewellery!.laborFees}'
+            ? '${currency?.symbol ?? 'RM'} ${jewellery!.laborFees!.toStringAsFixed(2)}'
             : '—',
       ),
     );
@@ -231,7 +231,7 @@ class _DetailsPageState extends State<DetailsPage> {
       MapEntry(
         'Total Price',
         jewellery!.totalPrice != null
-            ? '${currency?.symbol ?? 'RM'} ${jewellery!.totalPrice}'
+            ? '${currency?.symbol ?? 'RM'} ${jewellery!.totalPrice!.toStringAsFixed(2)}'
             : '—',
       ),
     );

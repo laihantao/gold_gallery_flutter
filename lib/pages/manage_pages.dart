@@ -8,7 +8,7 @@ import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 
 class BrandManagePage extends StatefulWidget {
-  const BrandManagePage({Key? key}) : super(key: key);
+  const BrandManagePage({super.key});
 
   @override
   State<BrandManagePage> createState() => _BrandManagePageState();
@@ -191,7 +191,7 @@ class _BrandManagePageState extends State<BrandManagePage> {
 
 // Jewellery Type Manage Page
 class JewelleryTypeManagePage extends StatefulWidget {
-  const JewelleryTypeManagePage({Key? key}) : super(key: key);
+  const JewelleryTypeManagePage({super.key});
 
   @override
   State<JewelleryTypeManagePage> createState() => _JewelleryTypeManagePageState();

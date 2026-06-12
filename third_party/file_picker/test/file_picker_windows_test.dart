@@ -1,4 +1,5 @@
 @TestOn('windows')
+library file_picker_windows_test;
 
 import 'dart:ffi';
 

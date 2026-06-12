@@ -18,8 +18,7 @@ class ProductFormPage extends StatefulWidget {
   final String mode;
   final int? productId;
 
-  const ProductFormPage({Key? key, required this.mode, this.productId})
-    : super(key: key);
+  const ProductFormPage({super.key, required this.mode, this.productId});
 
   @override
   State<ProductFormPage> createState() => _ProductFormPageState();
@@ -100,8 +99,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
         _pricePerGramController.text =
             _existingJewellery!.pricePerGram?.toString() ?? '';
         _weightController.text = _existingJewellery!.weight?.toString() ?? '';
-        _laborFeesController.text =
-            _existingJewellery!.laborFees?.toString() ?? '';
+        _laborFeesController.text = _existingJewellery!.laborFees != null
+            ? _existingJewellery!.laborFees!.toStringAsFixed(2)
+            : '';
         _totalPriceController.text =
             _existingJewellery!.totalPrice?.toString() ?? '';
         _locationController.text = _existingJewellery!.purchaseLocation ?? '';
@@ -428,7 +428,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
               'Labor Fees',
               _laborFeesController,
               appTheme,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              ],
               onChanged: (_) => _calculateTotalPrice(),
             ),
             const SizedBox(height: 16),

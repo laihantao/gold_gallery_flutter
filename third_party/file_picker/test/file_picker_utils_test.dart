@@ -1,4 +1,5 @@
 @TestOn('linux || mac-os')
+library file_picker_utils_test;
 
 import 'dart:io';
 import 'package:file_picker/src/utils.dart';

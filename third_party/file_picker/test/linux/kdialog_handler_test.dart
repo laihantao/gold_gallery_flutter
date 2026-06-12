@@ -1,4 +1,5 @@
 @TestOn('linux')
+library kdialog_handler_test;
 
 import 'package:file_picker/src/file_picker.dart';
 import 'package:file_picker/src/linux/kdialog_handler.dart';

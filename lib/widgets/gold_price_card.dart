@@ -7,12 +7,16 @@ import '../theme/app_theme.dart';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 
-const double _kLogoSize = 64;
 const double _kLabelRowH = 18;
 const double _kPriceRowH = 30;
 const double _kFooterRowH = 16;
-const EdgeInsets _kCardPadding =
-    EdgeInsets.symmetric(horizontal: 16, vertical: 14);
+
+// Returns compact values for narrow screens (phones), larger for tablets.
+double _logoSize(double screenW) => screenW < 400 ? 48 : 64;
+double _logoGap(double screenW) => screenW < 400 ? 10 : 16;
+EdgeInsets _cardPadding(double screenW) => screenW < 400
+    ? const EdgeInsets.symmetric(horizontal: 12, vertical: 10)
+    : const EdgeInsets.symmetric(horizontal: 16, vertical: 14);
 
 // ── Shared brand price card ──────────────────────────────────────────────────
 //
@@ -61,6 +65,7 @@ class BrandPriceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isStale = isError && (price916 != null || price999 != null);
+    final screenW = MediaQuery.of(context).size.width;
 
     return Material(
       color: appTheme.backgroundSurface,
@@ -69,7 +74,7 @@ class BrandPriceCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: _kCardPadding,
+          padding: _cardPadding(screenW),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
@@ -81,10 +86,10 @@ class BrandPriceCard extends StatelessWidget {
             children: [
               _Logo(
                 logo: logoAsset,
-                size: _kLogoSize,
+                size: _logoSize(screenW),
                 fallbackColor: appTheme.accentSecondary,
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: _logoGap(screenW)),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

@@ -1,4 +1,5 @@
 @TestOn('linux')
+library qarma_and_zenity_handler_test;
 
 import 'package:file_picker/src/file_picker.dart';
 import 'package:file_picker/src/linux/qarma_and_zenity_handler.dart';

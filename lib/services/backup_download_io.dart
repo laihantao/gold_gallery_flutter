@@ -26,11 +26,11 @@ Future<String?> saveJsonBackupFile(String fileName, Uint8List jsonBytes) async {
 }
 
 Future<String> _shareJsonBackup(String fileName, Uint8List jsonBytes) async {
-  await Share.shareXFiles(
-    [XFile.fromData(jsonBytes, mimeType: 'application/json', name: fileName)],
+  await SharePlus.instance.share(ShareParams(
+    files: [XFile.fromData(jsonBytes, mimeType: 'application/json', name: fileName)],
     subject: 'Gold Gallery JSON backup',
     text: 'Gold Gallery JSON backup export',
-  );
+  ));
 
   return 'shared';
 }
