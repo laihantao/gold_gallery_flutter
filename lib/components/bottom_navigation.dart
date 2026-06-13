@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
 
 class BottomNavigation extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
 
-  const BottomNavigation({super.key, 
+  const BottomNavigation({
+    super.key,
     required this.currentIndex,
     required this.onTap,
   });
@@ -17,62 +19,56 @@ class BottomNavigation extends StatelessWidget {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Container(
-      decoration: BoxDecoration(
-        color: appTheme.backgroundSurface,
-        border: Border(
-          top: BorderSide(
-            color: appTheme.borderColor.withValues(alpha: 0.3),
-            width: 1,
+      color: appTheme.primary,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _BottomNavItem(
+                icon: Icons.home_outlined,
+                label: 'Home',
+                isActive: currentIndex == 0,
+                onTap: () => onTap(0),
+                appTheme: appTheme,
+              ),
+              _BottomNavItem(
+                icon: Icons.shopping_bag_outlined,
+                label: 'Listing',
+                isActive: currentIndex == 1,
+                onTap: () => onTap(1),
+                appTheme: appTheme,
+              ),
+              _BottomNavItem(
+                icon: Icons.add_circle_outline,
+                label: 'Add',
+                isActive: currentIndex == 2,
+                onTap: () => onTap(2),
+                isCenter: true,
+                appTheme: appTheme,
+              ),
+              _BottomNavItem(
+                icon: Icons.person_outline,
+                label: 'Users',
+                isActive: currentIndex == 3,
+                onTap: () => onTap(3),
+                appTheme: appTheme,
+              ),
+              _BottomNavItem(
+                icon: Icons.settings_outlined,
+                label: 'Settings',
+                isActive: currentIndex == 4,
+                onTap: () => onTap(4),
+                appTheme: appTheme,
+              ),
+            ],
           ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _BottomNavItem(
-              icon: Icons.home,
-              label: 'Home',
-              isActive: currentIndex == 0,
-              onTap: () => onTap(0),
-              appTheme: appTheme,
-            ),
-            _BottomNavItem(
-              icon: Icons.shopping_bag,
-              label: 'Listing',
-              isActive: currentIndex == 1,
-              onTap: () => onTap(1),
-              appTheme: appTheme,
-            ),
-            _BottomNavItem(
-              icon: Icons.add,
-              label: 'Add',
-              isActive: currentIndex == 2,
-              onTap: () => onTap(2),
-              isCenter: true,
-              appTheme: appTheme,
-            ),
-            _BottomNavItem(
-              icon: Icons.person,
-              label: 'Users',
-              isActive: currentIndex == 3,
-              onTap: () => onTap(3),
-              appTheme: appTheme,
-            ),
-            _BottomNavItem(
-              icon: Icons.settings,
-              label: 'Settings',
-              isActive: currentIndex == 4,
-              onTap: () => onTap(4),
-              appTheme: appTheme,
-            ),
-          ],
         ),
       ),
     );
   }
-
 }
 
 class _BottomNavItem extends StatelessWidget {
@@ -94,50 +90,42 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color active = Colors.white;
+    final Color inactive = Colors.white.withValues(alpha: 0.6);
+    final Color iconColor = isActive ? active : inactive;
+
+    if (isCenter) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: appTheme.accent,
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: isCenter
-            ? BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: appTheme.accentPrimary,
-                  width: 2,
-                ),
-              )
-            : BoxDecoration(
-                border: Border.all(
-                  color: isActive
-                      ? appTheme.accentPrimary
-                      : appTheme.borderColor.withValues(alpha: 0.2),
-                  width: 1.5,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isActive ? appTheme.accentPrimary : appTheme.textBody,
-              size: isCenter ? 28 : 24,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: iconColor, size: 26),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: AppTextStyles.caption(iconColor).copyWith(
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
             ),
-            if (!isCenter) ...[
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isActive ? appTheme.accentPrimary : appTheme.textBody,
-                  fontSize: 9,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
-        ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

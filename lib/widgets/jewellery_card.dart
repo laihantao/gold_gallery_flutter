@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
+import 'sketch_border.dart';
 
 class JewelleryCard extends StatelessWidget {
   final JewelleryDisplayItem item;
@@ -49,25 +51,30 @@ class JewelleryCard extends StatelessWidget {
         ? jewellery.jewelleryPhoto.first
         : null;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: appTheme.backgroundSurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: appTheme.borderColor.withValues(alpha: 0.45),
-            width: 1,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [appTheme.cardShadow],
           ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: SizedBox(
+          child: SketchBorder(
+            radius: 16,
+            color: appTheme.border,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: appTheme.surface,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
                 width: imageSize,
                 height: imageSize,
                 child: _JewelleryThumbnail(
@@ -83,11 +90,7 @@ class JewelleryCard extends StatelessWidget {
                 children: [
                   Text(
                     _nonBlank(jewellery.name) ?? 'Untitled',
-                    style: TextStyle(
-                      color: appTheme.textHeading,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: AppTextStyles.title(appTheme.inkDark),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -109,24 +112,35 @@ class JewelleryCard extends StatelessWidget {
                         appTheme: appTheme,
                       ),
                       const Spacer(),
-                      Text(
-                        priceText,
-                        style: TextStyle(
-                          color: appTheme.priceHighlight,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
+                        decoration: BoxDecoration(
+                          color: appTheme.primary,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: appTheme.primaryDark,
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Text(
+                          priceText,
+                          style: AppTextStyles.priceSmall(Colors.white),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-          ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

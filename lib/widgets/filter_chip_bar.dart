@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../models/filter_option.dart';
 import '../models/user.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 
 class FilterChipBar extends StatelessWidget {
@@ -143,9 +142,7 @@ class _AurumFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
-    final inactiveBackground = appTheme == AppTheme.gold
-        ? const Color(0xFF2A2010)
-        : appTheme.backgroundSubtle;
+    final inactiveBackground = appTheme.backgroundSubtle;
     final label = _isActive ? '${option.label}: $selectedValue' : option.label;
 
     return Material(
@@ -267,9 +264,7 @@ class _OwnerFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
-    final inactiveBackground = appTheme == AppTheme.gold
-        ? const Color(0xFF2A2010)
-        : appTheme.backgroundSubtle;
+    final inactiveBackground = appTheme.backgroundSubtle;
     final label = _isActive ? (selectedOwnerName ?? 'Owner') : 'Owner';
 
     return Material(
@@ -338,9 +333,7 @@ class _SortFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
-    final inactiveBackground = appTheme == AppTheme.gold
-        ? const Color(0xFF2A2010)
-        : appTheme.backgroundSubtle;
+    final inactiveBackground = appTheme.backgroundSubtle;
 
     return Material(
       color: Colors.transparent,
@@ -381,9 +374,7 @@ class _ResetFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
-    final inactiveBackground = appTheme == AppTheme.gold
-        ? const Color(0xFF2A2010)
-        : appTheme.backgroundSubtle;
+    final inactiveBackground = appTheme.backgroundSubtle;
 
     return Material(
       color: Colors.transparent,

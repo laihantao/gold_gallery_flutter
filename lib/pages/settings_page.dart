@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 import '../components/buttons.dart';
 import '../services/backup_service.dart';
+import '../widgets/sketch_border.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -43,22 +45,24 @@ class _SettingsPageState extends State<SettingsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _ThemeCircle(
-                    theme: AppTheme.gold,
-                    isActive: appTheme == AppTheme.gold,
-                    onTap: () =>
-                        context.read<ThemeNotifier>().setTheme(AppTheme.gold),
+                    theme: AurumTheme.parchment,
+                    isActive: appTheme == AurumTheme.parchment,
+                    onTap: () => context
+                        .read<ThemeNotifier>()
+                        .setTheme(AurumTheme.parchment),
                   ),
                   _ThemeCircle(
-                    theme: AppTheme.blush,
-                    isActive: appTheme == AppTheme.blush,
+                    theme: AurumTheme.sky,
+                    isActive: appTheme == AurumTheme.sky,
                     onTap: () =>
-                        context.read<ThemeNotifier>().setTheme(AppTheme.blush),
+                        context.read<ThemeNotifier>().setTheme(AurumTheme.sky),
                   ),
                   _ThemeCircle(
-                    theme: AppTheme.sky,
-                    isActive: appTheme == AppTheme.sky,
-                    onTap: () =>
-                        context.read<ThemeNotifier>().setTheme(AppTheme.sky),
+                    theme: AurumTheme.blush,
+                    isActive: appTheme == AurumTheme.blush,
+                    onTap: () => context
+                        .read<ThemeNotifier>()
+                        .setTheme(AurumTheme.blush),
                   ),
                 ],
               ),
@@ -175,7 +179,7 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : appTheme.accentPrimary,
+        backgroundColor: isError ? appTheme.error : appTheme.inkDark,
       ),
     );
   }
@@ -209,15 +213,7 @@ class _SettingSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: appTheme.textHeading,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.04,
-          ),
-        ),
+        Text(title, style: AppTextStyles.title(appTheme.inkDark)),
         const SizedBox(height: 12),
         child,
       ],
@@ -240,38 +236,37 @@ class _ThemeCircle extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: theme.backgroundPrimary,
-          border: Border.all(
-            color: isActive ? theme.accentPrimary : theme.borderColor,
-            width: isActive ? 3 : 1,
+      child: SketchBorder(
+        radius: 18,
+        strokeWidth: isActive ? 2 : 1.5,
+        color: isActive ? theme.primary : theme.border,
+        child: Container(
+          width: 92,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          decoration: BoxDecoration(
+            color: theme.primaryBg,
+            borderRadius: BorderRadius.circular(18),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.accentPrimary,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Colored circle swatch (44dp)
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.primary,
+                  border: Border.all(color: theme.primaryDark, width: 1.2),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              theme.label,
-              style: TextStyle(
-                color: theme.textHeading,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+              const SizedBox(height: 8),
+              Text(
+                '✦ ${theme.label}',
+                style: AppTextStyles.handNote(theme.inkDark),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -17,6 +17,9 @@ class UsersPage extends StatefulWidget {
 class _UsersPageState extends State<UsersPage> {
   List<User> users = [];
 
+  // Stored so dispose() can remove the listener without touching context.
+  RouteInformationProvider? _routeInfoProvider;
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +29,9 @@ class _UsersPageState extends State<UsersPage> {
 
   void _setRefreshListener() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      GoRouter.of(context).routeInformationProvider.addListener(_onRouteChanged);
+      if (!mounted) return;
+      _routeInfoProvider = GoRouter.of(context).routeInformationProvider;
+      _routeInfoProvider!.addListener(_onRouteChanged);
     });
   }
 
@@ -36,11 +41,13 @@ class _UsersPageState extends State<UsersPage> {
 
   @override
   void dispose() {
-    GoRouter.of(context).routeInformationProvider.removeListener(_onRouteChanged);
+    // Remove listener using the stored reference — context is deactivated here.
+    _routeInfoProvider?.removeListener(_onRouteChanged);
     super.dispose();
   }
 
   void _loadUsers() {
+    if (!mounted) return;
     setState(() {
       users = HiveService.getAllUsers();
     });
@@ -59,6 +66,7 @@ class _UsersPageState extends State<UsersPage> {
             icon: Icon(Icons.add, color: appTheme.textHeading),
             onPressed: () async {
               await GoRouter.of(context).push('/add-user');
+              if (!mounted) return;
               _loadUsers();
             },
           ),
@@ -82,6 +90,7 @@ class _UsersPageState extends State<UsersPage> {
                       '/user-details',
                       extra: user.id,
                     );
+                    if (!mounted) return;
                     _loadUsers();
                   },
                   child: Container(
@@ -140,5 +149,4 @@ class _UsersPageState extends State<UsersPage> {
       GoRouter.of(context).go('/settings');
     }
   }
-    
 }

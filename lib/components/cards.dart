@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
+import '../widgets/sketch_border.dart';
 
 class ItemCard extends StatelessWidget {
   final String? imageUrl;
@@ -10,13 +12,14 @@ class ItemCard extends StatelessWidget {
   final VoidCallback? onTap;
   final EdgeInsets padding;
 
-  const ItemCard({super.key, 
+  const ItemCard({
+    super.key,
     this.imageUrl,
     required this.title,
     this.subtitle,
     this.trailing,
     this.onTap,
-    this.padding = const EdgeInsets.all(12),
+    this.padding = const EdgeInsets.all(14),
   });
 
   @override
@@ -25,93 +28,79 @@ class ItemCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: padding,
+      child: DecoratedBox(
         decoration: BoxDecoration(
-          color: appTheme.backgroundSurface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: appTheme.borderColor.withValues(alpha: 0.3),
-            width: 1,
-          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [appTheme.cardShadow],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (imageUrl != null)
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: appTheme.backgroundSubtle,
-                ),
-                child: Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: appTheme.accentSecondary,
-                      ),
-                    );
-                  },
-                ),
-              )
-            else
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: appTheme.backgroundSubtle,
-                ),
-                child: Icon(
-                  Icons.image,
-                  color: appTheme.accentSecondary,
-                ),
-              ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: appTheme.textHeading,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                      letterSpacing: 0.04,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        child: SketchBorder(
+          radius: 16,
+          color: appTheme.border,
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: appTheme.surface,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    color: appTheme.primaryBg,
+                    child: imageUrl != null
+                        ? Image.network(
+                            imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Center(
+                              child: Icon(
+                                Icons.image_not_supported_outlined,
+                                color: appTheme.inkLight,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            Icons.image_outlined,
+                            color: appTheme.inkLight,
+                          ),
                   ),
-                  if (subtitle != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        subtitle!,
-                        style: TextStyle(
-                          color: appTheme.textBody,
-                          fontSize: 12,
-                        ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.title(appTheme.inkDark),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                      if (subtitle != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            subtitle!,
+                            style: AppTextStyles.caption(appTheme.inkLight),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
                 ],
-              ),
+              ],
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              trailing!,
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
-
 }

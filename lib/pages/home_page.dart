@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
+import '../painters/bg_pattern_painter.dart';
 import '../widgets/gold_price_section.dart';
 
 class HomePage extends StatelessWidget {
@@ -11,17 +12,20 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<ThemeNotifier>();
+    final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
       appBar: AppHeader(title: 'Gold Gallery', showBackButton: false),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            GoldPriceSection(),
-          ],
+      body: PatternedBackground(
+        patternColor: appTheme.patternColor,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              GoldPriceSection(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigation(

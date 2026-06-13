@@ -1,227 +1,333 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
+import 'app_text_styles.dart';
 
-// Gold Honey #B8860B constant across all themes
-const Color goldPrice = Color(0xFFB8860B);
+/// Warm gold accent kept for legacy price text. Sourced from the palette.
+const Color goldPrice = ParchmentColors.primaryDark;
 
-// ==================== GOLD THEME ====================
-class GoldTheme {
-  static const Color backgroundPrimary = Color(0xFF0D0B07); // Obsidian
-  static const Color backgroundSurface = Color(0xFF2E2A1F); // Card BG
-  static const Color backgroundSubtle = Color(0xFF242019); // Dark Surface
-  static const Color borderColor = Color(0xFF8B6914); // Antique Gold
-  static const Color accentPrimary = Color(0xFFC9961E); // Gold Mid
-  static const Color accentSecondary = Color(0xFFE8B84B); // Bright Gold
-  static const Color textHeading = Color(0xFFF5D07A); // Pale Gold
-  static const Color textBody = Color(0xFFA89B78); // Warm Muted
-  static const Color priceHighlight = Color(0xFFFFE066); // Vivid lemon-gold
+/// Internal bundle of every colour role for one theme.
+class _Palette {
+  final Color primaryBg, surface, headerBg, patternColor;
+  final Color primary, primaryDark, primaryLight, accent;
+  final Color inkDark, inkMid, inkLight;
+  final Color border, divider, shadow;
+  final Color success, warning, error, errorLight;
 
-  static ThemeData buildTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme(
-        brightness: Brightness.dark,
-        primary: accentPrimary,
-        onPrimary: backgroundPrimary,
-        secondary: accentSecondary,
-        onSecondary: backgroundPrimary,
-        surface: backgroundSurface,
-        onSurface: textHeading,
-        error: Colors.red,
-        onError: Colors.white,
-      ),
-      scaffoldBackgroundColor: backgroundPrimary,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: backgroundSurface,
-        foregroundColor: textHeading,
-        elevation: 0,
-      ),
-      cardTheme: CardThemeData(
-        color: backgroundSurface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: borderColor.withValues(alpha: 0.3), width: 1),
-        ),
-      ),
-    );
-  }
+  const _Palette({
+    required this.primaryBg,
+    required this.surface,
+    required this.headerBg,
+    required this.patternColor,
+    required this.primary,
+    required this.primaryDark,
+    required this.primaryLight,
+    required this.accent,
+    required this.inkDark,
+    required this.inkMid,
+    required this.inkLight,
+    required this.border,
+    required this.divider,
+    required this.shadow,
+    required this.success,
+    required this.warning,
+    required this.error,
+    required this.errorLight,
+  });
 }
 
-// ==================== BLUSH THEME ====================
-class BlushTheme {
-  static const Color backgroundPrimary = Color(0xFFFFFBFC); // Petal White
-  static const Color backgroundSurface = Color(0xFFFDF0F3); // Blush Mist
-  static const Color backgroundSubtle = Color(0xFFFAE3EA); // Rose Petal
-  static const Color borderColor = Color(0xFFF2C4D0); // Soft Carnation
-  static const Color accentPrimary = Color(0xFFE896B0); // Dusky Rose
-  static const Color accentSecondary = Color(0xFFE896B0); // Dusky Rose
-  static const Color textHeading = Color(0xFF7A3550); // Deep Rose
-  static const Color textBody = Color(0xFFC47A92); // Warm Pink Muted
-  static const Color priceHighlight = Color(0xFF9E1B4D); // Vivid rose on light surfaces
+const _parchment = _Palette(
+  primaryBg: ParchmentColors.primaryBg,
+  surface: ParchmentColors.surface,
+  headerBg: ParchmentColors.headerBg,
+  patternColor: ParchmentColors.patternColor,
+  primary: ParchmentColors.primary,
+  primaryDark: ParchmentColors.primaryDark,
+  primaryLight: ParchmentColors.primaryLight,
+  accent: ParchmentColors.accent,
+  inkDark: ParchmentColors.inkDark,
+  inkMid: ParchmentColors.inkMid,
+  inkLight: ParchmentColors.inkLight,
+  border: ParchmentColors.border,
+  divider: ParchmentColors.divider,
+  shadow: ParchmentColors.shadow,
+  success: ParchmentColors.success,
+  warning: ParchmentColors.warning,
+  error: ParchmentColors.error,
+  errorLight: ParchmentColors.errorLight,
+);
 
-  static ThemeData buildTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme(
-        brightness: Brightness.light,
-        primary: accentPrimary,
-        onPrimary: Colors.white,
-        secondary: accentSecondary,
-        onSecondary: Colors.white,
-        surface: backgroundSurface,
-        onSurface: textHeading,
-        error: Colors.red,
-        onError: Colors.white,
-      ),
-      scaffoldBackgroundColor: backgroundPrimary,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: backgroundSurface,
-        foregroundColor: textHeading,
-        elevation: 0,
-      ),
-      cardTheme: CardThemeData(
-        color: backgroundSurface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 1),
-        ),
-      ),
-    );
-  }
-}
+const _sky = _Palette(
+  primaryBg: SkyColors.primaryBg,
+  surface: SkyColors.surface,
+  headerBg: SkyColors.headerBg,
+  patternColor: SkyColors.patternColor,
+  primary: SkyColors.primary,
+  primaryDark: SkyColors.primaryDark,
+  primaryLight: SkyColors.primaryLight,
+  accent: SkyColors.accent,
+  inkDark: SkyColors.inkDark,
+  inkMid: SkyColors.inkMid,
+  inkLight: SkyColors.inkLight,
+  border: SkyColors.border,
+  divider: SkyColors.divider,
+  shadow: SkyColors.shadow,
+  success: SkyColors.success,
+  warning: SkyColors.warning,
+  error: SkyColors.error,
+  errorLight: SkyColors.errorLight,
+);
 
-// ==================== SKY (Powder Blue) THEME ====================
-class SkyTheme {
-  static const Color backgroundPrimary = Color(0xFFF8FBFF); // Porcelain
-  static const Color backgroundSurface = Color(0xFFEFF5FC); // Sky Mist
-  static const Color backgroundSubtle = Color(0xFFD8EBFA); // Powder Blue
-  static const Color borderColor = Color(0xFFBDD5EC); // Serenity
-  static const Color accentPrimary = Color(0xFF5A8FB5); // Calm Mid Blue
-  static const Color accentSecondary = Color(0xFF8ABCDF); // Calm Sky
-  static const Color textHeading = Color(0xFF1E4F7A); // Deep Navy
-  static const Color textBody = Color(0xFF5A8FB5); // Steel Blue Muted
-  static const Color priceHighlight = Color(0xFF0D47A1); // Vivid blue on light surfaces
+const _blush = _Palette(
+  primaryBg: BlushColors.primaryBg,
+  surface: BlushColors.surface,
+  headerBg: BlushColors.headerBg,
+  patternColor: BlushColors.patternColor,
+  primary: BlushColors.primary,
+  primaryDark: BlushColors.primaryDark,
+  primaryLight: BlushColors.primaryLight,
+  accent: BlushColors.accent,
+  inkDark: BlushColors.inkDark,
+  inkMid: BlushColors.inkMid,
+  inkLight: BlushColors.inkLight,
+  border: BlushColors.border,
+  divider: BlushColors.divider,
+  shadow: BlushColors.shadow,
+  success: BlushColors.success,
+  warning: BlushColors.warning,
+  error: BlushColors.error,
+  errorLight: BlushColors.errorLight,
+);
 
-  static ThemeData buildTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme(
-        brightness: Brightness.light,
-        primary: accentPrimary,
-        onPrimary: Colors.white,
-        secondary: accentSecondary,
-        onSecondary: Colors.white,
-        surface: backgroundSurface,
-        onSurface: textHeading,
-        error: Colors.red,
-        onError: Colors.white,
-      ),
-      scaffoldBackgroundColor: backgroundPrimary,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: backgroundSurface,
-        foregroundColor: textHeading,
-        elevation: 0,
-      ),
-      cardTheme: CardThemeData(
-        color: backgroundSurface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: borderColor.withValues(alpha: 0.5), width: 1),
-        ),
-      ),
-    );
-  }
-}
-
-enum AppTheme {
-  gold('gold', 'Gold'),
-  blush('blush', 'Blush'),
-  sky('sky', 'Sky');
+/// The three Aurum themes — each a "coloured notebook".
+///
+/// Parchment is the default (golden honey treasure journal).
+enum AurumTheme {
+  parchment('parchment', 'Parchment'),
+  sky('sky', 'Sky'),
+  blush('blush', 'Blush');
 
   final String id;
   final String label;
+  const AurumTheme(this.id, this.label);
 
-  const AppTheme(this.id, this.label);
+  _Palette get _p => switch (this) {
+        AurumTheme.parchment => _parchment,
+        AurumTheme.sky => _sky,
+        AurumTheme.blush => _blush,
+      };
+
+  // ── New palette roles ──
+  Color get primaryBg => _p.primaryBg;
+  Color get surface => _p.surface;
+  Color get headerBg => _p.headerBg;
+  Color get patternColor => _p.patternColor;
+  Color get primary => _p.primary;
+  Color get primaryDark => _p.primaryDark;
+  Color get primaryLight => _p.primaryLight;
+  Color get accent => _p.accent;
+  Color get inkDark => _p.inkDark;
+  Color get inkMid => _p.inkMid;
+  Color get inkLight => _p.inkLight;
+  Color get border => _p.border;
+  Color get divider => _p.divider;
+  Color get shadow => _p.shadow;
+  Color get success => _p.success;
+  Color get warning => _p.warning;
+  Color get error => _p.error;
+  Color get errorLight => _p.errorLight;
+
+  // ── Legacy aliases (so existing screens keep compiling) ──
+  Color get backgroundPrimary => _p.primaryBg;
+  Color get backgroundSurface => _p.surface;
+  Color get backgroundSubtle => _p.primaryLight;
+  Color get borderColor => _p.border;
+  Color get accentPrimary => _p.primary;
+  Color get accentSecondary => _p.primaryDark;
+  Color get textHeading => _p.inkDark;
+  Color get textBody => _p.inkMid;
+  Color get priceHighlight => _p.primaryDark;
+
+  /// Standard card shadow used across the app.
+  BoxShadow get cardShadow => BoxShadow(
+        color: _p.shadow.withValues(alpha: 0.15),
+        blurRadius: 8,
+        offset: const Offset(2, 4),
+      );
 
   ThemeData toThemeData() {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.buildTheme(),
-      AppTheme.blush => BlushTheme.buildTheme(),
-      AppTheme.sky => SkyTheme.buildTheme(),
-    };
-  }
+    final p = _p;
 
-  Color get backgroundPrimary {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.backgroundPrimary,
-      AppTheme.blush => BlushTheme.backgroundPrimary,
-      AppTheme.sky => SkyTheme.backgroundPrimary,
-    };
-  }
+    final baseText = GoogleFonts.nunitoTextTheme().apply(
+      bodyColor: p.inkMid,
+      displayColor: p.inkDark,
+    );
 
-  Color get backgroundSurface {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.backgroundSurface,
-      AppTheme.blush => BlushTheme.backgroundSurface,
-      AppTheme.sky => SkyTheme.backgroundSurface,
-    };
-  }
+    return ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: p.primaryBg,
+      colorScheme: ColorScheme(
+        brightness: Brightness.light,
+        primary: p.primary,
+        onPrimary: Colors.white,
+        secondary: p.accent,
+        onSecondary: Colors.white,
+        surface: p.surface,
+        onSurface: p.inkDark,
+        error: p.error,
+        onError: Colors.white,
+      ),
+      textTheme: baseText,
+      dividerColor: p.divider,
+      dividerTheme: DividerThemeData(
+        color: p.divider,
+        thickness: 0.8,
+        space: 1,
+      ),
 
-  Color get backgroundSubtle {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.backgroundSubtle,
-      AppTheme.blush => BlushTheme.backgroundSubtle,
-      AppTheme.sky => SkyTheme.backgroundSubtle,
-    };
-  }
+      // ── AppBar (colored header) ──
+      appBarTheme: AppBarTheme(
+        backgroundColor: p.headerBg,
+        foregroundColor: p.inkDark,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        iconTheme: IconThemeData(color: p.inkDark, size: 24),
+        titleTextStyle: AppTextStyles.appTitle(p.inkDark),
+      ),
 
-  Color get borderColor {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.borderColor,
-      AppTheme.blush => BlushTheme.borderColor,
-      AppTheme.sky => SkyTheme.borderColor,
-    };
-  }
+      // ── Cards ──
+      cardTheme: CardThemeData(
+        color: p.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: p.border, width: 1),
+        ),
+      ),
 
-  Color get accentPrimary {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.accentPrimary,
-      AppTheme.blush => BlushTheme.accentPrimary,
-      AppTheme.sky => SkyTheme.accentPrimary,
-    };
-  }
+      // ── Primary (pill) button ──
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStatePropertyAll(p.primary),
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
+          overlayColor:
+              WidgetStatePropertyAll(p.primaryDark.withValues(alpha: 0.2)),
+          elevation: const WidgetStatePropertyAll(2),
+          shadowColor:
+              WidgetStatePropertyAll(p.shadow.withValues(alpha: 0.25)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+          ),
+          textStyle:
+              WidgetStatePropertyAll(AppTextStyles.bodyBold(Colors.white)),
+          shape: WidgetStatePropertyAll(
+            StadiumBorder(side: BorderSide(color: p.primaryDark, width: 1.5)),
+          ),
+        ),
+      ),
 
-  Color get accentSecondary {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.accentSecondary,
-      AppTheme.blush => BlushTheme.accentSecondary,
-      AppTheme.sky => SkyTheme.accentSecondary,
-    };
-  }
+      // ── Secondary (outlined) button ──
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          foregroundColor: WidgetStatePropertyAll(p.primary),
+          side:
+              WidgetStatePropertyAll(BorderSide(color: p.primary, width: 1.5)),
+          padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+          ),
+          textStyle: WidgetStatePropertyAll(AppTextStyles.bodyBold(p.primary)),
+          shape: const WidgetStatePropertyAll(StadiumBorder()),
+        ),
+      ),
 
-  Color get textHeading {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.textHeading,
-      AppTheme.blush => BlushTheme.textHeading,
-      AppTheme.sky => SkyTheme.textHeading,
-    };
-  }
+      // ── Text button ──
+      textButtonTheme: TextButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll(p.inkMid),
+          textStyle: WidgetStatePropertyAll(AppTextStyles.body(p.inkMid)),
+        ),
+      ),
 
-  Color get textBody {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.textBody,
-      AppTheme.blush => BlushTheme.textBody,
-      AppTheme.sky => SkyTheme.textBody,
-    };
-  }
+      // ── FAB ──
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: p.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: CircleBorder(side: BorderSide(color: p.primaryDark, width: 1.5)),
+      ),
 
-  Color get priceHighlight {
-    return switch (this) {
-      AppTheme.gold => GoldTheme.priceHighlight,
-      AppTheme.blush => BlushTheme.priceHighlight,
-      AppTheme.sky => SkyTheme.priceHighlight,
-    };
+      // ── Input fields ──
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: p.surface,
+        hintStyle: AppTextStyles.body(p.inkLight),
+        labelStyle: AppTextStyles.body(p.inkMid),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: p.border, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: p.border, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: p.primary, width: 1.8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: p.error, width: 1.2),
+        ),
+      ),
+
+      // ── Chips / filter tags ──
+      chipTheme: ChipThemeData(
+        backgroundColor: p.primaryLight,
+        selectedColor: p.primary,
+        side: BorderSide(color: p.primary, width: 1),
+        shape: const StadiumBorder(),
+        labelStyle: AppTextStyles.caption(p.inkDark),
+        secondaryLabelStyle: AppTextStyles.caption(Colors.white),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      ),
+
+      // ── SnackBar ──
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: p.inkDark,
+        contentTextStyle: AppTextStyles.body(Colors.white),
+        actionTextColor: p.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: const StadiumBorder(),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+
+      // ── Dialog ──
+      dialogTheme: DialogThemeData(
+        backgroundColor: p.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        titleTextStyle: AppTextStyles.headline(p.inkDark),
+        contentTextStyle: AppTextStyles.body(p.inkMid),
+      ),
+
+      // ── Bottom sheet ──
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: p.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+
+      iconTheme: IconThemeData(color: p.inkMid),
+    );
   }
 }
+
+/// Backwards-compatible alias. The canonical enum is [AurumTheme]; existing
+/// screens still refer to the type as `AppTheme`.
+typedef AppTheme = AurumTheme;

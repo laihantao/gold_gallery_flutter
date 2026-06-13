@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
 
+/// Primary pill button. Styling comes from the global [ElevatedButtonTheme]
+/// (stadium shape, primary fill, sketch-coloured border).
 class PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
@@ -9,7 +12,8 @@ class PrimaryButton extends StatelessWidget {
   final double? width;
   final double? height;
 
-  const PrimaryButton({super.key, 
+  const PrimaryButton({
+    super.key,
     required this.label,
     required this.onPressed,
     this.isLoading = false,
@@ -19,43 +23,27 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = context.watch<ThemeNotifier>().currentTheme;
-
     return SizedBox(
       width: width ?? double.infinity,
-      height: height ?? 48,
+      height: height ?? 50,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: appTheme.accentPrimary,
-          foregroundColor: appTheme.backgroundPrimary,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
         child: isLoading
-            ? SizedBox(
-                height: 24,
-                width: 24,
+            ? const SizedBox(
+                height: 22,
+                width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(appTheme.backgroundPrimary),
+                  valueColor: AlwaysStoppedAnimation(Colors.white),
                 ),
               )
-            : Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                ),
-              ),
+            : Text(label, style: AppTextStyles.bodyBold(Colors.white)),
       ),
     );
   }
-
 }
 
+/// Secondary outlined pill button.
 class GhostButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
@@ -63,7 +51,8 @@ class GhostButton extends StatelessWidget {
   final double? width;
   final double? height;
 
-  const GhostButton({super.key, 
+  const GhostButton({
+    super.key,
     required this.label,
     required this.onPressed,
     this.isLoading = false,
@@ -77,37 +66,20 @@ class GhostButton extends StatelessWidget {
 
     return SizedBox(
       width: width ?? double.infinity,
-      height: height ?? 48,
+      height: height ?? 50,
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: appTheme.accentSecondary,
-            width: 1.5,
-          ),
-          foregroundColor: appTheme.accentSecondary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
         child: isLoading
             ? SizedBox(
-                height: 24,
-                width: 24,
+                height: 22,
+                width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(appTheme.accentSecondary),
+                  valueColor: AlwaysStoppedAnimation(appTheme.primary),
                 ),
               )
-            : Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                ),
-              ),
+            : Text(label, style: AppTextStyles.bodyBold(appTheme.primary)),
       ),
     );
   }
-
 }
