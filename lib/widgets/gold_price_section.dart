@@ -24,31 +24,14 @@ class GoldPriceSection extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Gold Price Today',
-                        style: TextStyle(
-                          color: appTheme.textHeading,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.04,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Tap a card to view its price trend',
-                        style: TextStyle(
-                          color: appTheme.textBody.withValues(alpha: 0.6),
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  child: Text(
+                    'Tap a card to view its price trend',
+                    style: TextStyle(
+                      color: appTheme.textBody.withValues(alpha: 0.6),
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(

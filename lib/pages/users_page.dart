@@ -5,8 +5,8 @@ import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
-import '../components/bottom_navigation.dart';
 
+/// Users management page — accessed from Settings, not from the bottom nav.
 class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
 
@@ -17,33 +17,10 @@ class UsersPage extends StatefulWidget {
 class _UsersPageState extends State<UsersPage> {
   List<User> users = [];
 
-  // Stored so dispose() can remove the listener without touching context.
-  RouteInformationProvider? _routeInfoProvider;
-
   @override
   void initState() {
     super.initState();
     _loadUsers();
-    _setRefreshListener();
-  }
-
-  void _setRefreshListener() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _routeInfoProvider = GoRouter.of(context).routeInformationProvider;
-      _routeInfoProvider!.addListener(_onRouteChanged);
-    });
-  }
-
-  void _onRouteChanged() {
-    _loadUsers();
-  }
-
-  @override
-  void dispose() {
-    // Remove listener using the stored reference — context is deactivated here.
-    _routeInfoProvider?.removeListener(_onRouteChanged);
-    super.dispose();
   }
 
   void _loadUsers() {
@@ -59,11 +36,11 @@ class _UsersPageState extends State<UsersPage> {
 
     return Scaffold(
       appBar: AppHeader(
-        title: 'Users',
-        showBackButton: false,
+        title: 'Manage Users',
         actions: [
           IconButton(
-            icon: Icon(Icons.add, color: appTheme.textHeading),
+            icon: Icon(Icons.person_add_outlined, color: appTheme.textHeading),
+            tooltip: 'Add user',
             onPressed: () async {
               await GoRouter.of(context).push('/add-user');
               if (!mounted) return;
@@ -75,7 +52,7 @@ class _UsersPageState extends State<UsersPage> {
       body: users.isEmpty
           ? Center(
               child: Text(
-                'No users found',
+                'No users yet. Tap + to add one.',
                 style: TextStyle(color: appTheme.textBody),
               ),
             )
@@ -84,6 +61,8 @@ class _UsersPageState extends State<UsersPage> {
               itemCount: users.length,
               itemBuilder: (context, index) {
                 final user = users[index];
+                final initial =
+                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?';
                 return GestureDetector(
                   onTap: () async {
                     await GoRouter.of(context).push(
@@ -94,59 +73,71 @@ class _UsersPageState extends State<UsersPage> {
                     _loadUsers();
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
+                    margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: appTheme.backgroundSurface,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: appTheme.borderColor.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          user.name,
-                          style: TextStyle(
-                            color: appTheme.textHeading,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: appTheme.accentPrimary
+                                .withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
                           ),
-                        ),
-                        if (user.dateOfBirth != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'DOB: ${user.dateOfBirth!.day}/${user.dateOfBirth!.month}/${user.dateOfBirth!.year}',
-                            style: TextStyle(
-                              color: appTheme.textBody,
-                              fontSize: 12,
+                          child: Center(
+                            child: Text(
+                              initial,
+                              style: TextStyle(
+                                color: appTheme.accentSecondary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.name,
+                                style: TextStyle(
+                                  color: appTheme.textHeading,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (user.dateOfBirth != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'DOB: ${user.dateOfBirth!.day}/${user.dateOfBirth!.month}/${user.dateOfBirth!.year}',
+                                  style: TextStyle(
+                                    color: appTheme.textBody,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_outlined,
+                            color: appTheme.borderColor, size: 20),
                       ],
                     ),
                   ),
                 );
               },
             ),
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: 3,
-        onTap: _onNavTap,
-      ),
     );
-  }
-
-  void _onNavTap(int index) {
-    if (index == 0) {
-      GoRouter.of(context).go('/');
-    } else if (index == 1) {
-      GoRouter.of(context).go('/listing');
-    } else if (index == 2) {
-      GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
-    } else if (index == 4) {
-      GoRouter.of(context).go('/settings');
-    }
   }
 }

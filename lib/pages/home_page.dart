@@ -15,7 +15,7 @@ class HomePage extends StatelessWidget {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
 
     return Scaffold(
-      appBar: AppHeader(title: 'Gold Gallery', showBackButton: false),
+      appBar: AppHeader(title: 'Gold Price Today', showBackButton: false),
       body: PatternedBackground(
         patternColor: appTheme.patternColor,
         child: SingleChildScrollView(
@@ -28,6 +28,19 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: null,
+        onPressed: () =>
+            GoRouter.of(context).push('/add-product', extra: {'mode': 'add'}),
+        backgroundColor: appTheme.accent,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: const CircleBorder(
+          side: BorderSide(color: Colors.white, width: 2),
+        ),
+        child: const Icon(Icons.add, size: 28),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomNavigation(
         currentIndex: 0,
         onTap: (index) => _onNavTap(context, index),
@@ -36,14 +49,13 @@ class HomePage extends StatelessWidget {
   }
 
   void _onNavTap(BuildContext context, int index) {
-    if (index == 1) {
-      GoRouter.of(context).go('/listing');
-    } else if (index == 2) {
-      GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
-    } else if (index == 3) {
-      GoRouter.of(context).go('/users');
-    } else if (index == 4) {
-      GoRouter.of(context).go('/settings');
+    switch (index) {
+      case 1:
+        GoRouter.of(context).go('/dashboard');
+      case 3:
+        GoRouter.of(context).go('/listing');
+      case 4:
+        GoRouter.of(context).go('/settings');
     }
   }
 }

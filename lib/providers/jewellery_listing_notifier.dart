@@ -8,6 +8,7 @@ class JewelleryListingNotifier extends ChangeNotifier {
   String? selectedPurity;
   String? selectedType;
   String? selectedOwnerId;
+  String _searchQuery = '';
 
   SortField _sortField = SortField.date;
   SortDirection _sortDirection = SortDirection.desc;
@@ -19,6 +20,7 @@ class JewelleryListingNotifier extends ChangeNotifier {
 
   SortField get sortField => _sortField;
   SortDirection get sortDirection => _sortDirection;
+  String get searchQuery => _searchQuery;
   List<User> get availableOwners => List.unmodifiable(_availableOwners);
   bool get hasMultipleOwners => _availableOwners.length > 1;
 
@@ -87,6 +89,26 @@ class JewelleryListingNotifier extends ChangeNotifier {
       }
     }
 
+    if (_searchQuery.isNotEmpty) {
+      result = result.where((item) {
+        final typeName = types
+            .where((t) => t.id == item.jewelleryTypeId)
+            .map((t) => t.name.toLowerCase())
+            .firstOrNull ?? '';
+        final ownerName = _availableOwners
+            .where((u) => u.id == item.ownerId)
+            .map((u) => u.name.toLowerCase())
+            .firstOrNull ?? '';
+        return item.name.toLowerCase().contains(_searchQuery) ||
+            item.brand.toLowerCase().contains(_searchQuery) ||
+            (item.remarks?.toLowerCase().contains(_searchQuery) ?? false) ||
+            (item.purchaseLocation?.toLowerCase().contains(_searchQuery) ??
+                false) ||
+            typeName.contains(_searchQuery) ||
+            ownerName.contains(_searchQuery);
+      }).toList();
+    }
+
     result.sort((a, b) {
       final comparison = switch (_sortField) {
         SortField.date => a.date.compareTo(b.date),
@@ -99,11 +121,13 @@ class JewelleryListingNotifier extends ChangeNotifier {
     return result.map(_toDisplayItem).toList();
   }
 
-  void load() {
+  void load({String? initialType, String? initialOwnerId}) {
     brands = HiveService.getAllBrands();
     types = HiveService.getAllJewelleryTypes();
     _availableOwners = HiveService.getAllUsers();
     _allItems = HiveService.getAllJewellery();
+    if (initialType != null) selectedType = initialType;
+    if (initialOwnerId != null) selectedOwnerId = initialOwnerId;
     notifyListeners();
   }
 
@@ -133,6 +157,11 @@ class JewelleryListingNotifier extends ChangeNotifier {
 
   void updateOwnerFilter(String? ownerId) {
     selectedOwnerId = ownerId;
+    notifyListeners();
+  }
+
+  void updateSearch(String query) {
+    _searchQuery = query.trim().toLowerCase();
     notifyListeners();
   }
 

@@ -2,93 +2,172 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../pages/index.dart';
 
+// ── Transition helpers ────────────────────────────────────────────────────────
+
+/// Fade — used for sibling tab switches (go()).
+CustomTransitionPage<void> _fadePage(
+  LocalKey key,
+  Widget child, {
+  Duration duration = const Duration(milliseconds: 220),
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: duration,
+    reverseTransitionDuration: duration,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: child,
+      );
+    },
+  );
+}
+
+/// Slide-up + fade — used for push drill-downs (details, forms, sheets).
+CustomTransitionPage<void> _slidePage(
+  LocalKey key,
+  Widget child, {
+  Duration duration = const Duration(milliseconds: 280),
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: duration,
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final slide = Tween<Offset>(
+        begin: const Offset(0, 0.06),
+        end: Offset.zero,
+      ).animate(
+        CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+      );
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: SlideTransition(position: slide, child: child),
+      );
+    },
+  );
+}
+
+// ── Router ───────────────────────────────────────────────────────────────────
+
 final GoRouter router = GoRouter(
   initialLocation: '/',
   routes: [
+    // ── Tab-level routes (fade) ───────────────────────────────────────────
     GoRoute(
       path: '/',
-      builder: (context, state) => const HomePage(),
+      pageBuilder: (context, state) =>
+          _fadePage(state.pageKey, const HomePage()),
+    ),
+    GoRoute(
+      path: '/dashboard',
+      pageBuilder: (context, state) =>
+          _fadePage(state.pageKey, const DashboardPage()),
     ),
     GoRoute(
       path: '/listing',
-      builder: (context, state) => const JewelleryListingPage(),
-    ),
-    GoRoute(
-      path: '/details',
-      builder: (context, state) {
-        final id = state.extra as int?;
-        return id != null ? DetailsPage(jeweleryId: id) : const HomePage();
-      },
-    ),
-    GoRoute(
-      path: '/users',
-      builder: (context, state) => const UsersPage(),
-    ),
-    GoRoute(
-      path: '/user-details',
-      builder: (context, state) {
-        final id = state.extra as int?;
-        return id != null ? UserDetailsPage(userId: id) : const UsersPage();
-      },
-    ),
-    GoRoute(
-      path: '/add-user',
-      builder: (context, state) {
-        final args = state.extra as Map<String, dynamic>?;
-        final mode = args?['mode'] as String? ?? 'add';
-        final id = args?['id'] as int?;
-        return UserFormPage(mode: mode, userId: id);
-      },
-    ),
-    GoRoute(
-      path: '/add-product',
-      builder: (context, state) {
-        final args = state.extra as Map<String, dynamic>?;
-        final mode = args?['mode'] as String? ?? 'add';
-        final id = args?['id'] as int?;
-        return ProductFormPage(mode: mode, productId: id);
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, String?>?;
+        return _fadePage(
+          state.pageKey,
+          JewelleryListingPage(
+            initialType: extra?['type'],
+            initialOwnerId: extra?['owner'],
+          ),
+        );
       },
     ),
     GoRoute(
       path: '/settings',
-      builder: (context, state) => const SettingsPage(),
+      pageBuilder: (context, state) =>
+          _fadePage(state.pageKey, const SettingsPage()),
+    ),
+
+    // ── Push drill-down routes (slide-up + fade) ──────────────────────────
+    GoRoute(
+      path: '/details',
+      pageBuilder: (context, state) {
+        final id = state.extra as int?;
+        return _slidePage(
+          state.pageKey,
+          id != null ? DetailsPage(jeweleryId: id) : const HomePage(),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/add-product',
+      pageBuilder: (context, state) {
+        final args = state.extra as Map<String, dynamic>?;
+        final mode = args?['mode'] as String? ?? 'add';
+        final id = args?['id'] as int?;
+        return _slidePage(
+          state.pageKey,
+          ProductFormPage(mode: mode, productId: id),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/users',
+      pageBuilder: (context, state) =>
+          _slidePage(state.pageKey, const UsersPage()),
+    ),
+    GoRoute(
+      path: '/user-details',
+      pageBuilder: (context, state) {
+        final id = state.extra as int?;
+        return _slidePage(
+          state.pageKey,
+          id != null ? UserDetailsPage(userId: id) : const UsersPage(),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/add-user',
+      pageBuilder: (context, state) {
+        final args = state.extra as Map<String, dynamic>?;
+        final mode = args?['mode'] as String? ?? 'add';
+        final id = args?['id'] as int?;
+        return _slidePage(
+          state.pageKey,
+          UserFormPage(mode: mode, userId: id),
+        );
+      },
     ),
     GoRoute(
       path: '/gold-history',
       pageBuilder: (context, state) {
         final shopName = state.extra as String?;
-        final page = shopName != null
-            ? GoldPriceHistoryPage(shopName: shopName)
-            : const HomePage();
-        return CustomTransitionPage(
-          key: state.pageKey,
-          child: page,
-          transitionDuration: const Duration(milliseconds: 280),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(
-                  parent: animation, curve: Curves.easeOut),
-              child: child,
-            );
-          },
+        return _slidePage(
+          state.pageKey,
+          shopName != null
+              ? GoldPriceHistoryPage(shopName: shopName)
+              : const HomePage(),
+          duration: const Duration(milliseconds: 300),
         );
       },
     ),
     GoRoute(
       path: '/brands',
-      builder: (context, state) => const BrandManagePage(),
+      pageBuilder: (context, state) =>
+          _slidePage(state.pageKey, const BrandManagePage()),
     ),
     GoRoute(
       path: '/jewellery-types',
-      builder: (context, state) => const JewelleryTypeManagePage(),
+      pageBuilder: (context, state) =>
+          _slidePage(state.pageKey, const JewelleryTypeManagePage()),
     ),
     GoRoute(
       path: '/photo-viewer',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final args = state.extra as Map<String, dynamic>?;
         final imagePaths = args?['imagePaths'] as List<String>? ?? [];
         final initialIndex = args?['initialIndex'] as int? ?? 0;
-        return PhotoViewerPage(imagePaths: imagePaths, initialIndex: initialIndex);
+        return _slidePage(
+          state.pageKey,
+          PhotoViewerPage(imagePaths: imagePaths, initialIndex: initialIndex),
+        );
       },
     ),
   ],

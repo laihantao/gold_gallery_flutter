@@ -14,6 +14,24 @@ class BackupImportResult {
   const BackupImportResult(this.counts);
 
   int get totalImported => counts.values.fold(0, (sum, count) => sum + count);
+
+  /// e.g. "8 Products · 2 Users · 1 Brand"  (zero-count categories omitted)
+  String get breakdown {
+    const categories = [
+      (key: 'jewellery',      singular: 'Product',  plural: 'Products'),
+      (key: 'user',           singular: 'User',      plural: 'Users'),
+      (key: 'brand',          singular: 'Brand',     plural: 'Brands'),
+      (key: 'jewellery_type', singular: 'Type',      plural: 'Types'),
+      (key: 'currency',       singular: 'Currency',  plural: 'Currencies'),
+    ];
+    return categories
+        .where((c) => (counts[c.key] ?? 0) > 0)
+        .map((c) {
+          final n = counts[c.key]!;
+          return '$n ${n == 1 ? c.singular : c.plural}';
+        })
+        .join(' · ');
+  }
 }
 
 class BackupService {

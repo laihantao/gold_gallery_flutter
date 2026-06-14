@@ -6,24 +6,49 @@ import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
 import '../models/index.dart';
 import '../providers/jewellery_listing_notifier.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/filter_chip_bar.dart';
 import '../widgets/jewellery_card.dart';
 
 class JewelleryListingPage extends StatelessWidget {
-  const JewelleryListingPage({super.key});
+  /// Pre-applied type filter name (e.g. "Ring") — passed from Dashboard.
+  final String? initialType;
+
+  /// Pre-applied owner id (as string) — passed from Dashboard.
+  final String? initialOwnerId;
+
+  const JewelleryListingPage({
+    super.key,
+    this.initialType,
+    this.initialOwnerId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => JewelleryListingNotifier()..load(),
+      create: (_) => JewelleryListingNotifier()
+        ..load(initialType: initialType, initialOwnerId: initialOwnerId),
       child: const _JewelleryListingView(),
     );
   }
 }
 
-class _JewelleryListingView extends StatelessWidget {
+class _JewelleryListingView extends StatefulWidget {
   const _JewelleryListingView();
+
+  @override
+  State<_JewelleryListingView> createState() => _JewelleryListingViewState();
+}
+
+class _JewelleryListingViewState extends State<_JewelleryListingView> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Future<void> _openDetails(
     BuildContext context,
@@ -36,19 +61,19 @@ class _JewelleryListingView extends StatelessWidget {
     }
   }
 
-  Future<void> _onNavTap(BuildContext context, int index) async {
+  Future<void> _onAddTap() async {
     final notifier = context.read<JewelleryListingNotifier>();
+    await GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
+    if (!mounted) return;
+    notifier.refresh();
+  }
 
+  Future<void> _onNavTap(BuildContext context, int index) async {
     switch (index) {
       case 0:
         GoRouter.of(context).go('/');
       case 1:
-        break;
-      case 2:
-        await GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
-        if (context.mounted) notifier.refresh();
-      case 3:
-        GoRouter.of(context).go('/users');
+        GoRouter.of(context).go('/dashboard');
       case 4:
         GoRouter.of(context).go('/settings');
     }
@@ -103,44 +128,65 @@ class _JewelleryListingView extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Search bar ──────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _SearchBar(
+                  controller: _searchController,
+                  appTheme: appTheme,
+                  onChanged: notifier.updateSearch,
+                ),
+              ),
+
+              // ── Filter chips ────────────────────────────────
               FilterChipBar(
                 options: notifier.filterOptions,
                 selectedValues: notifier.selectedFilters,
                 onFilterChanged: notifier.updateFilter,
-                onReset: notifier.resetFilters,
+                onReset: () {
+                  notifier.resetFilters();
+                  _searchController.clear();
+                  notifier.updateSearch('');
+                },
                 availableOwners:
                     notifier.hasMultipleOwners ? notifier.availableOwners : null,
                 selectedOwnerId: notifier.selectedOwnerId,
                 selectedOwnerName: notifier.selectedOwnerName,
                 onSortTap: () => _showSortSheet(context, notifier),
               ),
+
               Padding(
                 padding: const EdgeInsets.only(left: 16, top: 4),
                 child: Text(
                   '${notifier.sortField.label} $sortArrow',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: appTheme.textBody,
-                  ),
+                  style: TextStyle(fontSize: 11, color: appTheme.textBody),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Text(
                   '${filteredItems.length} item${filteredItems.length == 1 ? '' : 's'} found',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: appTheme.inkLight),
                 ),
               ),
+
+              // ── List ────────────────────────────────────────
               Expanded(
                 child: filteredItems.isEmpty
                     ? Center(
-                        child: Text(
-                          'No jewellery found',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.search_off_outlined,
+                                size: 48, color: appTheme.inkLight),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No jewellery found',
+                              style: theme.textTheme.bodyLarge
+                                  ?.copyWith(color: appTheme.inkLight),
+                            ),
+                          ],
                         ),
                       )
                     : ListView.builder(
@@ -163,13 +209,86 @@ class _JewelleryListingView extends StatelessWidget {
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: null,
+        onPressed: _onAddTap,
+        backgroundColor: appTheme.accent,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: const CircleBorder(
+          side: BorderSide(color: Colors.white, width: 2),
+        ),
+        child: const Icon(Icons.add, size: 28),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomNavigation(
-        currentIndex: 1,
+        currentIndex: 3,
         onTap: (index) => _onNavTap(context, index),
       ),
     );
   }
 }
+
+// ── Search bar widget ─────────────────────────────────────────────────────────
+
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final AppTheme appTheme;
+  final void Function(String) onChanged;
+
+  const _SearchBar({
+    required this.controller,
+    required this.appTheme,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: TextStyle(color: appTheme.inkDark, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'Search by name, brand, type, owner…',
+        hintStyle: TextStyle(color: appTheme.inkLight, fontSize: 13),
+        prefixIcon:
+            Icon(Icons.search_outlined, color: appTheme.inkLight, size: 20),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (_, value, _) {
+            if (value.text.isEmpty) return const SizedBox.shrink();
+            return GestureDetector(
+              onTap: () {
+                controller.clear();
+                onChanged('');
+              },
+              child: Icon(Icons.clear_outlined,
+                  color: appTheme.inkLight, size: 18),
+            );
+          },
+        ),
+        filled: true,
+        fillColor: appTheme.surface,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: appTheme.border, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: appTheme.border, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: appTheme.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sort tile ─────────────────────────────────────────────────────────────────
 
 class _SortOptionTile extends StatelessWidget {
   final String title;

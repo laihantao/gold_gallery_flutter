@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'models/gold_price.dart';
 import 'providers/gold_price_notifier.dart';
+import 'services/gold_price_history_backfill_service.dart';
 import 'services/gold_price_history_seed_service.dart';
 import 'services/gold_price_history_service.dart';
 import 'services/hive_service.dart';
@@ -18,6 +19,7 @@ void main() async {
   await Hive.openBox<String>(GoldPriceHistoryService.boxName);
   await HiveService.initialize();
   await GoldPriceHistorySeedService.seedIfNeeded();
+  await GoldPriceHistoryBackfillService.backfillIfNeeded();
 
   runApp(const MyApp());
 }
