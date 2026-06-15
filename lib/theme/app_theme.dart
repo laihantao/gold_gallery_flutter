@@ -116,7 +116,7 @@ enum AurumTheme {
   String localizedLabel(AppLocale locale) => switch (this) {
         AurumTheme.parchment => switch (locale) {
           AppLocale.en => 'Parchment',
-          AppLocale.zhCN => '羊皮纸',
+          AppLocale.zhCN => '暖金',
           AppLocale.ms => 'Perkamen',
         },
         AurumTheme.sky => switch (locale) {

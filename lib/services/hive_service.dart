@@ -83,6 +83,7 @@ class HiveService {
           name: item['name'] ?? '',
           nameZh: item['nameZh'] ?? '',
           nameMs: item['nameMs'] ?? '',
+          iconKey: item['iconKey'] as String? ?? 'other',
           isDefault: true,
           createdAt: now,
           updatedAt: now,

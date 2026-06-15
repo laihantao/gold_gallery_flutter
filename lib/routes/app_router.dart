@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../pages/index.dart';
+import '../screens/splash_screen.dart';
 
 // ── Transition helpers ────────────────────────────────────────────────────────
 
@@ -53,8 +54,18 @@ CustomTransitionPage<void> _slidePage(
 // ── Router ───────────────────────────────────────────────────────────────────
 
 final GoRouter router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/splash',
   routes: [
+    // ── Splash ────────────────────────────────────────────────────────────
+    GoRoute(
+      path: '/splash',
+      pageBuilder: (context, state) => _fadePage(
+        state.pageKey,
+        const SplashScreen(),
+        duration: const Duration(milliseconds: 600),
+      ),
+    ),
+
     // ── Tab-level routes (fade) ───────────────────────────────────────────
     GoRoute(
       path: '/',

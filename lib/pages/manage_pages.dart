@@ -7,6 +7,7 @@ import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
+import '../widgets/jewellery_type_icon.dart';
 
 // ── Brand management ──────────────────────────────────────────────────────────
 
@@ -306,6 +307,15 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
                     ),
                     child: Row(
                       children: [
+                        // Type icon
+                        JewelleryTypeIcon(
+                          iconKey: type.iconKey,
+                          size: 36,
+                          tintColor: type.isActive
+                              ? appTheme.accentPrimary
+                              : appTheme.textBody.withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,10 +406,10 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
     final enController = TextEditingController(text: type?.name ?? '');
     final zhController = TextEditingController(text: type?.nameZh ?? '');
     final msController = TextEditingController(text: type?.nameMs ?? '');
+    String selectedIconKey = type?.iconKey ?? 'other';
 
     showDialog(
       context: context,
-      // StatefulBuilder lets us reactively enable/disable Save button.
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           final canSave = enController.text.trim().isNotEmpty;
@@ -412,6 +422,7 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _FormField(
                     controller: enController,
@@ -431,9 +442,55 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
                     label: l10n.typeNameMs,
                     appTheme: appTheme,
                   ),
-                  if (!canSave && enController.text.isNotEmpty == false) ...[
-                    const SizedBox(height: 8),
-                  ],
+                  const SizedBox(height: 16),
+                  // ── Icon picker ───────────────────────────────
+                  Text(
+                    l10n.iconLabel,
+                    style: TextStyle(
+                        color: appTheme.textBody,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: JewelleryTypeIcon.validKeys.map((key) {
+                      final selected = key == selectedIconKey;
+                      return GestureDetector(
+                        onTap: () =>
+                            setDialogState(() => selectedIconKey = key),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? appTheme.primaryLight
+                                : appTheme.backgroundSubtle,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selected
+                                  ? appTheme.accentPrimary
+                                  : appTheme.borderColor
+                                      .withValues(alpha: 0.3),
+                              width: selected ? 2 : 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: JewelleryTypeIcon(
+                              iconKey: key,
+                              size: 32,
+                              tintColor: selected
+                                  ? appTheme.accentPrimary
+                                  : appTheme.textBody
+                                      .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ],
               ),
             ),
@@ -451,6 +508,7 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
                           name: enController.text.trim(),
                           nameZh: zhController.text.trim(),
                           nameMs: msController.text.trim(),
+                          iconKey: selectedIconKey,
                           isDefault: type?.isDefault ?? false,
                           isActive: type?.isActive ?? true,
                           createdAt: type?.createdAt ?? now,
@@ -463,8 +521,7 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
                 child: Text(
                   l10n.saveButton,
                   style: TextStyle(
-                    color: canSave ? null : appTheme.textBody,
-                  ),
+                      color: canSave ? null : appTheme.textBody),
                 ),
               ),
             ],

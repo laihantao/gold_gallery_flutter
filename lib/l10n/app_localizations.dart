@@ -251,7 +251,7 @@ class AppLocalizations {
 
   // ── Theme names (proper-noun translations) ───────────────────────────────────
   String get themeNameParchment =>
-      _t(en: 'Parchment', zh: '羊皮纸', ms: 'Perkamen');
+      _t(en: 'Parchment', zh: '暖金', ms: 'Perkamen');
   String get themeNameSky => _t(en: 'Sky', zh: '天蓝', ms: 'Langit');
   String get themeNameBlush => _t(en: 'Blush', zh: '玫瑰', ms: 'Merona');
 
@@ -317,6 +317,7 @@ class AppLocalizations {
       _t(en: 'Description', zh: '描述', ms: 'Keterangan');
   String get noTypesFound =>
       _t(en: 'No types found', zh: '未找到类型', ms: 'Tiada jenis');
+  String get iconLabel => _t(en: 'Icon', zh: '图标', ms: 'Ikon');
   String get addType =>
       _t(en: 'Add Type', zh: '添加类型', ms: 'Tambah Jenis');
   String get editType =>

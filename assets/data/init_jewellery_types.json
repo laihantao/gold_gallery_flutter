@@ -1,7 +1,7 @@
 [
-  { "id": 1, "name": "Ring",     "nameZh": "戒指", "nameMs": "Cincin"  },
-  { "id": 2, "name": "Pendant",  "nameZh": "吊坠", "nameMs": "Loket"   },
-  { "id": 3, "name": "Necklace", "nameZh": "项链", "nameMs": "Rantai"  },
-  { "id": 4, "name": "Bracelet", "nameZh": "手镯", "nameMs": "Gelang"  },
-  { "id": 5, "name": "Earrings", "nameZh": "耳环", "nameMs": "Subang"  }
+  { "id": 1, "name": "Ring",     "nameZh": "戒指", "nameMs": "Cincin",  "iconKey": "ring"     },
+  { "id": 2, "name": "Pendant",  "nameZh": "吊坠", "nameMs": "Loket",   "iconKey": "pendant"  },
+  { "id": 3, "name": "Necklace", "nameZh": "项链", "nameMs": "Rantai",  "iconKey": "necklace" },
+  { "id": 4, "name": "Bracelet", "nameZh": "手镯", "nameMs": "Gelang",  "iconKey": "bracelet" },
+  { "id": 5, "name": "Earrings", "nameZh": "耳环", "nameMs": "Subang",  "iconKey": "earrings" }
 ]

@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../painters/bg_pattern_painter.dart';
 import '../services/hive_service.dart';
+import '../widgets/jewellery_type_icon.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
@@ -456,28 +457,6 @@ class _TypeGrid extends StatelessWidget {
     required this.onTap,
   });
 
-  // Icon lookup is keyed to English type names for stability across locales.
-  static IconData _iconFor(String englishName) {
-    switch (englishName.toLowerCase()) {
-      case 'ring':
-        return Icons.circle_outlined;
-      case 'pendant':
-        return Icons.diamond_outlined;
-      case 'necklace':
-        return Icons.link_outlined;
-      case 'bracelet':
-        return Icons.all_inclusive_outlined;
-      case 'earrings':
-        return Icons.hearing_outlined;
-      case 'gold bar':
-        return Icons.view_week_outlined;
-      case 'bangle':
-        return Icons.radio_button_unchecked;
-      default:
-        return Icons.category_outlined;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -513,20 +492,22 @@ class _TypeGrid extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
                         color: dimmed
                             ? appTheme.primaryLight.withValues(alpha: 0.4)
                             : appTheme.primaryLight,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        _iconFor(stat.type.name),
-                        color: dimmed
-                            ? appTheme.primary.withValues(alpha: 0.4)
-                            : appTheme.primary,
-                        size: 24,
+                      child: Center(
+                        child: JewelleryTypeIcon(
+                          iconKey: stat.type.iconKey,
+                          size: 36,
+                          tintColor: dimmed
+                              ? appTheme.primary.withValues(alpha: 0.4)
+                              : appTheme.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),

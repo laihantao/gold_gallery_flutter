@@ -11,6 +11,7 @@ import 'services/gold_price_history_backfill_service.dart';
 import 'services/gold_price_history_seed_service.dart';
 import 'services/gold_price_history_service.dart';
 import 'services/hive_service.dart';
+import 'services/splash_caption_service.dart';
 import 'theme/theme_notifier.dart';
 import 'routes/app_router.dart';
 
@@ -24,6 +25,7 @@ void main() async {
   await HiveService.initialize();
   await GoldPriceHistorySeedService.seedIfNeeded();
   await GoldPriceHistoryBackfillService.backfillIfNeeded();
+  await SplashCaptionService.initialize();
 
   runApp(const MyApp());
 }

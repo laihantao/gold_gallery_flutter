@@ -5,6 +5,7 @@ class JewelleryType {
   final String name;    // English — primary key for data consistency & export/import
   final String nameZh;  // Simplified Chinese display name
   final String nameMs;  // Bahasa Melayu display name
+  final String iconKey;
   final bool isDefault;
   final bool isActive;
   final DateTime createdAt;
@@ -15,6 +16,7 @@ class JewelleryType {
     required this.name,
     this.nameZh = '',
     this.nameMs = '',
+    this.iconKey = 'other',
     this.isDefault = false,
     this.isActive = true,
     required this.createdAt,
@@ -33,6 +35,7 @@ class JewelleryType {
     String? name,
     String? nameZh,
     String? nameMs,
+    String? iconKey,
     bool? isDefault,
     bool? isActive,
     DateTime? createdAt,
@@ -43,6 +46,7 @@ class JewelleryType {
       name: name ?? this.name,
       nameZh: nameZh ?? this.nameZh,
       nameMs: nameMs ?? this.nameMs,
+      iconKey: iconKey ?? this.iconKey,
       isDefault: isDefault ?? this.isDefault,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
@@ -56,6 +60,7 @@ class JewelleryType {
       'name': name,
       'nameZh': nameZh,
       'nameMs': nameMs,
+      'iconKey': iconKey,
       'isDefault': isDefault,
       'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
@@ -69,6 +74,7 @@ class JewelleryType {
       name: json['name'] ?? '',
       nameZh: json['nameZh'] ?? '',
       nameMs: json['nameMs'] ?? '',
+      iconKey: json['iconKey'] as String? ?? 'other',
       isDefault: json['isDefault'] as bool? ?? false,
       isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] != null
