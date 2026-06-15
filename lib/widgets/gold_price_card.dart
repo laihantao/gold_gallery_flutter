@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/gold_price_notifier.dart';
 import '../services/gold_price_history_service.dart';
 import '../theme/app_theme.dart';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 
-const double _kLabelRowH = 18;
-const double _kPriceRowH = 30;
 const double _kFooterRowH = 16;
+const double _kDeltaRowH = 15; // reserved height for delta badge row
 
 // Returns compact values for narrow screens (phones), larger for tablets.
 double _logoSize(double screenW) => screenW < 400 ? 48 : 64;
@@ -103,22 +103,14 @@ class BrandPriceCard extends StatelessWidget {
                       appTheme: appTheme,
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      height: _kLabelRowH,
-                      child: _LabelRow(appTheme: appTheme),
-                    ),
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      height: _kPriceRowH,
-                      child: _PriceRow(
-                        price916: price916,
-                        price999: price999,
-                        prevPrice916: prevPrice916,
-                        prevPrice999: prevPrice999,
-                        isLoading: isLoading,
-                        isStale: isStale,
-                        appTheme: appTheme,
-                      ),
+                    _PriceColumns(
+                      price916: price916,
+                      price999: price999,
+                      prevPrice916: prevPrice916,
+                      prevPrice999: prevPrice999,
+                      isLoading: isLoading,
+                      isStale: isStale,
+                      appTheme: appTheme,
                     ),
                     const SizedBox(height: 6),
                     SizedBox(
@@ -265,32 +257,14 @@ class _NameRow extends StatelessWidget {
   }
 }
 
-// ── Row 2: "916" / "999" labels ──────────────────────────────────────────────
+// ── Rows 2 + 3: Label, price, and delta — one column per karat ───────────────
+//
+// Each karat type gets a vertical column: label on top, price in the middle,
+// and a fixed-height delta row at the bottom. The reserved delta row height
+// keeps both columns identical even when only one has a badge, preventing
+// the price row from jumping on refresh.
 
-class _LabelRow extends StatelessWidget {
-  final AppTheme appTheme;
-  const _LabelRow({required this.appTheme});
-
-  @override
-  Widget build(BuildContext context) {
-    final style = TextStyle(
-      color: appTheme.textBody.withValues(alpha: 0.65),
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 0.4,
-    );
-    return Row(
-      children: [
-        Expanded(child: Center(child: Text('916', style: style))),
-        Expanded(child: Center(child: Text('999', style: style))),
-      ],
-    );
-  }
-}
-
-// ── Row 3: Prices ────────────────────────────────────────────────────────────
-
-class _PriceRow extends StatelessWidget {
+class _PriceColumns extends StatelessWidget {
   final double? price916;
   final double? price999;
   final double? prevPrice916;
@@ -299,7 +273,7 @@ class _PriceRow extends StatelessWidget {
   final bool isStale;
   final AppTheme appTheme;
 
-  const _PriceRow({
+  const _PriceColumns({
     required this.price916,
     required this.price999,
     required this.prevPrice916,
@@ -326,22 +300,90 @@ class _PriceRow extends StatelessWidget {
     final mutedColor = appTheme.textBody.withValues(alpha: 0.5);
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: _PriceCell(
+          child: _PriceColumn(
+            label: '916',
             price: price916,
             prevPrice: prevPrice916,
             priceColor: priceColor,
             mutedColor: mutedColor,
+            appTheme: appTheme,
           ),
         ),
         Expanded(
-          child: _PriceCell(
+          child: _PriceColumn(
+            label: '999',
             price: price999,
             prevPrice: prevPrice999,
             priceColor: priceColor,
             mutedColor: mutedColor,
+            appTheme: appTheme,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PriceColumn extends StatelessWidget {
+  final String label;
+  final double? price;
+  final double? prevPrice;
+  final Color priceColor;
+  final Color mutedColor;
+  final AppTheme appTheme;
+
+  const _PriceColumn({
+    required this.label,
+    required this.price,
+    required this.prevPrice,
+    required this.priceColor,
+    required this.mutedColor,
+    required this.appTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final priceText = price == null ? '—' : 'RM ${price!.toStringAsFixed(0)}';
+    final hasDelta = price != null && prevPrice != null;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: appTheme.textBody.withValues(alpha: 0.65),
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          priceText,
+          style: TextStyle(
+            color: priceColor,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 2),
+        // Fixed-height slot keeps both columns the same total height.
+        SizedBox(
+          height: _kDeltaRowH,
+          child: hasDelta
+              ? Center(
+                  child: _DeltaChip(
+                    current: price!,
+                    previous: prevPrice!,
+                    mutedColor: mutedColor,
+                  ),
+                )
+              : null,
         ),
       ],
     );
@@ -369,22 +411,23 @@ class _FooterRow extends StatelessWidget {
     required this.appTheme,
   });
 
-  String _friendlyError(String? reason) {
-    if (reason == 'timeout') return 'Request timed out';
-    if (reason == 'parse') return 'Could not read price';
+  String _friendlyError(String? reason, AppLocalizations l10n) {
+    if (reason == 'timeout') return l10n.errTimeout;
+    if (reason == 'parse') return l10n.errParse;
     if (reason != null &&
         (reason.startsWith('http_') || reason.startsWith('proxy_'))) {
-      return 'Site unavailable';
+      return l10n.errUnavailable;
     }
-    return 'Fetch failed';
+    return l10n.errFetch;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     if (isError && !hasData) {
       return Center(
         child: Text(
-          _friendlyError(errorReason),
+          _friendlyError(errorReason, l10n),
           style: TextStyle(
             color: const Color(0xFFE06666).withValues(alpha: 0.9),
             fontSize: 11,
@@ -398,7 +441,7 @@ class _FooterRow extends StatelessWidget {
 
     if (isLoading || updatedAt == null) return const SizedBox.shrink();
 
-    final label = (isError ? 'Last · ' : '') + stampFmt.format(updatedAt!);
+    final label = (isError ? l10n.priceStalePrefix : '') + stampFmt.format(updatedAt!);
 
     return Align(
       alignment: Alignment.centerRight,
@@ -411,55 +454,6 @@ class _FooterRow extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-    );
-  }
-}
-
-// ── Price cell ────────────────────────────────────────────────────────────────
-//
-// The price text is always centred in its column via a [Stack].
-// The delta badge is anchored to the right edge so it never shifts the price.
-
-class _PriceCell extends StatelessWidget {
-  final double? price;
-  final double? prevPrice;
-  final Color priceColor;
-  final Color mutedColor;
-
-  const _PriceCell({
-    required this.price,
-    required this.prevPrice,
-    required this.priceColor,
-    required this.mutedColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final priceText =
-        price == null ? '—' : 'RM ${price!.toStringAsFixed(0)}';
-    final hasDelta = price != null && prevPrice != null;
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Text(
-          priceText,
-          style: TextStyle(
-            color: priceColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        if (hasDelta)
-          Align(
-            alignment: Alignment.centerRight,
-            child: _DeltaChip(
-              current: price!,
-              previous: prevPrice!,
-              mutedColor: mutedColor,
-            ),
-          ),
-      ],
     );
   }
 }

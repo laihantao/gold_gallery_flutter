@@ -3,6 +3,8 @@ class Brand {
   final String name;
   final String? logo;
   final String? description;
+  final bool isDefault;
+  final bool isActive;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -11,6 +13,8 @@ class Brand {
     required this.name,
     this.logo,
     this.description,
+    this.isDefault = false,
+    this.isActive = true,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -20,6 +24,8 @@ class Brand {
     String? name,
     String? logo,
     String? description,
+    bool? isDefault,
+    bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -28,6 +34,8 @@ class Brand {
       name: name ?? this.name,
       logo: logo ?? this.logo,
       description: description ?? this.description,
+      isDefault: isDefault ?? this.isDefault,
+      isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -39,6 +47,8 @@ class Brand {
       'name': name,
       'logo': logo,
       'description': description,
+      'isDefault': isDefault,
+      'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -50,8 +60,14 @@ class Brand {
       name: json['name'] ?? '',
       logo: json['logo'],
       description: json['description'],
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : DateTime.now(),
+      isDefault: json['isDefault'] as bool? ?? false,
+      isActive: json['isActive'] as bool? ?? true,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
     );
   }
 }

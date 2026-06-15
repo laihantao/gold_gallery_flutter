@@ -45,6 +45,7 @@ class HiveService {
           name: item['name'],
           logo: item['logo'],
           description: item['description'],
+          isDefault: true,
           createdAt: now,
           updatedAt: now,
         );
@@ -79,7 +80,10 @@ class HiveService {
       for (final item in jsonList) {
         final type = JewelleryType(
           id: item['id'],
-          name: item['name'],
+          name: item['name'] ?? '',
+          nameZh: item['nameZh'] ?? '',
+          nameMs: item['nameMs'] ?? '',
+          isDefault: true,
           createdAt: now,
           updatedAt: now,
         );
@@ -135,6 +139,16 @@ class HiveService {
 
   static Future<void> deleteUser(int id) async {
     await _userBox.delete(id.toString());
+  }
+
+  /// Returns how many jewellery records reference [userId] as owner or payer.
+  static int getLinkedJewelleryCount(int userId) {
+    int count = 0;
+    for (final json in _jeweleryBox.values) {
+      final j = Jewellery.fromJson(jsonDecode(json));
+      if (j.ownerId == userId || j.payerId == userId) count++;
+    }
+    return count;
   }
 
   static User? getUser(int id) {

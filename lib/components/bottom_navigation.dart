@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
 
 /// Bottom navigation bar — used as [Scaffold.bottomNavigationBar].
 ///
-/// Pair each page's Scaffold with:
-///   floatingActionButton: FloatingActionButton(...)
-///   floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked
-///
 /// Index mapping:
 ///   0 → Home (Gold Price)
 ///   1 → Dashboard
-///   2 → + Add (center FAB — handled by Scaffold, not this widget)
+///   2 → + Add (centre FAB — handled by Scaffold, not this widget)
 ///   3 → Listing
 ///   4 → Settings
 class BottomNavigation extends StatelessWidget {
@@ -29,6 +26,7 @@ class BottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return BottomAppBar(
       color: appTheme.primary,
@@ -51,22 +49,24 @@ class BottomNavigation extends StatelessWidget {
                   children: [
                     _BottomNavItem(
                       icon: Icons.home_outlined,
-                      label: 'Home',
+                      label: l10n.navHome,
                       isActive: currentIndex == 0,
                       onTap: () => onTap(0),
                       appTheme: appTheme,
+                      locale: l10n.locale,
                     ),
                     _BottomNavItem(
                       icon: Icons.dashboard_outlined,
-                      label: 'Dashboard',
+                      label: l10n.navDashboard,
                       isActive: currentIndex == 1,
                       onTap: () => onTap(1),
                       appTheme: appTheme,
+                      locale: l10n.locale,
                     ),
                   ],
                 ),
               ),
-              // Gap for the center FAB (56dp FAB + 8dp notchMargin × 2)
+              // Gap for the centre FAB
               const SizedBox(width: 72),
               // Right: Listing, Settings
               Expanded(
@@ -75,17 +75,19 @@ class BottomNavigation extends StatelessWidget {
                   children: [
                     _BottomNavItem(
                       icon: Icons.shopping_bag_outlined,
-                      label: 'Listing',
+                      label: l10n.navListing,
                       isActive: currentIndex == 3,
                       onTap: () => onTap(3),
                       appTheme: appTheme,
+                      locale: l10n.locale,
                     ),
                     _BottomNavItem(
                       icon: Icons.settings_outlined,
-                      label: 'Settings',
+                      label: l10n.navSettings,
                       isActive: currentIndex == 4,
                       onTap: () => onTap(4),
                       appTheme: appTheme,
+                      locale: l10n.locale,
                     ),
                   ],
                 ),
@@ -104,6 +106,7 @@ class _BottomNavItem extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
   final AppTheme appTheme;
+  final AppLocale locale;
 
   const _BottomNavItem({
     required this.icon,
@@ -111,6 +114,7 @@ class _BottomNavItem extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     required this.appTheme,
+    required this.locale,
   });
 
   @override
@@ -132,7 +136,7 @@ class _BottomNavItem extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: AppTextStyles.caption(iconColor).copyWith(
+              style: AppTextStyles.caption(iconColor, locale: locale).copyWith(
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
               ),
               textAlign: TextAlign.center,

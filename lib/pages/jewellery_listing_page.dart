@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../providers/jewellery_listing_notifier.dart';
 import '../theme/app_theme.dart';
@@ -12,7 +13,7 @@ import '../widgets/filter_chip_bar.dart';
 import '../widgets/jewellery_card.dart';
 
 class JewelleryListingPage extends StatelessWidget {
-  /// Pre-applied type filter name (e.g. "Ring") — passed from Dashboard.
+  /// Pre-applied type filter name (English) — passed from Dashboard.
   final String? initialType;
 
   /// Pre-applied owner id (as string) — passed from Dashboard.
@@ -79,7 +80,8 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     }
   }
 
-  void _showSortSheet(BuildContext context, JewelleryListingNotifier notifier) {
+  void _showSortSheet(BuildContext context, JewelleryListingNotifier notifier,
+      AppLocalizations l10n) {
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
@@ -87,20 +89,21 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
+              Padding(
+                padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Sort by',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  l10n.sortBy,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
               _SortOptionTile(
-                title: 'Date of Purchase',
+                title: l10n.sortByDate,
                 field: SortField.date,
                 notifier: notifier,
               ),
               _SortOptionTile(
-                title: 'Product Name (A–Z / Z–A)',
+                title: l10n.sortByName,
                 field: SortField.name,
                 notifier: notifier,
               ),
@@ -114,16 +117,17 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: const AppHeader(title: 'Jewellery Listing', showBackButton: false),
+      appBar: AppHeader(title: l10n.listingTitle, showBackButton: false),
       body: Consumer<JewelleryListingNotifier>(
         builder: (context, notifier, _) {
           final filteredItems = notifier.filteredItems;
           final sortArrow =
               notifier.sortDirection == SortDirection.desc ? '↓' : '↑';
+          final sortLabel = _sortFieldLabel(notifier.sortField, l10n);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,13 +138,14 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                 child: _SearchBar(
                   controller: _searchController,
                   appTheme: appTheme,
+                  hintText: l10n.searchHint,
                   onChanged: notifier.updateSearch,
                 ),
               ),
 
               // ── Filter chips ────────────────────────────────
               FilterChipBar(
-                options: notifier.filterOptions,
+                options: notifier.filterOptionsFor(l10n),
                 selectedValues: notifier.selectedFilters,
                 onFilterChanged: notifier.updateFilter,
                 onReset: () {
@@ -152,21 +157,23 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                     notifier.hasMultipleOwners ? notifier.availableOwners : null,
                 selectedOwnerId: notifier.selectedOwnerId,
                 selectedOwnerName: notifier.selectedOwnerName,
-                onSortTap: () => _showSortSheet(context, notifier),
+                onSortTap: () => _showSortSheet(context, notifier, l10n),
               ),
 
               Padding(
                 padding: const EdgeInsets.only(left: 16, top: 4),
                 child: Text(
-                  '${notifier.sortField.label} $sortArrow',
+                  '$sortLabel $sortArrow',
                   style: TextStyle(fontSize: 11, color: appTheme.textBody),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Text(
-                  '${filteredItems.length} item${filteredItems.length == 1 ? '' : 's'} found',
-                  style: theme.textTheme.bodySmall
+                  l10n.itemsFound(filteredItems.length),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
                       ?.copyWith(color: appTheme.inkLight),
                 ),
               ),
@@ -182,8 +189,10 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                                 size: 48, color: appTheme.inkLight),
                             const SizedBox(height: 12),
                             Text(
-                              'No jewellery found',
-                              style: theme.textTheme.bodyLarge
+                              l10n.noJewelleryFound,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
                                   ?.copyWith(color: appTheme.inkLight),
                             ),
                           ],
@@ -229,16 +238,23 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
   }
 }
 
+String _sortFieldLabel(SortField field, AppLocalizations l10n) => switch (field) {
+      SortField.date => l10n.labelDate,
+      SortField.name => l10n.rowName,
+    };
+
 // ── Search bar widget ─────────────────────────────────────────────────────────
 
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
   final AppTheme appTheme;
+  final String hintText;
   final void Function(String) onChanged;
 
   const _SearchBar({
     required this.controller,
     required this.appTheme,
+    required this.hintText,
     required this.onChanged,
   });
 
@@ -249,7 +265,7 @@ class _SearchBar extends StatelessWidget {
       onChanged: onChanged,
       style: TextStyle(color: appTheme.inkDark, fontSize: 14),
       decoration: InputDecoration(
-        hintText: 'Search by name, brand, type, owner…',
+        hintText: hintText,
         hintStyle: TextStyle(color: appTheme.inkLight, fontSize: 13),
         prefixIcon:
             Icon(Icons.search_outlined, color: appTheme.inkLight, size: 20),

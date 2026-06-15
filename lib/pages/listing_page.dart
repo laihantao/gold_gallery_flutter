@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
@@ -43,7 +44,6 @@ class _ListingPageState extends State<ListingPage> {
   void _loadData() {
     if (!mounted) return;
     setState(() {
-      // Fix: HiveService methods return non-nullable lists, no need for ?? []
       brands = HiveService.getAllBrands();
       types = HiveService.getAllJewelleryTypes();
       filteredJewellery = HiveService.getAllJewellery();
@@ -52,36 +52,29 @@ class _ListingPageState extends State<ListingPage> {
   }
 
   void _applyFilters() {
-    // Fix: HiveService.getAllJewellery() returns non-nullable List<Jewellery>
     var result = HiveService.getAllJewellery();
 
     if (selectedBrand != null && selectedBrand!.isNotEmpty) {
       result = result.where((j) => j.brand == selectedBrand).toList();
     }
-
     if (selectedPurity != null && selectedPurity!.isNotEmpty) {
       result = result.where((j) => j.goldPurity == selectedPurity).toList();
     }
-
     if (selectedTypeId != null) {
-      result = result
-          .where((j) => j.jewelleryTypeId == selectedTypeId)
-          .toList();
+      result =
+          result.where((j) => j.jewelleryTypeId == selectedTypeId).toList();
     }
 
-    if (mounted) {
-      setState(() {
-        filteredJewellery = result;
-      });
-    }
+    if (mounted) setState(() => filteredJewellery = result);
   }
 
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppHeader(title: 'Jewellery Listing', showBackButton: false),
+      appBar: AppHeader(title: l10n.listingTitle, showBackButton: false),
       body: Column(
         children: [
           Padding(
@@ -93,9 +86,10 @@ class _ListingPageState extends State<ListingPage> {
                     Expanded(
                       flex: 3,
                       child: _FilterChip(
-                        label: 'Brand',
+                        label: l10n.filterBrand,
                         items: brands.map((b) => b.name).toList(),
                         selected: selectedBrand,
+                        allLabel: l10n.filterAll,
                         onChanged: (value) {
                           setState(() => selectedBrand = value);
                           _applyFilters();
@@ -107,9 +101,10 @@ class _ListingPageState extends State<ListingPage> {
                     Expanded(
                       flex: 2,
                       child: _FilterChip(
-                        label: 'Purity',
+                        label: l10n.filterPurity,
                         items: const ['916', '999'],
                         selected: selectedPurity,
+                        allLabel: l10n.filterAll,
                         onChanged: (value) {
                           setState(() => selectedPurity = value);
                           _applyFilters();
@@ -125,9 +120,10 @@ class _ListingPageState extends State<ListingPage> {
                     Expanded(
                       flex: 2,
                       child: _FilterChip(
-                        label: 'Type',
+                        label: l10n.filterType,
                         items: types.map((t) => t.name).toList(),
                         selected: _selectedTypeName,
+                        allLabel: l10n.filterAll,
                         onChanged: (value) {
                           setState(() {
                             selectedTypeId = null;
@@ -160,7 +156,7 @@ class _ListingPageState extends State<ListingPage> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        'Reset',
+                        l10n.filterReset,
                         style: TextStyle(color: appTheme.accentPrimary),
                       ),
                     ),
@@ -169,33 +165,29 @@ class _ListingPageState extends State<ListingPage> {
               ],
             ),
           ),
-          // Jewellery List
           Expanded(
             child: filteredJewellery.isEmpty
                 ? Center(
                     child: Text(
-                      'No jewellery found',
-                      style: TextStyle(color: appTheme.textBody, fontSize: 16),
+                      l10n.noJewelleryFound,
+                      style:
+                          TextStyle(color: appTheme.textBody, fontSize: 16),
                     ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: filteredJewellery.length,
                     itemBuilder: (context, index) {
-                      // Fix: ListView.builder provides itemCount indices starting from 0,
-                      // so we're guaranteed safe access here. No need for bounds check.
                       final item = filteredJewellery[index];
-
                       final currency = HiveService.getCurrency(1);
                       return _JewelleryCard(
                         jewellery: item,
                         currency: currency,
                         appTheme: appTheme,
+                        l10n: l10n,
                         onTap: () async {
-                          await GoRouter.of(
-                            context,
-                          ).push('/details', extra: item.id);
-                          // Fix: Added mounted check to prevent setState after deactivation
+                          await GoRouter.of(context)
+                              .push('/details', extra: item.id);
                           if (!mounted) return;
                           _loadData();
                         },
@@ -205,7 +197,8 @@ class _ListingPageState extends State<ListingPage> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigation(currentIndex: 1, onTap: _onNavTap),
+      bottomNavigationBar:
+          BottomNavigation(currentIndex: 1, onTap: _onNavTap),
     );
   }
 
@@ -213,8 +206,8 @@ class _ListingPageState extends State<ListingPage> {
     if (index == 0) {
       GoRouter.of(context).go('/');
     } else if (index == 2) {
-      await GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
-      // Fix: Added mounted check to prevent setState after deactivation
+      await GoRouter.of(context)
+          .push('/add-product', extra: {'mode': 'add'});
       if (!mounted) return;
       _loadData();
     } else if (index == 3) {
@@ -223,13 +216,13 @@ class _ListingPageState extends State<ListingPage> {
       GoRouter.of(context).go('/settings');
     }
   }
-
 }
 
 class _FilterChip extends StatefulWidget {
   final String label;
   final List<String> items;
   final String? selected;
+  final String allLabel;
   final Function(String?) onChanged;
   final AppTheme appTheme;
 
@@ -237,6 +230,7 @@ class _FilterChip extends StatefulWidget {
     required this.label,
     required this.items,
     this.selected,
+    required this.allLabel,
     required this.onChanged,
     required this.appTheme,
   });
@@ -250,9 +244,7 @@ class _FilterChipState extends State<_FilterChip> {
 
   @override
   Widget build(BuildContext context) {
-    // Fix: Changed display format to "Brand: All" / "Brand: Value"
-    final displayValue = widget.selected ?? 'All';
-    // Fix: Guard empty items list to prevent hit test failures
+    final displayValue = widget.selected ?? widget.allLabel;
     final hasItems = widget.items.isNotEmpty;
 
     return PopupMenuButton<String>(
@@ -260,15 +252,12 @@ class _FilterChipState extends State<_FilterChip> {
         widget.onChanged(value == _allValue ? null : value);
       },
       itemBuilder: (BuildContext context) {
-        // Fix: Ensure menu always has at least "All" option
         return [
-          // Fix: Changed first option to "All" instead of "Clear X"
-          const PopupMenuItem<String>(value: _allValue, child: Text('All')),
+          PopupMenuItem<String>(value: _allValue, child: Text(widget.allLabel)),
           if (widget.items.isNotEmpty) const PopupMenuDivider(),
           if (widget.items.isNotEmpty)
-            ...widget.items.map((item) {
-              return PopupMenuItem<String>(value: item, child: Text(item));
-            }),
+            ...widget.items.map(
+                (item) => PopupMenuItem<String>(value: item, child: Text(item))),
         ];
       },
       child: Container(
@@ -315,12 +304,14 @@ class _JewelleryCard extends StatelessWidget {
   final Jewellery jewellery;
   final Currency? currency;
   final AppTheme appTheme;
+  final AppLocalizations l10n;
   final VoidCallback onTap;
 
   const _JewelleryCard({
     required this.jewellery,
     this.currency,
     required this.appTheme,
+    required this.l10n,
     required this.onTap,
   });
 
@@ -330,9 +321,8 @@ class _JewelleryCard extends StatelessWidget {
       return Image.memory(
         bytes,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(Icons.image, color: appTheme.accentSecondary, size: 28);
-        },
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(Icons.image, color: appTheme.accentSecondary, size: 28),
       );
     } catch (e) {
       return Icon(Icons.image, color: appTheme.accentSecondary, size: 28);
@@ -383,15 +373,14 @@ class _JewelleryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final jewelType = jewellery.jewelleryTypeId != null
         ? _nonBlank(
-            HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name,
-          )
+            HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name)
         : null;
     final ownerName = jewellery.ownerId != null
         ? _nonBlank(HiveService.getUser(jewellery.ownerId!)?.name)
         : null;
-    final dateOfPurchase = DateFormat('dd/MM/yyyy').format(jewellery.date);
+    final dateOfPurchase =
+        DateFormat('dd/MM/yyyy').format(jewellery.date);
 
-    // Fix: Ensure totalPrice is never null in display
     final totalPrice = jewellery.totalPrice ?? 0.0;
     final priceText = totalPrice > 0
         ? '${currency?.symbol ?? 'RM'} ${totalPrice.toStringAsFixed(2)}'
@@ -399,17 +388,16 @@ class _JewelleryCard extends StatelessWidget {
 
     final productInfo = [
       if (_nonBlank(jewellery.brand) case final brand?)
-        MapEntry('Brand', brand),
-      if (jewelType case final type?) MapEntry('Type', type),
-      MapEntry('Date', dateOfPurchase),
+        MapEntry(l10n.rowBrand, brand),
+      if (jewelType case final type?) MapEntry(l10n.labelType, type),
+      MapEntry(l10n.labelDate, dateOfPurchase),
     ];
     final ownerInfo = [
       if (_nonBlank(jewellery.goldPurity) case final purity?)
-        MapEntry('Purity', purity),
-      if (ownerName case final owner?) MapEntry('Owner', owner),
+        MapEntry(l10n.rowPurity, purity),
+      if (ownerName case final owner?) MapEntry(l10n.rowOwner, owner),
     ];
 
-    // Fix: Safely access jewelleryPhoto which is always initialized to non-null list by fromJson
     final photos = jewellery.jewelleryPhoto;
     final hasPhotos = photos.isNotEmpty;
     final firstPhoto = hasPhotos ? photos.first : '';
@@ -459,7 +447,7 @@ class _JewelleryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _nonBlank(jewellery.name) ?? 'Untitled',
+                      _nonBlank(jewellery.name) ?? l10n.untitled,
                       style: TextStyle(
                         color: appTheme.textHeading,
                         fontSize: 13,

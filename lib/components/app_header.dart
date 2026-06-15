@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
 
@@ -20,15 +21,14 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final locale = context.l10n.locale;
 
-    // Main screens (no back button) use the warm coloured header;
-    // detail screens use a clean white surface header.
     final bool colored = !showBackButton;
     final Color bg = colored ? appTheme.headerBg : appTheme.surface;
     final Color fg = appTheme.inkDark;
 
     return AppBar(
-      title: Text(title, style: AppTextStyles.appTitle(fg)),
+      title: Text(title, style: AppTextStyles.appTitle(fg, locale: locale)),
       backgroundColor: bg,
       foregroundColor: fg,
       elevation: 0,

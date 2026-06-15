@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 
@@ -41,24 +42,26 @@ class JewelleryListingNotifier extends ChangeNotifier {
     return HiveService.getUser(ownerId)?.name;
   }
 
-  List<FilterOption> get filterOptions => [
+  /// Returns localized filter options. Call with the current [AppLocalizations]
+  /// so chip labels and type choices reflect the active locale.
+  List<FilterOption> filterOptionsFor(AppLocalizations l10n) => [
         FilterOption(
           value: 'brand',
-          label: 'Brand',
+          label: l10n.filterBrand,
           icon: Icons.sell_outlined,
-          choices: brands.map((brand) => brand.name).toList(),
+          choices: brands.map((b) => b.name).toList(),
         ),
         FilterOption(
           value: 'purity',
-          label: 'Purity',
+          label: l10n.filterPurity,
           icon: Icons.diamond_outlined,
           choices: const ['916', '999'],
         ),
         FilterOption(
           value: 'type',
-          label: 'Type',
+          label: l10n.filterType,
           icon: Icons.category_outlined,
-          choices: types.map((type) => type.name).toList(),
+          choices: types.map((t) => t.localizedName(l10n.locale)).toList(),
         ),
       ];
 
@@ -91,20 +94,23 @@ class JewelleryListingNotifier extends ChangeNotifier {
 
     if (_searchQuery.isNotEmpty) {
       result = result.where((item) {
-        final typeName = types
+        // Search across all locale name variants so typed queries work in any language.
+        final typeNames = types
             .where((t) => t.id == item.jewelleryTypeId)
-            .map((t) => t.name.toLowerCase())
-            .firstOrNull ?? '';
+            .expand((t) => [t.name, t.nameZh, t.nameMs])
+            .map((n) => n.toLowerCase())
+            .toList();
         final ownerName = _availableOwners
-            .where((u) => u.id == item.ownerId)
-            .map((u) => u.name.toLowerCase())
-            .firstOrNull ?? '';
+                .where((u) => u.id == item.ownerId)
+                .map((u) => u.name.toLowerCase())
+                .firstOrNull ??
+            '';
         return item.name.toLowerCase().contains(_searchQuery) ||
             item.brand.toLowerCase().contains(_searchQuery) ||
             (item.remarks?.toLowerCase().contains(_searchQuery) ?? false) ||
             (item.purchaseLocation?.toLowerCase().contains(_searchQuery) ??
                 false) ||
-            typeName.contains(_searchQuery) ||
+            typeNames.any((n) => n.contains(_searchQuery)) ||
             ownerName.contains(_searchQuery);
       }).toList();
     }
@@ -196,9 +202,13 @@ class JewelleryListingNotifier extends ChangeNotifier {
     return HiveService.getCurrencyByCode('MYR')?.symbol ?? 'RM';
   }
 
+  /// Matches [name] against all locale variants (en, zh, ms) so a previously
+  /// selected localized type name still resolves after a locale switch.
   int? _typeIdForName(String name) {
     for (final type in types) {
-      if (type.name == name) return type.id;
+      if (type.name == name || type.nameZh == name || type.nameMs == name) {
+        return type.id;
+      }
     }
     return null;
   }

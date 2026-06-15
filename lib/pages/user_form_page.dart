@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
@@ -27,6 +28,7 @@ class _UserFormPageState extends State<UserFormPage> {
   late TextEditingController _nameController;
   late TextEditingController _dobController;
   late TextEditingController _descriptionController;
+  bool _isActive = true;
 
   User? _existingUser;
 
@@ -45,6 +47,7 @@ class _UserFormPageState extends State<UserFormPage> {
           _dobController.text = DateFormat('dd/MM/yyyy').format(_existingUser!.dateOfBirth!);
         }
         _descriptionController.text = _existingUser!.description ?? '';
+        _isActive = _existingUser!.isActive;
       }
     }
   }
@@ -64,6 +67,7 @@ class _UserFormPageState extends State<UserFormPage> {
         name: _nameController.text,
         dateOfBirth: dob,
         description: _descriptionController.text,
+        isActive: _isActive,
         createdAt: _existingUser?.createdAt ?? now,
         updatedAt: now,
       );
@@ -100,18 +104,20 @@ class _UserFormPageState extends State<UserFormPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppHeader(title: widget.mode == 'add' ? 'Add User' : 'Edit User'),
+      appBar: AppHeader(
+          title: widget.mode == 'add' ? l10n.addUser : l10n.editUser),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildFormField('Name *', _nameController, appTheme),
+            _buildFormField('${l10n.rowName} *', _nameController, appTheme),
             const SizedBox(height: 16),
             _buildFormField(
-              'Date of Birth',
+              l10n.dateOfBirth,
               _dobController,
               appTheme,
               onTap: () async {
@@ -127,12 +133,28 @@ class _UserFormPageState extends State<UserFormPage> {
               },
             ),
             const SizedBox(height: 16),
-            _buildFormField('Description', _descriptionController, appTheme, maxLines: 3),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              label: 'Save User',
-              onPressed: _saveUser,
+            _buildFormField(l10n.rowRemarks, _descriptionController, appTheme,
+                maxLines: 3),
+            const SizedBox(height: 16),
+            // ── Active toggle ──────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _isActive ? l10n.activeLabel : l10n.inactiveLabel,
+                    style:
+                        TextStyle(color: appTheme.textHeading, fontSize: 14),
+                  ),
+                ),
+                Switch(
+                  value: _isActive,
+                  onChanged: (v) => setState(() => _isActive = v),
+                  activeThumbColor: appTheme.primary,
+                ),
+              ],
             ),
+            const SizedBox(height: 24),
+            PrimaryButton(label: l10n.saveButton, onPressed: _saveUser),
             const SizedBox(height: 16),
           ],
         ),
@@ -276,21 +298,41 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
   }
 
   void _showDeleteConfirmation(BuildContext context, AppTheme appTheme) {
+    final l10n = context.l10n;
+    final linkedCount = HiveService.getLinkedJewelleryCount(user!.id);
+
+    if (linkedCount > 0) {
+      // Blocking dialog — cannot delete while items are linked.
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.deleteUserTitle,
+              style: TextStyle(color: appTheme.textHeading)),
+          content: Text(l10n.userHasItems(linkedCount),
+              style: TextStyle(color: appTheme.textBody)),
+          actions: [
+            TextButton(
+              onPressed: () => GoRouter.of(context).pop(),
+              child: Text(l10n.cancelButton),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          'Delete User',
-          style: TextStyle(color: appTheme.textHeading),
-        ),
-        content: Text(
-          'Are you sure you want to delete this user?',
-          style: TextStyle(color: appTheme.textBody),
-        ),
+        title: Text(l10n.deleteTitle,
+            style: TextStyle(color: appTheme.textHeading)),
+        content: Text(l10n.deleteConfirm,
+            style: TextStyle(color: appTheme.textBody)),
         actions: [
           TextButton(
             onPressed: () => GoRouter.of(context).pop(),
-            child: Text('Cancel', style: TextStyle(color: appTheme.accentSecondary)),
+            child: Text(l10n.cancelButton,
+                style: TextStyle(color: appTheme.accentSecondary)),
           ),
           TextButton(
             onPressed: () {
@@ -298,10 +340,11 @@ class _UserDetailsPageState extends State<UserDetailsPage> {
               HiveService.deleteUser(user!.id);
               GoRouter.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('User "$userName" deleted successfully')),
+                SnackBar(content: Text('$userName deleted')),
               );
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.deleteButton,
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),

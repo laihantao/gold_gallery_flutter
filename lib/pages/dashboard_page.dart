@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../painters/bg_pattern_painter.dart';
 import '../services/hive_service.dart';
@@ -54,9 +55,10 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: const AppHeader(title: 'Dashboard', showBackButton: false),
+      appBar: AppHeader(title: l10n.dashboardTitle, showBackButton: false),
       body: PatternedBackground(
         patternColor: appTheme.patternColor,
         child: RefreshIndicator(
@@ -69,21 +71,25 @@ class _DashboardPageState extends State<DashboardPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Portfolio Summary ──────────────────────────
-                _PortfolioCard(data: _data, appTheme: appTheme),
+                _PortfolioCard(data: _data, appTheme: appTheme, l10n: l10n),
                 const SizedBox(height: 24),
 
                 // ── By Jewellery Type ──────────────────────────
-                _SectionHeader(title: 'By Jewellery Type', appTheme: appTheme),
+                _SectionHeader(
+                    title: l10n.byJewelleryType, appTheme: appTheme, l10n: l10n),
                 const SizedBox(height: 12),
                 if (_data.typeStats.isEmpty)
-                  _EmptyHint('No items added yet', appTheme)
+                  _EmptyHint(l10n.noItemsYet, appTheme, l10n)
                 else
                   _TypeGrid(
                     stats: _data.typeStats,
                     appTheme: appTheme,
-                    onTap: (typeName) async {
+                    l10n: l10n,
+                    onTap: (type) async {
+                      // Pass English name for routing so the listing page
+                      // can resolve to the correct type regardless of locale.
                       await GoRouter.of(context)
-                          .push('/listing', extra: {'type': typeName});
+                          .push('/listing', extra: {'type': type.name});
                       if (!mounted) return;
                       _reload();
                     },
@@ -92,13 +98,15 @@ class _DashboardPageState extends State<DashboardPage> {
 
                 // ── By Owner ───────────────────────────────────
                 if (_data.ownerStats.isNotEmpty) ...[
-                  _SectionHeader(title: 'By Owner', appTheme: appTheme),
+                  _SectionHeader(
+                      title: l10n.byOwner, appTheme: appTheme, l10n: l10n),
                   const SizedBox(height: 12),
                   ..._data.ownerStats.map(
                     (stat) => _OwnerRow(
                       stat: stat,
                       appTheme: appTheme,
                       currencySymbol: _data.currencySymbol,
+                      l10n: l10n,
                       onTap: () async {
                         await GoRouter.of(context).push(
                           '/listing',
@@ -115,7 +123,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 // ── Recently Added ─────────────────────────────
                 if (_data.recentItems.isNotEmpty) ...[
                   _SectionHeader(
-                      title: 'Recently Added', appTheme: appTheme),
+                      title: l10n.recentlyAdded, appTheme: appTheme, l10n: l10n),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 170,
@@ -126,6 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         item: _data.recentItems[index],
                         currencySymbol: _data.currencySymbol,
                         appTheme: appTheme,
+                        l10n: l10n,
                         onTap: () async {
                           await GoRouter.of(context).push(
                             '/details',
@@ -168,12 +177,12 @@ class _DashboardPageState extends State<DashboardPage> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TypeStat {
-  final String typeName;
+  final JewelleryType type;
   final int count;
   final double totalValue;
 
   const _TypeStat({
-    required this.typeName,
+    required this.type,
     required this.count,
     required this.totalValue,
   });
@@ -220,18 +229,15 @@ class _DashboardData {
     final totalValue =
         items.fold<double>(0, (s, j) => s + (j.totalPrice ?? 0));
 
-    // Group by type (include types with 0 items)
     final typeStats = types.map((t) {
       final typeItems = items.where((j) => j.jewelleryTypeId == t.id).toList();
       return _TypeStat(
-        typeName: t.name,
+        type: t,
         count: typeItems.length,
-        totalValue:
-            typeItems.fold(0, (s, j) => s + (j.totalPrice ?? 0)),
+        totalValue: typeItems.fold(0, (s, j) => s + (j.totalPrice ?? 0)),
       );
     }).toList();
 
-    // Group by owner (only owners with items)
     final ownerStats = users.map((u) {
       final owned = items.where((j) => j.ownerId == u.id).toList();
       return _OwnerStat(
@@ -242,7 +248,6 @@ class _DashboardData {
       );
     }).where((s) => s.count > 0).toList();
 
-    // Recent 5 items
     final sorted = [...items]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final recent = sorted.take(5).toList();
@@ -265,26 +270,31 @@ class _DashboardData {
 class _SectionHeader extends StatelessWidget {
   final String title;
   final AurumTheme appTheme;
+  final AppLocalizations l10n;
 
-  const _SectionHeader({required this.title, required this.appTheme});
+  const _SectionHeader(
+      {required this.title, required this.appTheme, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: AppTextStyles.headline(appTheme.inkDark));
+    return Text(title,
+        style: AppTextStyles.headline(appTheme.inkDark, locale: l10n.locale));
   }
 }
 
 class _EmptyHint extends StatelessWidget {
   final String message;
   final AurumTheme appTheme;
+  final AppLocalizations l10n;
 
-  const _EmptyHint(this.message, this.appTheme);
+  const _EmptyHint(this.message, this.appTheme, this.l10n);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Text(message, style: AppTextStyles.handNote(appTheme.inkLight)),
+      child:
+          Text(message, style: AppTextStyles.handNote(appTheme.inkLight)),
     );
   }
 }
@@ -294,8 +304,10 @@ class _EmptyHint extends StatelessWidget {
 class _PortfolioCard extends StatelessWidget {
   final _DashboardData data;
   final AurumTheme appTheme;
+  final AppLocalizations l10n;
 
-  const _PortfolioCard({required this.data, required this.appTheme});
+  const _PortfolioCard(
+      {required this.data, required this.appTheme, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -321,17 +333,20 @@ class _PortfolioCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Portfolio Overview',
-            style: AppTextStyles.title(Colors.white.withValues(alpha: 0.85)),
+            l10n.portfolioOverview,
+            style: AppTextStyles.title(
+                Colors.white.withValues(alpha: 0.85),
+                locale: l10n.locale),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: _StatBlock(
-                  label: 'Total Items',
+                  label: l10n.totalItems,
                   value: '${data.totalItems}',
                   icon: Icons.diamond_outlined,
+                  l10n: l10n,
                 ),
               ),
               Container(
@@ -341,11 +356,12 @@ class _PortfolioCard extends StatelessWidget {
               ),
               Expanded(
                 child: _StatBlock(
-                  label: 'Portfolio Value',
+                  label: l10n.portfolioValue,
                   value:
                       '${data.currencySymbol} ${data.totalValue.toStringAsFixed(2)}',
                   icon: Icons.account_balance_wallet_outlined,
                   alignRight: true,
+                  l10n: l10n,
                 ),
               ),
             ],
@@ -361,11 +377,13 @@ class _StatBlock extends StatelessWidget {
   final String value;
   final IconData icon;
   final bool alignRight;
+  final AppLocalizations l10n;
 
   const _StatBlock({
     required this.label,
     required this.value,
     required this.icon,
+    required this.l10n,
     this.alignRight = false,
   });
 
@@ -389,11 +407,15 @@ class _StatBlock extends StatelessWidget {
                 Icon(icon, color: Colors.white.withValues(alpha: 0.7), size: 14),
                 const SizedBox(width: 4),
               ],
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 11,
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: l10n.isZhCN ? 10 : 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (alignRight) ...[
@@ -424,16 +446,19 @@ class _StatBlock extends StatelessWidget {
 class _TypeGrid extends StatelessWidget {
   final List<_TypeStat> stats;
   final AurumTheme appTheme;
-  final void Function(String typeName) onTap;
+  final AppLocalizations l10n;
+  final void Function(JewelleryType type) onTap;
 
   const _TypeGrid({
     required this.stats,
     required this.appTheme,
+    required this.l10n,
     required this.onTap,
   });
 
-  static IconData _iconFor(String name) {
-    switch (name.toLowerCase()) {
+  // Icon lookup is keyed to English type names for stability across locales.
+  static IconData _iconFor(String englishName) {
+    switch (englishName.toLowerCase()) {
       case 'ring':
         return Icons.circle_outlined;
       case 'pendant':
@@ -458,7 +483,7 @@ class _TypeGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 500 ? 3 : 2;
-        final gap = 12.0;
+        const gap = 12.0;
         final cardW = (constraints.maxWidth - gap * (cols - 1)) / cols;
 
         return Wrap(
@@ -466,11 +491,13 @@ class _TypeGrid extends StatelessWidget {
           runSpacing: gap,
           children: stats.map((stat) {
             final dimmed = stat.count == 0;
+            final displayName = stat.type.localizedName(l10n.locale);
             return GestureDetector(
-              onTap: dimmed ? null : () => onTap(stat.typeName),
+              onTap: dimmed ? null : () => onTap(stat.type),
               child: Container(
                 width: cardW,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 decoration: BoxDecoration(
                   color: appTheme.surface,
                   borderRadius: BorderRadius.circular(16),
@@ -495,7 +522,7 @@ class _TypeGrid extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        _iconFor(stat.typeName),
+                        _iconFor(stat.type.name),
                         color: dimmed
                             ? appTheme.primary.withValues(alpha: 0.4)
                             : appTheme.primary,
@@ -504,11 +531,12 @@ class _TypeGrid extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      stat.typeName,
+                      displayName,
                       style: AppTextStyles.title(
                         dimmed
                             ? appTheme.inkDark.withValues(alpha: 0.4)
                             : appTheme.inkDark,
+                        locale: l10n.locale,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
@@ -516,11 +544,12 @@ class _TypeGrid extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${stat.count} item${stat.count == 1 ? '' : 's'}',
+                      l10n.itemCount(stat.count),
                       style: AppTextStyles.caption(
                         dimmed
                             ? appTheme.inkLight.withValues(alpha: 0.5)
                             : appTheme.inkLight,
+                        locale: l10n.locale,
                       ),
                     ),
                   ],
@@ -540,12 +569,14 @@ class _OwnerRow extends StatelessWidget {
   final _OwnerStat stat;
   final AurumTheme appTheme;
   final String currencySymbol;
+  final AppLocalizations l10n;
   final VoidCallback onTap;
 
   const _OwnerRow({
     required this.stat,
     required this.appTheme,
     required this.currencySymbol,
+    required this.l10n,
     required this.onTap,
   });
 
@@ -592,7 +623,8 @@ class _OwnerRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(stat.ownerName,
-                      style: AppTextStyles.title(appTheme.inkDark)),
+                      style: AppTextStyles.title(appTheme.inkDark,
+                          locale: l10n.locale)),
                   const SizedBox(height: 2),
                   Text(
                     '$currencySymbol ${stat.totalValue.toStringAsFixed(2)}',
@@ -609,7 +641,7 @@ class _OwnerRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '${stat.count} item${stat.count == 1 ? '' : 's'}',
+                l10n.itemCount(stat.count),
                 style: TextStyle(
                   color: appTheme.primaryDark,
                   fontSize: 11,
@@ -633,12 +665,14 @@ class _RecentCard extends StatelessWidget {
   final Jewellery item;
   final String currencySymbol;
   final AurumTheme appTheme;
+  final AppLocalizations l10n;
   final VoidCallback onTap;
 
   const _RecentCard({
     required this.item,
     required this.currencySymbol,
     required this.appTheme,
+    required this.l10n,
     required this.onTap,
   });
 
@@ -661,7 +695,6 @@ class _RecentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thumbnail
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(13)),
@@ -680,7 +713,6 @@ class _RecentCard extends StatelessWidget {
                       ),
               ),
             ),
-            // Info
             Expanded(
               child: Padding(
                 padding:
@@ -689,17 +721,18 @@ class _RecentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.name.isNotEmpty ? item.name : 'Untitled',
-                      style: AppTextStyles.caption(appTheme.inkDark).copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      item.name.isNotEmpty ? item.name : l10n.untitled,
+                      style: AppTextStyles.caption(appTheme.inkDark,
+                              locale: l10n.locale)
+                          .copyWith(fontWeight: FontWeight.w600),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
                     Text(
                       '$currencySymbol ${price.toStringAsFixed(0)}',
-                      style: AppTextStyles.caption(appTheme.primaryDark)
+                      style: AppTextStyles.caption(appTheme.primaryDark,
+                              locale: l10n.locale)
                           .copyWith(fontWeight: FontWeight.w700),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -723,7 +756,8 @@ class _Thumb extends StatelessWidget {
   Widget build(BuildContext context) {
     try {
       final bytes = base64Decode(base64);
-      return Image.memory(bytes, fit: BoxFit.cover,
+      return Image.memory(bytes,
+          fit: BoxFit.cover,
           errorBuilder: (context, error, _) =>
               const Center(child: Icon(Icons.broken_image_outlined)));
     } catch (_) {

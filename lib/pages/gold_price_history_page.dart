@@ -3,6 +3,8 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:provider/provider.dart';
 
 import '../components/app_header.dart';
+import '../l10n/app_localizations.dart';
+import '../providers/gold_price_notifier.dart';
 import '../services/gold_price_history_service.dart';
 import '../services/gold_price_service.dart';
 import '../theme/app_theme.dart';
@@ -36,6 +38,10 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
   // ── Async load state ──────────────────────────────────────────────────────
   List<GoldPriceHistoryPoint>? _allPoints;
 
+  // ── Price notifier listener (drives card refresh + history reload) ────────
+  GoldPriceNotifier? _notifier;
+  GoldPriceStatus _trackedStatus = GoldPriceStatus.idle;
+
   // ── Chart controls ────────────────────────────────────────────────────────
   _Metric _metric = _Metric.k999;
   _ChartRange _chartRange = _ChartRange.d30;
@@ -58,6 +64,34 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
     super.initState();
     // Offload Hive work so the first frame renders the spinner immediately.
     Future.microtask(_loadHistory);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newNotifier = context.read<GoldPriceNotifier>();
+    if (newNotifier != _notifier) {
+      _notifier?.removeListener(_onPriceUpdate);
+      _notifier = newNotifier;
+      _trackedStatus = _notifier!.stateFor(widget.shopName).status;
+      _notifier!.addListener(_onPriceUpdate);
+    }
+  }
+
+  // Reload history from Hive once a pending refresh resolves (success or error).
+  void _onPriceUpdate() {
+    final newStatus = _notifier!.stateFor(widget.shopName).status;
+    if (_trackedStatus == GoldPriceStatus.loading &&
+        newStatus != GoldPriceStatus.loading) {
+      _loadHistory();
+    }
+    _trackedStatus = newStatus;
+  }
+
+  @override
+  void dispose() {
+    _notifier?.removeListener(_onPriceUpdate);
+    super.dispose();
   }
 
   Future<void> _loadHistory() async {
@@ -134,9 +168,12 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final notifier = context.watch<GoldPriceNotifier>();
+    final l10n = context.l10n;
 
     if (_allPoints == null) {
-      return _LoadingScaffold(title: widget.shopName, appTheme: appTheme);
+      return _LoadingScaffold(
+          title: widget.shopName, appTheme: appTheme, l10n: l10n);
     }
 
     final all = _allPoints!;
@@ -153,15 +190,15 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildSummaryCard(appTheme, all),
+          _buildSummaryCard(appTheme, notifier, l10n, all),
           const SizedBox(height: 16),
-          _buildMetricToggle(appTheme),
+          _buildMetricToggle(appTheme, l10n),
           const SizedBox(height: 12),
           _buildChartCard(appTheme, chartSeries),
           const SizedBox(height: 8),
-          _buildChartRangeToggle(appTheme),
+          _buildChartRangeToggle(appTheme, l10n),
           const SizedBox(height: 24),
-          _buildHistorySection(appTheme, all),
+          _buildHistorySection(appTheme, l10n, all),
         ],
       ),
     );
@@ -170,7 +207,8 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
   // ── Summary card (shared BrandPriceCard component) ────────────────────────
 
   Widget _buildSummaryCard(
-      AppTheme appTheme, List<GoldPriceHistoryPoint> all) {
+      AppTheme appTheme, GoldPriceNotifier notifier, AppLocalizations l10n, List<GoldPriceHistoryPoint> all) {
+    final shopState = notifier.stateFor(widget.shopName);
     final latest = all.isNotEmpty ? all.last : null;
     final prev = all.length >= 2 ? all[all.length - 2] : null;
 
@@ -182,9 +220,10 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
       prevPrice916: prev?.price916,
       prevPrice999: prev?.price999,
       updatedAt: latest?.recordedAt,
-      isLoading: false,
-      isError: false,
-      onRefresh: null,
+      isLoading: shopState.status == GoldPriceStatus.loading,
+      isError: shopState.status == GoldPriceStatus.error,
+      errorReason: shopState.errorReason,
+      onRefresh: () => notifier.retry(widget.shopName),
       onTap: null,
       appTheme: appTheme,
     );
@@ -192,12 +231,12 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
 
   // ── Metric toggle ─────────────────────────────────────────────────────────
 
-  Widget _buildMetricToggle(AppTheme appTheme) {
+  Widget _buildMetricToggle(AppTheme appTheme, AppLocalizations l10n) {
     return Row(
       children: [
         _SegmentButton(
           appTheme: appTheme,
-          label: '916 Gold',
+          label: l10n.gold916,
           selected: _metric == _Metric.k916,
           onTap: () => setState(() {
             _metric = _Metric.k916;
@@ -207,7 +246,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
         const SizedBox(width: 8),
         _SegmentButton(
           appTheme: appTheme,
-          label: '999 Gold',
+          label: l10n.gold999,
           selected: _metric == _Metric.k999,
           onTap: () => setState(() {
             _metric = _Metric.k999;
@@ -220,7 +259,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
 
   // ── Chart range toggle ────────────────────────────────────────────────────
 
-  Widget _buildChartRangeToggle(AppTheme appTheme) {
+  Widget _buildChartRangeToggle(AppTheme appTheme, AppLocalizations l10n) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -246,7 +285,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
         const SizedBox(width: 8),
         _SegmentButton(
           appTheme: appTheme,
-          label: 'All',
+          label: l10n.filterAll,
           selected: _chartRange == _ChartRange.all,
           onTap: () => setState(() {
             _chartRange = _ChartRange.all;
@@ -319,7 +358,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
   // ── History section ───────────────────────────────────────────────────────
 
   Widget _buildHistorySection(
-      AppTheme appTheme, List<GoldPriceHistoryPoint> all) {
+      AppTheme appTheme, AppLocalizations l10n, List<GoldPriceHistoryPoint> all) {
     if (all.isEmpty) return const SizedBox.shrink();
 
     final rows = all.reversed.toList();
@@ -334,7 +373,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'History',
+              l10n.historySection,
               style: TextStyle(
                   color: appTheme.textHeading,
                   fontSize: 15,
@@ -395,8 +434,10 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
 class _LoadingScaffold extends StatelessWidget {
   final String title;
   final AppTheme appTheme;
+  final AppLocalizations l10n;
 
-  const _LoadingScaffold({required this.title, required this.appTheme});
+  const _LoadingScaffold(
+      {required this.title, required this.appTheme, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -418,7 +459,7 @@ class _LoadingScaffold extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Loading history…',
+              l10n.loadingHistory,
               style: TextStyle(
                 color: appTheme.textBody.withValues(alpha: 0.65),
                 fontSize: 13,
@@ -568,6 +609,7 @@ class _TableHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final s = TextStyle(
         color: appTheme.textBody.withValues(alpha: 0.7),
         fontSize: 11,
@@ -576,7 +618,7 @@ class _TableHeaderRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          Expanded(flex: 4, child: Text('Date', style: s)),
+          Expanded(flex: 4, child: Text(l10n.labelDate, style: s)),
           Expanded(
               flex: 3,
               child: Text('916', style: s, textAlign: TextAlign.right)),
@@ -768,6 +810,7 @@ class _ChartEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -776,7 +819,7 @@ class _ChartEmpty extends StatelessWidget {
               size: 40, color: appTheme.textBody.withValues(alpha: 0.35)),
           const SizedBox(height: 10),
           Text(
-            'Not enough history yet',
+            l10n.chartEmpty,
             style: TextStyle(
                 color: appTheme.textHeading.withValues(alpha: 0.8),
                 fontSize: 14,
@@ -784,7 +827,7 @@ class _ChartEmpty extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Prices are recorded once a day.\nCheck back after a few refreshes.',
+            l10n.chartEmptyDesc,
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: appTheme.textBody.withValues(alpha: 0.55),

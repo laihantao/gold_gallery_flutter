@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/filter_option.dart';
 import '../models/user.dart';
 import '../theme/theme_notifier.dart';
@@ -227,11 +228,12 @@ class _OwnerFilterChip extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
+              Padding(
+                padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Select Owner',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  context.l10n.selectOwner,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
               ConstrainedBox(
@@ -265,7 +267,8 @@ class _OwnerFilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
     final inactiveBackground = appTheme.backgroundSubtle;
-    final label = _isActive ? (selectedOwnerName ?? 'Owner') : 'Owner';
+    final ownerLabel = context.l10n.rowOwner;
+    final label = _isActive ? (selectedOwnerName ?? ownerLabel) : ownerLabel;
 
     return Material(
       color: Colors.transparent,

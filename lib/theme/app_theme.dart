@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_localizations.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';
 
@@ -110,6 +111,25 @@ enum AurumTheme {
   final String id;
   final String label;
   const AurumTheme(this.id, this.label);
+
+  /// Locale-aware theme name for display in the settings sheet.
+  String localizedLabel(AppLocale locale) => switch (this) {
+        AurumTheme.parchment => switch (locale) {
+          AppLocale.en => 'Parchment',
+          AppLocale.zhCN => '羊皮纸',
+          AppLocale.ms => 'Perkamen',
+        },
+        AurumTheme.sky => switch (locale) {
+          AppLocale.en => 'Sky',
+          AppLocale.zhCN => '天蓝',
+          AppLocale.ms => 'Langit',
+        },
+        AurumTheme.blush => switch (locale) {
+          AppLocale.en => 'Blush',
+          AppLocale.zhCN => '玫瑰',
+          AppLocale.ms => 'Merona',
+        },
+      };
 
   _Palette get _p => switch (this) {
         AurumTheme.parchment => _parchment,

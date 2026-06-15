@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
@@ -35,12 +36,13 @@ class JewelleryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
     final jewellery = item.jewellery;
     final imageSize = _imageSize(context);
+
     final typeName = jewellery.jewelleryTypeId != null
-        ? _nonBlank(
-            HiveService.getJewelleryType(jewellery.jewelleryTypeId!)?.name,
-          )
+        ? _nonBlank(HiveService.getJewelleryType(jewellery.jewelleryTypeId!)
+            ?.localizedName(l10n.locale))
         : null;
     final dateText = DateFormat('dd/MM/yyyy').format(jewellery.date);
     final totalPrice = jewellery.totalPrice ?? 0.0;
@@ -75,68 +77,69 @@ class JewelleryCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: SizedBox(
-                width: imageSize,
-                height: imageSize,
-                child: _JewelleryThumbnail(
-                  base64Photo: firstPhoto,
-                  appTheme: appTheme,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _nonBlank(jewellery.name) ?? 'Untitled',
-                    style: AppTextStyles.title(appTheme.inkDark),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  _MetaGrid(
-                    appTheme: appTheme,
-                    entries: [
-                      _MetaEntry('Brand', _nonBlank(jewellery.brand) ?? '—'),
-                      _MetaEntry('Owner', item.ownerName),
-                      _MetaEntry('Type', typeName ?? '—'),
-                      _MetaEntry('Date', dateText),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _PurityBadge(
-                        purity: purity,
+                      width: imageSize,
+                      height: imageSize,
+                      child: _JewelleryThumbnail(
+                        base64Photo: firstPhoto,
                         appTheme: appTheme,
                       ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: appTheme.primary,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: appTheme.primaryDark,
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Text(
-                          priceText,
-                          style: AppTextStyles.priceSmall(Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _nonBlank(jewellery.name) ?? l10n.untitled,
+                          style: AppTextStyles.title(appTheme.inkDark),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        _MetaGrid(
+                          appTheme: appTheme,
+                          entries: [
+                            _MetaEntry(l10n.rowBrand,
+                                _nonBlank(jewellery.brand) ?? '—'),
+                            _MetaEntry(l10n.rowOwner, item.ownerName),
+                            _MetaEntry(l10n.labelType, typeName ?? '—'),
+                            _MetaEntry(l10n.labelDate, dateText),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            _PurityBadge(
+                              purity: purity,
+                              appTheme: appTheme,
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: appTheme.primary,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: appTheme.primaryDark,
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Text(
+                                priceText,
+                                style: AppTextStyles.priceSmall(Colors.white),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
                 ],
               ),
             ),

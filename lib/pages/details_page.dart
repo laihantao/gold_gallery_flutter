@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
@@ -9,6 +10,18 @@ import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/buttons.dart';
 import '../widgets/jewellery_image_viewer.dart';
+
+// Enum tag lets the table style rows without comparing translated label strings.
+enum _RowTag { regular, totalPrice }
+
+class _DetailRow {
+  final String label;
+  final String value;
+  final _RowTag tag;
+
+  const _DetailRow(this.label, this.value,
+      [this.tag = _RowTag.regular]);
+}
 
 class DetailsPage extends StatefulWidget {
   final int jeweleryId;
@@ -43,35 +56,30 @@ class _DetailsPageState extends State<DetailsPage> {
           ? HiveService.getUser(jewellery!.ownerId!)
           : null;
       brand = HiveService.getAllBrands().cast<Brand?>().firstWhere(
-        (b) => b?.name == jewellery!.brand,
-        orElse: () => null,
-      );
+            (b) => b?.name == jewellery!.brand,
+            orElse: () => null,
+          );
       jewelleryType = jewellery!.jewelleryTypeId != null
           ? HiveService.getJewelleryType(jewellery!.jewelleryTypeId!)
           : null;
       currency = jewellery!.currencyId != null
           ? HiveService.getCurrency(jewellery!.currencyId!)
           : HiveService.getCurrencyByCode('MYR');
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     }
-  }
-
-  void _refreshData() {
-    _loadData();
   }
 
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     if (jewellery == null) {
       return Scaffold(
-        appBar: AppHeader(title: 'Details'),
+        appBar: AppHeader(title: l10n.detailsTitle),
         body: Center(
           child: Text(
-            'Jewellery not found',
+            l10n.jewelleryNotFound,
             style: TextStyle(color: appTheme.textBody),
           ),
         ),
@@ -108,31 +116,29 @@ class _DetailsPageState extends State<DetailsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailsTable(appTheme),
+                  _buildDetailsTable(appTheme, l10n),
                   const SizedBox(height: 24),
                   Row(
                     children: [
                       Expanded(
                         child: PrimaryButton(
-                          label: 'Edit',
+                          label: l10n.editButton,
                           onPressed: () async {
                             await GoRouter.of(context).push(
                               '/add-product',
                               extra: {'mode': 'edit', 'id': jewellery!.id},
                             );
-                            // Fix: Added mounted check to prevent setState after deactivation
                             if (!mounted) return;
-                            _refreshData();
+                            _loadData();
                           },
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: GhostButton(
-                          label: 'Delete',
-                          onPressed: () {
-                            _showDeleteConfirmation(context, appTheme);
-                          },
+                          label: l10n.deleteButton,
+                          onPressed: () =>
+                              _showDeleteConfirmation(context, appTheme, l10n),
                         ),
                       ),
                     ],
@@ -146,25 +152,20 @@ class _DetailsPageState extends State<DetailsPage> {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, AppTheme appTheme) {
+  void _showDeleteConfirmation(
+      BuildContext context, AppTheme appTheme, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          'Delete Jewellery',
-          style: TextStyle(color: appTheme.textHeading),
-        ),
-        content: Text(
-          'Are you sure you want to delete this jewellery?',
-          style: TextStyle(color: appTheme.textBody),
-        ),
+        title: Text(l10n.deleteTitle,
+            style: TextStyle(color: appTheme.textHeading)),
+        content: Text(l10n.deleteConfirm,
+            style: TextStyle(color: appTheme.textBody)),
         actions: [
           TextButton(
             onPressed: () => GoRouter.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: appTheme.accentSecondary),
-            ),
+            child: Text(l10n.cancelButton,
+                style: TextStyle(color: appTheme.accentSecondary)),
           ),
           TextButton(
             onPressed: () {
@@ -172,16 +173,17 @@ class _DetailsPageState extends State<DetailsPage> {
               GoRouter.of(context).pop();
               GoRouter.of(context).go('/listing');
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.deleteButton,
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDetailsTable(AppTheme appTheme) {
-    // Fix: Reordered fields to match required sequence and show dashes for empty values
-    final List<MapEntry<String, String>> rows = [];
+  Widget _buildDetailsTable(AppTheme appTheme, AppLocalizations l10n) {
+    final sym = currency?.symbol ?? 'RM';
+
     final sizeText = jewellery!.size != null
         ? [
             jewellery!.size.toString(),
@@ -190,58 +192,47 @@ class _DetailsPageState extends State<DetailsPage> {
           ].join(' ')
         : '—';
 
-    // Build row data in correct order
-    rows.add(MapEntry('Name', jewellery!.name));
-    rows.add(
-      MapEntry(
-        'Date of Purchase',
-        DateFormat('dd/MM/yyyy').format(jewellery!.date),
-      ),
-    );
-    rows.add(MapEntry('Brand', jewellery!.brand));
-    rows.add(MapEntry('Purity', jewellery!.goldPurity));
-    rows.add(MapEntry('Owner', owner?.name ?? '—'));
-    rows.add(MapEntry('Payer', payer?.name ?? '—'));
-    rows.add(MapEntry('Jewellery Type', jewelleryType?.name ?? '—'));
-    rows.add(MapEntry('Size', sizeText));
-    rows.add(MapEntry('Currency', currency?.name ?? '—'));
-    rows.add(
-      MapEntry(
-        'Price Per Gram',
+    final rows = <_DetailRow>[
+      _DetailRow(l10n.rowName, jewellery!.name),
+      _DetailRow(l10n.rowDateOfPurchase,
+          DateFormat('dd/MM/yyyy').format(jewellery!.date)),
+      _DetailRow(l10n.rowBrand, jewellery!.brand),
+      _DetailRow(l10n.rowPurity, jewellery!.goldPurity),
+      _DetailRow(l10n.rowOwner, owner?.name ?? '—'),
+      _DetailRow(l10n.rowPayer, payer?.name ?? '—'),
+      _DetailRow(l10n.rowJewelleryType, jewelleryType?.name ?? '—'),
+      _DetailRow(l10n.rowSize, sizeText),
+      _DetailRow(l10n.rowCurrency, currency?.name ?? '—'),
+      _DetailRow(
+        l10n.rowPricePerGram,
         jewellery!.pricePerGram != null
-            ? '${currency?.symbol ?? 'RM'} ${jewellery!.pricePerGram}'
+            ? '$sym ${jewellery!.pricePerGram}'
             : '—',
       ),
-    );
-    rows.add(
-      MapEntry(
-        'Weight',
+      _DetailRow(
+        l10n.rowWeight,
         jewellery!.weight != null ? '${jewellery!.weight} g' : '—',
       ),
-    );
-    rows.add(
-      MapEntry(
-        'Labor Fees',
+      _DetailRow(
+        l10n.rowLaborFees,
         jewellery!.laborFees != null
-            ? '${currency?.symbol ?? 'RM'} ${jewellery!.laborFees!.toStringAsFixed(2)}'
+            ? '$sym ${jewellery!.laborFees!.toStringAsFixed(2)}'
             : '—',
       ),
-    );
-    rows.add(
-      MapEntry(
-        'Total Price',
+      _DetailRow(
+        l10n.rowTotalPrice,
         jewellery!.totalPrice != null
-            ? '${currency?.symbol ?? 'RM'} ${jewellery!.totalPrice!.toStringAsFixed(2)}'
+            ? '$sym ${jewellery!.totalPrice!.toStringAsFixed(2)}'
             : '—',
+        _RowTag.totalPrice,
       ),
-    );
-    rows.add(MapEntry('Purchase Location', jewellery!.purchaseLocation ?? '—'));
-    rows.add(
-      MapEntry(
-        'Remarks',
+      _DetailRow(l10n.rowPurchaseLocation,
+          jewellery!.purchaseLocation ?? '—'),
+      _DetailRow(
+        l10n.rowRemarks,
         jewellery!.remarks?.isNotEmpty == true ? jewellery!.remarks! : '—',
       ),
-    );
+    ];
 
     return Table(
       columnWidths: const {0: FlexColumnWidth(4), 1: FlexColumnWidth(6)},
@@ -252,23 +243,24 @@ class _DetailsPageState extends State<DetailsPage> {
         ),
       ),
       children: List.generate(rows.length, (index) {
-        final isAlternate = index % 2 == 1;
-        final backgroundColor = isAlternate
-            ? appTheme.backgroundSubtle
-            : appTheme.backgroundSurface;
+        final row = rows[index];
+        final isAlt = index % 2 == 1;
+        final isTotalPrice = row.tag == _RowTag.totalPrice;
 
         return TableRow(
-          decoration: BoxDecoration(color: backgroundColor),
+          decoration: BoxDecoration(
+            color: isAlt
+                ? appTheme.backgroundSubtle
+                : appTheme.backgroundSurface,
+          ),
           children: [
             TableCell(
               verticalAlignment: TableCellVerticalAlignment.middle,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
+                    horizontal: 12, vertical: 10),
                 child: Text(
-                  rows[index].key,
+                  row.label,
                   textAlign: TextAlign.left,
                   style: TextStyle(
                     color: appTheme.textBody,
@@ -282,22 +274,19 @@ class _DetailsPageState extends State<DetailsPage> {
               verticalAlignment: TableCellVerticalAlignment.middle,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
+                    horizontal: 12, vertical: 10),
                 child: Text(
-                  rows[index].value,
+                  row.value,
                   textAlign: TextAlign.left,
                   style: TextStyle(
-                    color: rows[index].key == 'Total Price'
+                    color: isTotalPrice
                         ? appTheme.priceHighlight
                         : appTheme.textHeading,
-                    fontSize: rows[index].key == 'Total Price' ? 15 : 12,
-                    fontWeight: rows[index].key == 'Total Price'
+                    fontSize: isTotalPrice ? 15 : 12,
+                    fontWeight: isTotalPrice
                         ? FontWeight.w600
                         : FontWeight.normal,
-                    letterSpacing:
-                        rows[index].key == 'Total Price' ? 0.3 : 0,
+                    letterSpacing: isTotalPrice ? 0.3 : 0,
                   ),
                 ),
               ),
@@ -307,5 +296,4 @@ class _DetailsPageState extends State<DetailsPage> {
       }),
     );
   }
-
 }

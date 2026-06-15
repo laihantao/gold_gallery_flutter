@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/gold_price_notifier.dart';
 import '../services/gold_price_service.dart';
 import '../theme/theme_notifier.dart';
@@ -13,6 +14,7 @@ class GoldPriceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
     final sources = GoldPriceService.sources;
 
     return Consumer<GoldPriceNotifier>(
@@ -25,7 +27,7 @@ class GoldPriceSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Tap a card to view its price trend',
+                    l10n.homePriceTrendHint,
                     style: TextStyle(
                       color: appTheme.textBody.withValues(alpha: 0.6),
                       fontSize: 11,
@@ -35,7 +37,7 @@ class GoldPriceSection extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Refresh prices',
+                  tooltip: l10n.refreshTooltip,
                   onPressed: notifier.isAnyLoading ? null : notifier.fetchAll,
                   icon: notifier.isAnyLoading
                       ? SizedBox(

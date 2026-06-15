@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
+
+// ── Brand management ──────────────────────────────────────────────────────────
 
 class BrandManagePage extends StatefulWidget {
   const BrandManagePage({super.key});
@@ -29,90 +32,132 @@ class _BrandManagePageState extends State<BrandManagePage> {
     });
   }
 
+  /// Seeded brands have isDefault=true; for installations that pre-date this
+  /// field, IDs 1-8 match the init_brands.json set and are also protected.
+  bool _isProtected(Brand b) => b.isDefault || b.id <= 8;
+
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppHeader(
-        title: 'Brands',
+        title: l10n.brandsSection,
         actions: [
           IconButton(
             icon: Icon(Icons.add, color: appTheme.textHeading),
-            onPressed: () {
-              _showBrandForm(context, appTheme);
-            },
+            onPressed: () => _showBrandForm(context, appTheme, l10n),
           ),
         ],
       ),
       body: brands.isEmpty
           ? Center(
-              child: Text(
-                'No brands found',
-                style: TextStyle(color: appTheme.textBody),
-              ),
+              child: Text(l10n.noBrandsFound,
+                  style: TextStyle(color: appTheme.textBody)),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: brands.length,
               itemBuilder: (context, index) {
                 final brand = brands[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: appTheme.backgroundSurface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: appTheme.borderColor.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              brand.name,
-                              style: TextStyle(
-                                color: appTheme.textHeading,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (brand.description != null && brand.description!.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                brand.description!,
-                                style: TextStyle(
-                                  color: appTheme.textBody,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                final protected = _isProtected(brand);
+                return Opacity(
+                  opacity: brand.isActive ? 1.0 : 0.5,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: appTheme.backgroundSurface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: appTheme.borderColor.withValues(alpha: 0.3),
+                        width: 1,
                       ),
-                      PopupMenuButton(
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            child: const Text('Edit'),
-                            onTap: () {
-                              _showBrandForm(context, appTheme, brand);
-                            },
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      brand.name,
+                                      style: TextStyle(
+                                        color: appTheme.textHeading,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  if (!brand.isActive)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: appTheme.borderColor
+                                            .withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        l10n.inactiveLabel,
+                                        style: TextStyle(
+                                            color: appTheme.textBody,
+                                            fontSize: 10),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              if (brand.description != null &&
+                                  brand.description!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  brand.description!,
+                                  style: TextStyle(
+                                      color: appTheme.textBody, fontSize: 12),
+                                ),
+                              ],
+                            ],
                           ),
-                          PopupMenuItem(
-                            child: const Text('Delete'),
-                            onTap: () {
+                        ),
+                        PopupMenuButton<String>(
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text(l10n.editButton),
+                            ),
+                            PopupMenuItem(
+                              value: 'toggle',
+                              child: Text(brand.isActive
+                                  ? l10n.inactiveLabel
+                                  : l10n.activeLabel),
+                            ),
+                            if (!protected)
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(l10n.deleteButton,
+                                    style:
+                                        const TextStyle(color: Colors.red)),
+                              ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _showBrandForm(context, appTheme, l10n, brand);
+                            } else if (value == 'toggle') {
+                              HiveService.saveBrand(
+                                  brand.copyWith(isActive: !brand.isActive));
+                              _loadBrands();
+                            } else if (value == 'delete') {
                               HiveService.deleteBrand(brand.id);
                               _loadBrands();
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -120,81 +165,73 @@ class _BrandManagePageState extends State<BrandManagePage> {
     );
   }
 
-  void _showBrandForm(BuildContext context, AppTheme appTheme, [Brand? brand]) {
+  void _showBrandForm(BuildContext context, AppTheme appTheme,
+      AppLocalizations l10n, [Brand? brand]) {
     final nameController = TextEditingController(text: brand?.name ?? '');
-    final descController = TextEditingController(text: brand?.description ?? '');
+    final descController =
+        TextEditingController(text: brand?.description ?? '');
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          brand == null ? 'Add Brand' : 'Edit Brand',
+          brand == null ? l10n.addBrand : l10n.editBrand,
           style: TextStyle(color: appTheme.textHeading),
         ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Brand Name',
-                  labelStyle: TextStyle(color: appTheme.textBody),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
+              _FormField(
+                  controller: nameController,
+                  label: l10n.brandName,
+                  appTheme: appTheme),
               const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: TextStyle(color: appTheme.textBody),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                maxLines: 2,
-              ),
+              _FormField(
+                  controller: descController,
+                  label: l10n.brandDesc,
+                  appTheme: appTheme,
+                  maxLines: 2),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => GoRouter.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () {
               final now = DateTime.now();
-              final newBrand = Brand(
+              HiveService.saveBrand(Brand(
                 id: brand?.id ?? HiveService.getNextBrandId(),
                 name: nameController.text,
                 description: descController.text,
                 logo: brand?.logo,
+                isDefault: brand?.isDefault ?? false,
+                isActive: brand?.isActive ?? true,
                 createdAt: brand?.createdAt ?? now,
                 updatedAt: now,
-              );
-              HiveService.saveBrand(newBrand);
+              ));
               GoRouter.of(context).pop();
               _loadBrands();
             },
-            child: const Text('Save'),
+            child: Text(l10n.saveButton),
           ),
         ],
       ),
     );
   }
-
 }
 
-// Jewellery Type Manage Page
+// ── Jewellery Type management ─────────────────────────────────────────────────
+
 class JewelleryTypeManagePage extends StatefulWidget {
   const JewelleryTypeManagePage({super.key});
 
   @override
-  State<JewelleryTypeManagePage> createState() => _JewelleryTypeManagePageState();
+  State<JewelleryTypeManagePage> createState() =>
+      _JewelleryTypeManagePageState();
 }
 
 class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
@@ -212,75 +249,141 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
     });
   }
 
+  /// Seeded types have isDefault=true; IDs 1-5 also protected for legacy installs.
+  bool _isProtected(JewelleryType t) => t.isDefault || t.id <= 5;
+
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppHeader(
-        title: 'Jewellery Types',
+        title: l10n.jewelleryTypesSection,
         actions: [
           IconButton(
             icon: Icon(Icons.add, color: appTheme.textHeading),
-            onPressed: () {
-              _showTypeForm(context, appTheme);
-            },
+            onPressed: () => _showTypeForm(context, appTheme, l10n),
           ),
         ],
       ),
       body: types.isEmpty
           ? Center(
-              child: Text(
-                'No types found',
-                style: TextStyle(color: appTheme.textBody),
-              ),
+              child: Text(l10n.noTypesFound,
+                  style: TextStyle(color: appTheme.textBody)),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(12),
               itemCount: types.length,
               itemBuilder: (context, index) {
                 final type = types[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: appTheme.backgroundSurface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: appTheme.borderColor.withValues(alpha: 0.3),
-                      width: 1,
+                final protected = _isProtected(type);
+                final display = type.localizedName(l10n.locale);
+
+                // Subtitle shows the OTHER two locale names dynamically.
+                final otherNames = [
+                  if (l10n.locale != AppLocale.en && type.name.isNotEmpty)
+                    type.name,
+                  if (l10n.locale != AppLocale.zhCN &&
+                      type.nameZh.isNotEmpty)
+                    type.nameZh,
+                  if (l10n.locale != AppLocale.ms && type.nameMs.isNotEmpty)
+                    type.nameMs,
+                ].join(' · ');
+
+                return Opacity(
+                  opacity: type.isActive ? 1.0 : 0.5,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: appTheme.backgroundSurface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: appTheme.borderColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          type.name,
-                          style: TextStyle(
-                            color: appTheme.textHeading,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      display,
+                                      style: TextStyle(
+                                        color: appTheme.textHeading,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  if (!type.isActive)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: appTheme.borderColor
+                                            .withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        l10n.inactiveLabel,
+                                        style: TextStyle(
+                                            color: appTheme.textBody,
+                                            fontSize: 10),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              if (otherNames.isNotEmpty)
+                                Text(
+                                  otherNames,
+                                  style: TextStyle(
+                                      color: appTheme.textBody, fontSize: 11),
+                                ),
+                            ],
                           ),
                         ),
-                      ),
-                      PopupMenuButton(
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            child: const Text('Edit'),
-                            onTap: () {
-                              _showTypeForm(context, appTheme, type);
-                            },
-                          ),
-                          PopupMenuItem(
-                            child: const Text('Delete'),
-                            onTap: () {
+                        PopupMenuButton<String>(
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text(l10n.editButton),
+                            ),
+                            PopupMenuItem(
+                              value: 'toggle',
+                              child: Text(type.isActive
+                                  ? l10n.inactiveLabel
+                                  : l10n.activeLabel),
+                            ),
+                            if (!protected)
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(l10n.deleteButton,
+                                    style:
+                                        const TextStyle(color: Colors.red)),
+                              ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _showTypeForm(context, appTheme, l10n, type);
+                            } else if (value == 'toggle') {
+                              HiveService.saveJewelleryType(
+                                  type.copyWith(isActive: !type.isActive));
+                              _loadTypes();
+                            } else if (value == 'delete') {
                               HiveService.deleteJewelleryType(type.id);
                               _loadTypes();
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -288,49 +391,118 @@ class _JewelleryTypeManagePageState extends State<JewelleryTypeManagePage> {
     );
   }
 
-  void _showTypeForm(BuildContext context, AppTheme appTheme, [JewelleryType? type]) {
-    final nameController = TextEditingController(text: type?.name ?? '');
+  void _showTypeForm(BuildContext context, AppTheme appTheme,
+      AppLocalizations l10n, [JewelleryType? type]) {
+    final enController = TextEditingController(text: type?.name ?? '');
+    final zhController = TextEditingController(text: type?.nameZh ?? '');
+    final msController = TextEditingController(text: type?.nameMs ?? '');
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          type == null ? 'Add Type' : 'Edit Type',
-          style: TextStyle(color: appTheme.textHeading),
-        ),
-        content: TextField(
-          controller: nameController,
-          decoration: InputDecoration(
-            labelText: 'Type Name',
-            labelStyle: TextStyle(color: appTheme.textBody),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+      // StatefulBuilder lets us reactively enable/disable Save button.
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final canSave = enController.text.trim().isNotEmpty;
+
+          return AlertDialog(
+            title: Text(
+              type == null ? l10n.addType : l10n.editType,
+              style: TextStyle(color: appTheme.textHeading),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => GoRouter.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final now = DateTime.now();
-              final newType = JewelleryType(
-                id: type?.id ?? HiveService.getNextJewelleryTypeId(),
-                name: nameController.text,
-                createdAt: type?.createdAt ?? now,
-                updatedAt: now,
-              );
-              HiveService.saveJewelleryType(newType);
-              GoRouter.of(context).pop();
-              _loadTypes();
-            },
-            child: const Text('Save'),
-          ),
-        ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _FormField(
+                    controller: enController,
+                    label: '${l10n.typeNameEn} *',
+                    appTheme: appTheme,
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  _FormField(
+                    controller: zhController,
+                    label: l10n.typeNameZh,
+                    appTheme: appTheme,
+                  ),
+                  const SizedBox(height: 12),
+                  _FormField(
+                    controller: msController,
+                    label: l10n.typeNameMs,
+                    appTheme: appTheme,
+                  ),
+                  if (!canSave && enController.text.isNotEmpty == false) ...[
+                    const SizedBox(height: 8),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => GoRouter.of(context).pop(),
+                child: Text(l10n.cancelButton),
+              ),
+              TextButton(
+                onPressed: canSave
+                    ? () {
+                        final now = DateTime.now();
+                        HiveService.saveJewelleryType(JewelleryType(
+                          id: type?.id ?? HiveService.getNextJewelleryTypeId(),
+                          name: enController.text.trim(),
+                          nameZh: zhController.text.trim(),
+                          nameMs: msController.text.trim(),
+                          isDefault: type?.isDefault ?? false,
+                          isActive: type?.isActive ?? true,
+                          createdAt: type?.createdAt ?? now,
+                          updatedAt: now,
+                        ));
+                        GoRouter.of(context).pop();
+                        _loadTypes();
+                      }
+                    : null,
+                child: Text(
+                  l10n.saveButton,
+                  style: TextStyle(
+                    color: canSave ? null : appTheme.textBody,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+}
 
+// ── Shared form field ─────────────────────────────────────────────────────────
+
+class _FormField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final AppTheme appTheme;
+  final int maxLines;
+  final ValueChanged<String>? onChanged;
+
+  const _FormField({
+    required this.controller,
+    required this.label,
+    required this.appTheme,
+    this.maxLines = 1,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: appTheme.textBody),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
 }

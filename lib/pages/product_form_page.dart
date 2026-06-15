@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
@@ -74,10 +75,16 @@ class _ProductFormPageState extends State<ProductFormPage> {
   void _loadData() {
     if (!mounted) return;
 
-    brands = HiveService.getAllBrands();
-    brands.sort((a, b) => a.name.compareTo(b.name));
-    types = HiveService.getAllJewelleryTypes();
-    users = HiveService.getAllUsers();
+    brands = HiveService.getAllBrands()
+        .where((b) => b.isActive)
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    types = HiveService.getAllJewelleryTypes()
+        .where((t) => t.isActive)
+        .toList();
+    users = HiveService.getAllUsers()
+        .where((u) => u.isActive)
+        .toList();
     currencies = HiveService.getAllCurrencies();
     _selectedCurrency = _findCurrencyByCode('MYR') ??
         (currencies.isNotEmpty ? currencies.first : null);
@@ -316,10 +323,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppHeader(
-        title: widget.mode == 'add' ? 'Add Product' : 'Edit Product',
+        title: widget.mode == 'add' ? l10n.addProduct : l10n.editProduct,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -327,7 +335,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildFormField(
-              'Date of Purchase *',
+              '${l10n.dateOfPurchase} *',
               _dateController,
               appTheme,
               onTap: () async {
@@ -345,40 +353,42 @@ class _ProductFormPageState extends State<ProductFormPage> {
               },
             ),
             const SizedBox(height: 16),
-            _buildFormField('Product Name *', _nameController, appTheme),
+            _buildFormField('${l10n.productName} *', _nameController, appTheme),
             const SizedBox(height: 16),
             _buildDropdown(
-              'Brand',
+              l10n.rowBrand,
               _selectedBrand,
               brands.map((b) => b.name).toList(),
               (value) => setState(() => _selectedBrand = value),
               appTheme,
+              l10n,
             ),
             const SizedBox(height: 16),
             _buildDropdown(
-              'Purity',
+              l10n.rowPurity,
               _selectedPurity,
               ['916', '999'],
               (value) => setState(() => _selectedPurity = value),
               appTheme,
+              l10n,
             ),
             const SizedBox(height: 16),
-            _buildUserDropdown('Owner', _selectedOwnerId, users, (value) {
+            _buildUserDropdown(l10n.rowOwner, _selectedOwnerId, users, (value) {
               setState(() => _selectedOwnerId = value);
-            }, appTheme),
+            }, appTheme, l10n),
             const SizedBox(height: 16),
-            _buildUserDropdown('Payer', _selectedPayerId, users, (value) {
+            _buildUserDropdown(l10n.rowPayer, _selectedPayerId, users, (value) {
               setState(() => _selectedPayerId = value);
-            }, appTheme),
+            }, appTheme, l10n),
             const SizedBox(height: 16),
-            _buildTypeDropdown('Jewellery Type', _selectedTypeId, types, (
+            _buildTypeDropdown(l10n.rowJewelleryType, _selectedTypeId, types, (
               value,
             ) {
               setState(() => _selectedTypeId = value);
-            }, appTheme),
+            }, appTheme, l10n),
             const SizedBox(height: 16),
             _buildFormField(
-              'Size',
+              l10n.rowSize,
               _sizeController,
               appTheme,
               inputFormatters: [
@@ -387,15 +397,16 @@ class _ProductFormPageState extends State<ProductFormPage> {
             ),
             const SizedBox(height: 16),
             _buildDropdown(
-              'Measurement Unit',
+              l10n.measurementUnit,
               _selectedMeasurementUnit,
               ['', 'mm', 'cm'],
               (value) => setState(() => _selectedMeasurementUnit = value),
               appTheme,
+              l10n,
             ),
             const SizedBox(height: 16),
             _buildCurrencyDropdown(
-              'Currency',
+              l10n.rowCurrency,
               _selectedCurrency?.id.toString(),
               currencies,
               (value) {
@@ -407,7 +418,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
             ),
             const SizedBox(height: 16),
             _buildFormField(
-              'Price Per Gram',
+              l10n.rowPricePerGram,
               _pricePerGramController,
               appTheme,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -415,7 +426,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
             ),
             const SizedBox(height: 16),
             _buildFormField(
-              'Weight',
+              l10n.rowWeight,
               _weightController,
               appTheme,
               inputFormatters: [
@@ -425,7 +436,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
             ),
             const SizedBox(height: 16),
             _buildFormField(
-              'Labor Fees',
+              l10n.rowLaborFees,
               _laborFeesController,
               appTheme,
               inputFormatters: [
@@ -438,7 +449,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
               children: [
                 Expanded(
                   child: _buildFormField(
-                    'Total Price',
+                    l10n.rowTotalPrice,
                     _totalPriceController,
                     appTheme,
                     enabled: !_autoCalculateTotal,
@@ -454,10 +465,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildFormField('Purchase Location', _locationController, appTheme),
+            _buildFormField(l10n.rowPurchaseLocation, _locationController, appTheme),
             const SizedBox(height: 16),
             Text(
-              'Photos',
+              l10n.photosLabel,
               style: TextStyle(
                 color: appTheme.textHeading,
                 fontWeight: FontWeight.w500,
@@ -512,16 +523,16 @@ class _ProductFormPageState extends State<ProductFormPage> {
                 },
               ),
             const SizedBox(height: 12),
-            PrimaryButton(label: 'Add Photos', onPressed: _pickImages),
+            PrimaryButton(label: l10n.addPhotos, onPressed: _pickImages),
             const SizedBox(height: 16),
             _buildFormField(
-              'Remarks',
+              l10n.rowRemarks,
               _remarksController,
               appTheme,
               maxLines: 3,
             ),
             const SizedBox(height: 24),
-            PrimaryButton(label: 'Save Product', onPressed: _savProduct),
+            PrimaryButton(label: l10n.saveProduct, onPressed: _savProduct),
             const SizedBox(height: 16),
           ],
         ),
@@ -590,6 +601,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
     List<String> items,
     Function(String?) onChanged,
     AppTheme appTheme,
+    AppLocalizations l10n,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,6 +648,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
     List<User> items,
     Function(int?) onChanged,
     AppTheme appTheme,
+    AppLocalizations l10n,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -652,7 +665,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
         DropdownButtonFormField<int?>(
           initialValue: value,
           items: [
-            const DropdownMenuItem(value: null, child: Text('Select')),
+            DropdownMenuItem(value: null, child: Text(l10n.selectPlaceholder)),
             ...items.map(
               (item) =>
                   DropdownMenuItem(value: item.id, child: Text(item.name)),
@@ -680,6 +693,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
     List<JewelleryType> items,
     Function(int?) onChanged,
     AppTheme appTheme,
+    AppLocalizations l10n,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,10 +710,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
         DropdownButtonFormField<int?>(
           initialValue: value,
           items: [
-            const DropdownMenuItem(value: null, child: Text('Select')),
+            DropdownMenuItem(value: null, child: Text(l10n.selectPlaceholder)),
             ...items.map(
-              (item) =>
-                  DropdownMenuItem(value: item.id, child: Text(item.name)),
+              (item) => DropdownMenuItem(
+                value: item.id,
+                child: Text(item.localizedName(l10n.locale)),
+              ),
             ),
           ],
           onChanged: onChanged,
@@ -740,7 +756,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
         DropdownButtonFormField<String?>(
           initialValue: value,
           items: [
-            const DropdownMenuItem(value: null, child: Text('Select')),
+            DropdownMenuItem(
+                value: null, child: Text(context.l10n.selectPlaceholder)),
             ...items.map(
               (item) => DropdownMenuItem(
                 value: item.id.toString(),

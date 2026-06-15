@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/bottom_navigation.dart';
@@ -13,9 +14,10 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppHeader(title: 'Gold Price Today', showBackButton: false),
+      appBar: AppHeader(title: l10n.homeTitle, showBackButton: false),
       body: PatternedBackground(
         patternColor: appTheme.patternColor,
         child: SingleChildScrollView(
