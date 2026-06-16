@@ -185,6 +185,10 @@ class AppLocalizations {
   String get syncing => _t(en: 'Syncing…', zh: '同步中…', ms: 'Menyegerak…');
   String get exportData =>
       _t(en: 'Export Data', zh: '导出数据', ms: 'Eksport Data');
+  String get exportShare =>
+      _t(en: 'Share', zh: '分享', ms: 'Kongsi');
+  String get exportSaveDevice =>
+      _t(en: 'Save', zh: '保存', ms: 'Simpan');
   String get exporting =>
       _t(en: 'Exporting…', zh: '导出中…', ms: 'Mengeksport…');
   String get importData =>

@@ -20,6 +20,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  bool _isSharing = false;
   bool _isExporting = false;
   bool _isImporting = false;
   bool _isSyncingHistory = false;
@@ -145,9 +146,22 @@ class _SettingsPageState extends State<SettingsPage> {
               appTheme: appTheme,
               child: Column(
                 children: [
-                  PrimaryButton(
-                    label: _isExporting ? l10n.exporting : l10n.exportData,
-                    onPressed: () => _exportData(context, appTheme, l10n),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: PrimaryButton(
+                          label: _isSharing ? l10n.exporting : l10n.exportShare,
+                          onPressed: () => _shareData(context, appTheme, l10n),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GhostButton(
+                          label: _isExporting ? l10n.exporting : l10n.exportSaveDevice,
+                          onPressed: () => _exportData(context, appTheme, l10n),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   GhostButton(
@@ -190,6 +204,20 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _shareData(
+      BuildContext context, AppTheme appTheme, AppLocalizations l10n) async {
+    if (_isSharing || _isImporting) return;
+    setState(() => _isSharing = true);
+    try {
+      await BackupService.shareBackup();
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(l10n.exportFailed(e), appTheme, isError: true);
+    } finally {
+      if (mounted) setState(() => _isSharing = false);
+    }
+  }
+
   Future<void> _exportData(
       BuildContext context, AppTheme appTheme, AppLocalizations l10n) async {
     if (_isExporting || _isImporting) return;
@@ -199,10 +227,8 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) return;
       _showSnackBar(
         savePath == null
-            ? l10n.exportCancelled
-            : savePath == 'shared'
-                ? l10n.exportShared
-                : l10n.exportSaved(savePath.split(RegExp(r'[/\\]')).last),
+            ? l10n.exportFailed('Save failed')
+            : l10n.exportSaved(savePath.split(RegExp(r'[/\\]')).last),
         appTheme,
       );
     } catch (e) {

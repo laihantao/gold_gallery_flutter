@@ -17,3 +17,8 @@ Future<String?> saveJsonBackupFile(String fileName, Uint8List jsonBytes) async {
     html.Url.revokeObjectUrl(url);
   }
 }
+
+/// Web has no share sheet — fall back to the same download trigger.
+Future<String> shareJsonBackupFile(String fileName, Uint8List jsonBytes) async {
+  return await saveJsonBackupFile(fileName, jsonBytes) ?? 'downloaded';
+}

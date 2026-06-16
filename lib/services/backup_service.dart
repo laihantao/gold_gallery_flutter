@@ -38,12 +38,23 @@ class BackupService {
   static const String _format = 'my_gold_gallery_json_backup';
   static const int _version = 1;
 
+  /// Saves backup directly to device storage. Returns the saved file path,
+  /// or null if the write failed.
   static Future<String?> exportBackup() async {
-    final fileName =
-        'gold_gallery_backup_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.json';
+    final fileName = _backupFileName();
     final jsonBytes = _buildBackupBytes();
     return saveJsonBackupFile(fileName, jsonBytes);
   }
+
+  /// Opens the OS share sheet so the user can choose where to send the backup.
+  static Future<String> shareBackup() async {
+    final fileName = _backupFileName();
+    final jsonBytes = _buildBackupBytes();
+    return shareJsonBackupFile(fileName, jsonBytes);
+  }
+
+  static String _backupFileName() =>
+      'gold_gallery_backup_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.json';
 
   static Future<BackupImportResult?> importBackup() async {
     final result = await FilePicker.platform.pickFiles(
