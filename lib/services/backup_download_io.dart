@@ -1,28 +1,26 @@
 import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 Future<String?> saveJsonBackupFile(String fileName, Uint8List jsonBytes) async {
   try {
-    final savePath = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export Gold Gallery JSON Backup',
-      fileName: fileName,
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
-    if (savePath == null) return null;
-
-    await File(savePath).writeAsBytes(jsonBytes, flush: true);
-    return savePath;
-  } on UnimplementedError {
-    return _shareJsonBackup(fileName, jsonBytes);
-  } on UnsupportedError {
-    return _shareJsonBackup(fileName, jsonBytes);
-  } on MissingPluginException {
+    final dir = await _getSaveDirectory();
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(jsonBytes, flush: true);
+    return file.path;
+  } catch (_) {
     return _shareJsonBackup(fileName, jsonBytes);
   }
+}
+
+Future<Directory> _getSaveDirectory() async {
+  if (Platform.isAndroid) {
+    final ext = await getExternalStorageDirectory();
+    if (ext != null) return ext;
+  }
+  return getApplicationDocumentsDirectory();
 }
 
 Future<String> _shareJsonBackup(String fileName, Uint8List jsonBytes) async {

@@ -29,7 +29,7 @@ class BottomNavigation extends StatelessWidget {
     final l10n = context.l10n;
 
     return BottomAppBar(
-      color: appTheme.primary,
+      color: appTheme.headerBg,
       surfaceTintColor: Colors.transparent,
       shadowColor: Colors.black26,
       shape: const CircularNotchedRectangle(),
@@ -119,8 +119,15 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color active = Colors.white;
-    final Color inactive = Colors.white.withValues(alpha: 0.6);
+    // On light nav backgrounds (Cream theme) use dark gold/brown icons;
+    // on dark/coloured nav backgrounds (Sky, Blush) keep white icons.
+    final bool lightBg = appTheme.headerBg.computeLuminance() > 0.6;
+    const warmWhite = Color(0xFFFFFDF5);
+    final Color active =
+        lightBg ? appTheme.primary : warmWhite;
+    final Color inactive = lightBg
+        ? appTheme.inkLight
+        : warmWhite.withValues(alpha: 0.65);
     final Color iconColor = isActive ? active : inactive;
 
     return GestureDetector(

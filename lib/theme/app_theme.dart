@@ -104,7 +104,7 @@ const _blush = _Palette(
 ///
 /// Parchment is the default (golden honey treasure journal).
 enum AurumTheme {
-  parchment('parchment', 'Parchment'),
+  parchment('parchment', 'Aureate'),
   sky('sky', 'Sky'),
   blush('blush', 'Blush');
 
@@ -115,9 +115,9 @@ enum AurumTheme {
   /// Locale-aware theme name for display in the settings sheet.
   String localizedLabel(AppLocale locale) => switch (this) {
         AurumTheme.parchment => switch (locale) {
-          AppLocale.en => 'Parchment',
+          AppLocale.en => 'Aureate',
           AppLocale.zhCN => '暖金',
-          AppLocale.ms => 'Perkamen',
+          AppLocale.ms => 'Keemasan',
         },
         AurumTheme.sky => switch (locale) {
           AppLocale.en => 'Sky',
@@ -229,7 +229,7 @@ enum AurumTheme {
       // ── Primary (pill) button ──
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
-          backgroundColor: WidgetStatePropertyAll(p.primary),
+          backgroundColor: WidgetStatePropertyAll(p.headerBg),
           foregroundColor: const WidgetStatePropertyAll(Colors.white),
           overlayColor:
               WidgetStatePropertyAll(p.primaryDark.withValues(alpha: 0.2)),

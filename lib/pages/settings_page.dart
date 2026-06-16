@@ -7,11 +7,9 @@ import '../theme/app_theme.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
-import '../components/bottom_navigation.dart';
 import '../components/buttons.dart';
 import '../services/backup_service.dart';
 import '../services/gold_price_history_backfill_service.dart';
-import '../services/pdf_export_service.dart';
 import '../widgets/sketch_border.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -24,7 +22,6 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _isExporting = false;
   bool _isImporting = false;
-  bool _isExportingPdf = false;
   bool _isSyncingHistory = false;
 
   @override
@@ -159,10 +156,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 12),
                   GhostButton(
-                    label: _isExportingPdf
-                        ? l10n.generatingPdf
-                        : l10n.exportPdf,
-                    onPressed: () => _exportPdf(context, appTheme, l10n),
+                    label: l10n.exportPdf,
+                    onPressed: () =>
+                        GoRouter.of(context).push('/export-pdf'),
                   ),
                 ],
               ),
@@ -170,21 +166,6 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: null,
-        onPressed: () => GoRouter.of(context)
-            .push('/add-product', extra: {'mode': 'add'}),
-        backgroundColor: appTheme.accent,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: const CircleBorder(
-          side: BorderSide(color: Colors.white, width: 2),
-        ),
-        child: const Icon(Icons.add, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar:
-          BottomNavigation(currentIndex: 4, onTap: _onNavTap),
     );
   }
 
@@ -221,7 +202,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ? l10n.exportCancelled
             : savePath == 'shared'
                 ? l10n.exportShared
-                : l10n.exportSuccess,
+                : l10n.exportSaved(savePath.split(RegExp(r'[/\\]')).last),
         appTheme,
       );
     } catch (e) {
@@ -256,22 +237,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _exportPdf(
-      BuildContext context, AppTheme appTheme, AppLocalizations l10n) async {
-    if (_isExportingPdf) return;
-    setState(() => _isExportingPdf = true);
-    try {
-      await PdfExportService.exportInventory();
-      if (!mounted) return;
-      _showSnackBar(l10n.pdfSuccess, appTheme);
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(l10n.pdfFailed(e), appTheme, isError: true);
-    } finally {
-      if (mounted) setState(() => _isExportingPdf = false);
-    }
-  }
-
   void _showSnackBar(
     String message,
     AppTheme appTheme, {
@@ -303,16 +268,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _onNavTap(int index) {
-    switch (index) {
-      case 0:
-        GoRouter.of(context).go('/');
-      case 1:
-        GoRouter.of(context).go('/dashboard');
-      case 3:
-        GoRouter.of(context).go('/listing');
-    }
-  }
 }
 
 // ── Language sheet ────────────────────────────────────────────────────────────

@@ -3,41 +3,41 @@ import 'package:flutter/material.dart';
 /// Aurum colour palettes.
 ///
 /// Three "coloured notebooks":
-///   * [ParchmentColors] — golden honey treasure journal (DEFAULT)
+///   * [ParchmentColors] — warm cream / champagne-gold (DEFAULT)
 ///   * [SkyColors]       — soft blue watercolour field notes
 ///   * [BlushColors]     — rose pink keepsake diary
 ///
 /// This is the ONLY place raw `Color(0xFF...)` literals should live.
 
-// ── Theme A: Parchment (DEFAULT) ── 浅黄/奶油暖色 ──
+// ── Theme A: Parchment (DEFAULT) ── 暖米/奶白 · anchored on #F5F0E0 ──
 class ParchmentColors {
   // Backgrounds
-  static const primaryBg = Color(0xFFFDF8EE); // warm cream
-  static const surface = Color(0xFFFFFFFF); // card white
-  static const headerBg = Color(0xFFCBA840); // muted honey gold header
-  static const patternColor = Color(0xFFC9A038); // watermark pattern color
+  static const primaryBg = Color(0xFFF5F0E0); // warm cream beige (#F5F0E0)
+  static const surface = Color(0xFFFEFCF8); // barely-warm white (cards pop)
+  static const headerBg = Color(0xFFD4A843); // warm golden header/nav
+  static const patternColor = Color(0xFFC8A860); // subtle warm watermark
 
   // Accent
-  static const primary = Color(0xFFCBA840); // warm honey gold (softer)
-  static const primaryDark = Color(0xFFA07B20); // deep amber border/pressed
-  static const primaryLight = Color(0xFFF5E8B0); // chip background / tag
-  static const accent = Color(0xFFFF8C7A); // coral pink (+ new button)
+  static const primary = Color(0xFFBF9E52); // champagne gold (desaturated)
+  static const primaryDark = Color(0xFF8C6A28); // deep amber-brown
+  static const primaryLight = Color(0xFFEAE2C8); // light beige chip bg
+  static const accent = Color(0xFF3D2B1F); // deep espresso (FAB / + button)
 
   // Text
-  static const inkDark = Color(0xFF2C2116); // near-black warm brown
-  static const inkMid = Color(0xFF6B5744); // body text
-  static const inkLight = Color(0xFFA89070); // caption / metadata
+  static const inkDark = Color(0xFF28200E); // near-black warm brown
+  static const inkMid = Color(0xFF5C4A38); // body text
+  static const inkLight = Color(0xFF9A8468); // caption / metadata
 
   // UI
-  static const border = Color(0xFFE0D0B0); // card border
-  static const divider = Color(0xFFEEE4D0); // list divider
-  static const shadow = Color(0xFFBD9838); // warm shadow
+  static const border = Color(0xFFD8CEBC); // warm beige border
+  static const divider = Color(0xFFE8E2D0); // list divider
+  static const shadow = Color(0xFFA88A40); // warm amber shadow
 
   // Status
   static const success = Color(0xFF7BAE6E);
-  static const warning = Color(0xFFCBA840);
+  static const warning = Color(0xFFBF9E52);
   static const error = Color(0xFFFF6B6B);
-  static const errorLight = Color(0xFFFFEEEE); // error row bg tint
+  static const errorLight = Color(0xFFFFEEEE);
 }
 
 // ── Theme B: Sky ── 浅蓝/粉蓝水彩 ──

@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../components/app_header.dart';
-import '../components/bottom_navigation.dart';
 import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../providers/jewellery_listing_notifier.dart';
@@ -19,10 +18,15 @@ class JewelleryListingPage extends StatelessWidget {
   /// Pre-applied owner id (as string) — passed from Dashboard.
   final String? initialOwnerId;
 
+  /// Incremented by MainShellPage after an add-product push returns so the
+  /// view can refresh the list without a full widget recreation.
+  final int refreshNonce;
+
   const JewelleryListingPage({
     super.key,
     this.initialType,
     this.initialOwnerId,
+    this.refreshNonce = 0,
   });
 
   @override
@@ -30,13 +34,15 @@ class JewelleryListingPage extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => JewelleryListingNotifier()
         ..load(initialType: initialType, initialOwnerId: initialOwnerId),
-      child: const _JewelleryListingView(),
+      child: _JewelleryListingView(refreshNonce: refreshNonce),
     );
   }
 }
 
 class _JewelleryListingView extends StatefulWidget {
-  const _JewelleryListingView();
+  final int refreshNonce;
+
+  const _JewelleryListingView({this.refreshNonce = 0});
 
   @override
   State<_JewelleryListingView> createState() => _JewelleryListingViewState();
@@ -51,6 +57,14 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(_JewelleryListingView old) {
+    super.didUpdateWidget(old);
+    if (old.refreshNonce != widget.refreshNonce) {
+      context.read<JewelleryListingNotifier>().refresh();
+    }
+  }
+
   Future<void> _openDetails(
     BuildContext context,
     JewelleryListingNotifier notifier,
@@ -59,24 +73,6 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     await GoRouter.of(context).push('/details', extra: jewelleryId);
     if (context.mounted) {
       notifier.refresh();
-    }
-  }
-
-  Future<void> _onAddTap() async {
-    final notifier = context.read<JewelleryListingNotifier>();
-    await GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
-    if (!mounted) return;
-    notifier.refresh();
-  }
-
-  Future<void> _onNavTap(BuildContext context, int index) async {
-    switch (index) {
-      case 0:
-        GoRouter.of(context).go('/');
-      case 1:
-        GoRouter.of(context).go('/dashboard');
-      case 4:
-        GoRouter.of(context).go('/settings');
     }
   }
 
@@ -217,22 +213,6 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
             ],
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: null,
-        onPressed: _onAddTap,
-        backgroundColor: appTheme.accent,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: const CircleBorder(
-          side: BorderSide(color: Colors.white, width: 2),
-        ),
-        child: const Icon(Icons.add, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: 3,
-        onTap: (index) => _onNavTap(context, index),
       ),
     );
   }

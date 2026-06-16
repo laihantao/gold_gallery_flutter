@@ -13,10 +13,11 @@ import '../theme/app_text_styles.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
-import '../components/bottom_navigation.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final int refreshNonce;
+
+  const DashboardPage({super.key, this.refreshNonce = 0});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -31,26 +32,15 @@ class _DashboardPageState extends State<DashboardPage> {
     _data = _DashboardData.load();
   }
 
+  @override
+  void didUpdateWidget(DashboardPage old) {
+    super.didUpdateWidget(old);
+    if (old.refreshNonce != widget.refreshNonce) _reload();
+  }
+
   void _reload() {
     if (!mounted) return;
     setState(() => _data = _DashboardData.load());
-  }
-
-  Future<void> _onAddTap() async {
-    await GoRouter.of(context).push('/add-product', extra: {'mode': 'add'});
-    if (!mounted) return;
-    _reload();
-  }
-
-  void _onNavTap(int index) {
-    switch (index) {
-      case 0:
-        GoRouter.of(context).go('/');
-      case 3:
-        GoRouter.of(context).go('/listing');
-      case 4:
-        GoRouter.of(context).go('/settings');
-    }
   }
 
   @override
@@ -152,22 +142,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: null,
-        onPressed: _onAddTap,
-        backgroundColor: appTheme.accent,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: const CircleBorder(
-          side: BorderSide(color: Colors.white, width: 2),
-        ),
-        child: const Icon(Icons.add, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: 1,
-        onTap: _onNavTap,
       ),
     );
   }
@@ -312,62 +286,98 @@ class _PortfolioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final highlight = Color.lerp(appTheme.primary, Colors.white, 0.20)!;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [appTheme.primaryDark, appTheme.primary],
+          colors: [
+            appTheme.primaryDark,
+            appTheme.primary,
+            highlight,
+            appTheme.primaryDark.withValues(alpha: 0.90),
+          ],
+          stops: const [0.0, 0.38, 0.62, 1.0],
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: appTheme.shadow.withValues(alpha: 0.45),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+            color: appTheme.shadow.withValues(alpha: 0.50),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+            spreadRadius: -2,
+          ),
+          BoxShadow(
+            color: appTheme.primaryDark.withValues(alpha: 0.20),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.portfolioOverview,
-            style: AppTextStyles.title(
-                Colors.white.withValues(alpha: 0.85),
-                locale: l10n.locale),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _StatBlock(
-                  label: l10n.totalItems,
-                  value: '${data.totalItems}',
-                  icon: Icons.diamond_outlined,
-                  l10n: l10n,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.center,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.13),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
               ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.white.withValues(alpha: 0.3),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.portfolioOverview,
+                    style: AppTextStyles.title(
+                        Colors.white.withValues(alpha: 0.85),
+                        locale: l10n.locale),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatBlock(
+                          label: l10n.totalItems,
+                          value: '${data.totalItems}',
+                          icon: Icons.diamond_outlined,
+                          l10n: l10n,
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
+                      Expanded(
+                        child: _StatBlock(
+                          label: l10n.portfolioValue,
+                          value:
+                              '${data.currencySymbol} ${data.totalValue.toStringAsFixed(2)}',
+                          icon: Icons.account_balance_wallet_outlined,
+                          alignRight: true,
+                          l10n: l10n,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              Expanded(
-                child: _StatBlock(
-                  label: l10n.portfolioValue,
-                  value:
-                      '${data.currencySymbol} ${data.totalValue.toStringAsFixed(2)}',
-                  icon: Icons.account_balance_wallet_outlined,
-                  alignRight: true,
-                  l10n: l10n,
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

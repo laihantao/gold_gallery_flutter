@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../pages/index.dart';
@@ -66,22 +68,19 @@ final GoRouter router = GoRouter(
       ),
     ),
 
-    // ── Tab-level routes (fade) ───────────────────────────────────────────
+    // ── Shell: all 4 main tabs live inside MainShellPage ─────────────────
     GoRoute(
       path: '/',
       pageBuilder: (context, state) =>
-          _fadePage(state.pageKey, const HomePage()),
+          _fadePage(state.pageKey, const MainShellPage()),
     ),
-    GoRoute(
-      path: '/dashboard',
-      pageBuilder: (context, state) =>
-          _fadePage(state.pageKey, const DashboardPage()),
-    ),
+
+    // ── Listing drill-down (pushed from Dashboard with type/owner filter) ─
     GoRoute(
       path: '/listing',
       pageBuilder: (context, state) {
         final extra = state.extra as Map<String, String?>?;
-        return _fadePage(
+        return _slidePage(
           state.pageKey,
           JewelleryListingPage(
             initialType: extra?['type'],
@@ -89,11 +88,6 @@ final GoRouter router = GoRouter(
           ),
         );
       },
-    ),
-    GoRoute(
-      path: '/settings',
-      pageBuilder: (context, state) =>
-          _fadePage(state.pageKey, const SettingsPage()),
     ),
 
     // ── Push drill-down routes (slide-up + fade) ──────────────────────────
@@ -178,6 +172,24 @@ final GoRouter router = GoRouter(
         return _slidePage(
           state.pageKey,
           PhotoViewerPage(imagePaths: imagePaths, initialIndex: initialIndex),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/export-pdf',
+      pageBuilder: (context, state) =>
+          _slidePage(state.pageKey, const ExportPdfPage()),
+    ),
+    GoRoute(
+      path: '/pdf-preview',
+      pageBuilder: (context, state) {
+        final args = state.extra as Map<String, dynamic>;
+        return _slidePage(
+          state.pageKey,
+          PdfPreviewPage(
+            bytes: args['bytes'] as Uint8List,
+            filename: args['filename'] as String,
+          ),
         );
       },
     ),

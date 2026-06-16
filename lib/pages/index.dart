@@ -8,4 +8,7 @@ export 'settings_page.dart';
 export 'product_form_page.dart';
 export 'user_form_page.dart';
 export 'manage_pages.dart';
+export 'main_shell_page.dart';
 export 'photo_viewer_page.dart';
+export 'export_pdf_page.dart';
+export 'pdf_preview_page.dart';

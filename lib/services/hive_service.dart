@@ -30,6 +30,7 @@ class HiveService {
     await _seedBrands();
     await _seedCurrency();
     await _seedJewelleryTypes();
+    await _backfillGoldBar();
   }
 
   static Future<void> _seedBrands() async {
@@ -94,6 +95,24 @@ class HiveService {
         );
       }
     }
+  }
+
+  // Backfill Gold Bar for installs that were seeded before id 6 was added.
+  static Future<void> _backfillGoldBar() async {
+    if (_jewelleryTypeBox.containsKey('6')) return;
+    final now = DateTime.now();
+    final goldBar = JewelleryType(
+      id: 6,
+      name: 'Gold Bar',
+      nameZh: '金条',
+      nameMs: 'Bar Emas',
+      iconKey: 'goldbar',
+      isDefault: true,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _jewelleryTypeBox.put('6', jsonEncode(goldBar.toJson()));
   }
 
   // Jewellery methods

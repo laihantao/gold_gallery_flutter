@@ -219,6 +219,11 @@ class AppLocalizations {
         zh: 'JSON备份分享成功',
         ms: 'Sandaran JSON dikongsi berjaya',
       );
+  String exportSaved(String filename) => switch (locale) {
+        AppLocale.en => 'Backup saved: $filename',
+        AppLocale.zhCN => '备份已保存：$filename',
+        AppLocale.ms => 'Sandaran disimpan: $filename',
+      };
   String get exportSuccess => _t(
         en: 'JSON backup exported successfully',
         zh: 'JSON备份导出成功',
@@ -251,7 +256,7 @@ class AppLocalizations {
 
   // ── Theme names (proper-noun translations) ───────────────────────────────────
   String get themeNameParchment =>
-      _t(en: 'Parchment', zh: '暖金', ms: 'Perkamen');
+      _t(en: 'Aureate', zh: '暖金', ms: 'Keemasan');
   String get themeNameSky => _t(en: 'Sky', zh: '天蓝', ms: 'Langit');
   String get themeNameBlush => _t(en: 'Blush', zh: '玫瑰', ms: 'Merona');
 

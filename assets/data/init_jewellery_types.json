@@ -3,5 +3,6 @@
   { "id": 2, "name": "Pendant",  "nameZh": "吊坠", "nameMs": "Loket",   "iconKey": "pendant"  },
   { "id": 3, "name": "Necklace", "nameZh": "项链", "nameMs": "Rantai",  "iconKey": "necklace" },
   { "id": 4, "name": "Bracelet", "nameZh": "手镯", "nameMs": "Gelang",  "iconKey": "bracelet" },
-  { "id": 5, "name": "Earrings", "nameZh": "耳环", "nameMs": "Subang",  "iconKey": "earrings" }
+  { "id": 5, "name": "Earrings", "nameZh": "耳环", "nameMs": "Subang",  "iconKey": "earrings" },
+  { "id": 6, "name": "Gold Bar", "nameZh": "金条", "nameMs": "Bar Emas", "iconKey": "goldbar" }
 ]
