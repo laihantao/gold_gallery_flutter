@@ -15,7 +15,7 @@ class GoldPriceHistoryBackfillService {
       'https://script.google.com/macros/s/AKfycbwGTHOMglUn03qW9l6htqn2hFijITLv0P6uZZNNxqM4gDP8-Jgunqw-jVmj6wd3HFzk/exec';
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const List<String> _shopNames = ['Chiang Heng', 'Poh Kong'];
+  static const List<String> _shopNames = ['Chiang Heng', 'Poh Kong', 'Tomei'];
   static const Duration _timeout = Duration(seconds: 15);
 
   /// Auto-backfill on startup — returns the number of records inserted.

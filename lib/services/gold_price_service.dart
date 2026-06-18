@@ -149,12 +149,69 @@ class ChiangHengPriceSource implements GoldPriceSource {
   }
 }
 
+class TomeiPriceSource implements GoldPriceSource {
+  static const _url =
+      'https://price-api.tomei.com.my:62443/v1.0/price/gold-jewellery-and-silver-coin-prices/live-quotes-table';
+
+  final GoldHttpClient _client;
+
+  TomeiPriceSource(this._client);
+
+  @override
+  String get shopName => 'Tomei';
+
+  @override
+  String get logoAsset => 'assets/images/brands/logo_tomei.jpg';
+
+  @override
+  Future<GoldPrice> fetch() async {
+    try {
+      final html = await _client.fetchHtml(_url);
+      final document = html_parser.parse(html);
+      final cells = document.querySelectorAll('td');
+
+      double? price916;
+      double? price999;
+
+      for (var i = 0; i < cells.length - 1; i++) {
+        final label = cells[i].text.trim();
+        if (label == '999' && price999 == null) {
+          price999 = double.tryParse(
+              cells[i + 1].text.trim().replaceAll(',', ''));
+        } else if (label == '916' && price916 == null) {
+          price916 = double.tryParse(
+              cells[i + 1].text.trim().replaceAll(',', ''));
+        }
+        if (price916 != null && price999 != null) break;
+      }
+
+      if (price916 == null || price999 == null) {
+        throw GoldPriceFetchException(shopName, reason: 'parse');
+      }
+
+      return GoldPrice(
+        shopName: shopName,
+        price916: price916,
+        price999: price999,
+        fetchedAt: DateTime.now(),
+        logoAsset: logoAsset,
+      );
+    } on GoldPriceFetchException catch (error) {
+      if (error.shopName == shopName) rethrow;
+      throw GoldPriceFetchException(shopName, reason: error.reason);
+    } on TimeoutException {
+      throw GoldPriceFetchException(shopName, reason: 'timeout');
+    }
+  }
+}
+
 class GoldPriceService {
   static final GoldHttpClient _sharedClient = createGoldHttpClient();
 
   static List<GoldPriceSource> get sources => [
         PohKongPriceSource(_sharedClient),
         ChiangHengPriceSource(_sharedClient),
+        TomeiPriceSource(_sharedClient),
       ];
 
   List<Future<GoldPrice>> fetchAll() =>
