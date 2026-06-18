@@ -225,10 +225,9 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final savePath = await BackupService.exportBackup();
       if (!mounted) return;
+      if (savePath == null) return; // user cancelled the picker
       _showSnackBar(
-        savePath == null
-            ? l10n.exportFailed('Save failed')
-            : l10n.exportSaved(savePath.split(RegExp(r'[/\\]')).last),
+        l10n.exportSaved(savePath.split(RegExp(r'[/\\]')).last),
         appTheme,
       );
     } catch (e) {

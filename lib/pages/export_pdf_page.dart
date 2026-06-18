@@ -30,7 +30,10 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
   DateTime? _toDate;
   bool _groupByUser = false;
   bool _includePhotos = true;
-  bool _isGenerating = false;
+  bool _isGeneratingPreview = false;
+  bool _isGeneratingExport = false;
+
+  bool get _isBusy => _isGeneratingPreview || _isGeneratingExport;
 
   @override
   void initState() {
@@ -57,8 +60,12 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
         '${now.year}.pdf';
   }
 
-  Future<Uint8List?> _generate() async {
-    setState(() => _isGenerating = true);
+  Future<Uint8List?> _generate({required bool forPreview}) async {
+    if (forPreview) {
+      setState(() => _isGeneratingPreview = true);
+    } else {
+      setState(() => _isGeneratingExport = true);
+    }
     try {
       return await PdfExportService.generatePdf(_settings);
     } catch (e) {
@@ -69,32 +76,30 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
       }
       return null;
     } finally {
-      if (mounted) setState(() => _isGenerating = false);
+      if (mounted) {
+        setState(() {
+          if (forPreview) {
+            _isGeneratingPreview = false;
+          } else {
+            _isGeneratingExport = false;
+          }
+        });
+      }
     }
   }
 
   Future<void> _onPreview() async {
-    final bytes = await _generate();
+    final bytes = await _generate(forPreview: true);
     if (bytes == null || !mounted) return;
     context.push('/pdf-preview',
         extra: {'bytes': bytes, 'filename': _filename});
   }
 
   Future<void> _onExport() async {
-    final bytes = await _generate();
+    final bytes = await _generate(forPreview: false);
     if (bytes == null || !mounted) return;
-    final path = await PdfExportService.savePdf(bytes, _filename);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          path == 'shared'
-              ? 'PDF shared successfully.'
-              : 'PDF saved to device storage.',
-        ),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    await PdfExportService.savePdf(bytes, _filename);
+    // null return means user cancelled the picker — no snackbar needed.
   }
 
   // ── Date helpers ────────────────────────────────────────────────────────────
@@ -355,7 +360,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              icon: _isGenerating
+              icon: _isGeneratingPreview
                   ? SizedBox(
                       width: 16,
                       height: 16,
@@ -366,7 +371,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
               label: Text('Preview',
                   style: AppTextStyles.bodyBold(appTheme.primary,
                       locale: locale)),
-              onPressed: _isGenerating ? null : _onPreview,
+              onPressed: _isBusy ? null : _onPreview,
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 side: BorderSide(color: appTheme.primary),
@@ -378,7 +383,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
           const SizedBox(width: 12),
           Expanded(
             child: ElevatedButton.icon(
-              icon: _isGenerating
+              icon: _isGeneratingExport
                   ? const SizedBox(
                       width: 16,
                       height: 16,
@@ -389,7 +394,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
               label: Text('Export PDF',
                   style: AppTextStyles.bodyBold(Colors.white,
                       locale: locale)),
-              onPressed: _isGenerating ? null : _onExport,
+              onPressed: _isBusy ? null : _onExport,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

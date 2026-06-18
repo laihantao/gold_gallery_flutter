@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:path_provider/path_provider.dart';
+import 'package:file_saver/file_saver.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../models/export_settings.dart';
 import '../models/jewellery.dart';
@@ -482,33 +480,18 @@ class PdfExportService {
     return pdf.save();
   }
 
-  /// Saves [bytes] as [filename] to device storage.
-  /// Returns the saved file path, or 'shared' if the share sheet was used as fallback.
-  static Future<String> savePdf(Uint8List bytes, String filename) async {
-    try {
-      final dir = await _getSaveDirectory();
-      final file = File('${dir.path}/$filename');
-      await file.writeAsBytes(bytes, flush: true);
-      return file.path;
-    } catch (_) {
-      // Fall back to share sheet if direct save fails.
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile.fromData(bytes, mimeType: 'application/pdf', name: filename)],
-          subject: 'Aurum Jewellery PDF Export',
-        ),
-      );
-      return 'shared';
-    }
-  }
-
-  static Future<Directory> _getSaveDirectory() async {
-    if (Platform.isAndroid) {
-      final ext = await getExternalStorageDirectory();
-      if (ext != null) return ext;
-    }
-    // iOS: accessible via Files app > On My iPhone > [AppName]
-    return getApplicationDocumentsDirectory();
+  /// Opens the native "Save As" document picker so the user can choose where
+  /// to save the PDF. Returns the saved path, or null if the user cancelled.
+  static Future<String?> savePdf(Uint8List bytes, String filename) async {
+    final nameWithoutExt = filename.endsWith('.pdf')
+        ? filename.substring(0, filename.length - 4)
+        : filename;
+    return FileSaver.instance.saveAs(
+      name: nameWithoutExt,
+      bytes: bytes,
+      fileExtension: 'pdf',
+      mimeType: MimeType.pdf,
+    );
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
