@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../painters/bg_pattern_painter.dart';
+import '../providers/gold_price_notifier.dart';
 import '../services/hive_service.dart';
+import '../services/market_value_service.dart';
 import '../widgets/jewellery_type_icon.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_theme.dart';
@@ -63,6 +65,8 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 // ── Portfolio Summary ──────────────────────────
                 _PortfolioCard(data: _data, appTheme: appTheme, l10n: l10n),
+                const SizedBox(height: 10),
+                _PortfolioTrendButton(appTheme: appTheme),
                 const SizedBox(height: 24),
 
                 // ── By Jewellery Type ──────────────────────────
@@ -184,6 +188,7 @@ class _DashboardData {
   final List<_TypeStat> typeStats;
   final List<_OwnerStat> ownerStats;
   final List<Jewellery> recentItems;
+  final List<Jewellery> allItems;
 
   const _DashboardData({
     required this.totalItems,
@@ -192,6 +197,7 @@ class _DashboardData {
     required this.typeStats,
     required this.ownerStats,
     required this.recentItems,
+    required this.allItems,
   });
 
   factory _DashboardData.load() {
@@ -234,6 +240,7 @@ class _DashboardData {
       typeStats: typeStats,
       ownerStats: ownerStats,
       recentItems: recent,
+      allItems: items,
     );
   }
 }
@@ -286,7 +293,30 @@ class _PortfolioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final notifier = context.watch<GoldPriceNotifier>();
+    final states = notifier.allStates;
+
+    // Compute portfolio-level market value and P&L
+    double marketTotal = 0;
+    double costTotal = 0;
+    bool hasPriceData = false;
+
+    for (final item in data.allItems) {
+      final mv = MarketValueService.currentValue(item, states);
+      if (mv != null) {
+        marketTotal += mv;
+        costTotal += item.totalPrice ?? 0;
+        hasPriceData = true;
+      }
+    }
+
+    final portfolioGl = hasPriceData ? marketTotal - costTotal : null;
+    final portfolioGlPct =
+        (portfolioGl != null && costTotal > 0) ? (portfolioGl / costTotal) * 100 : null;
+
+    final isGain = (portfolioGl ?? 0) >= 0;
     final highlight = Color.lerp(appTheme.primary, Colors.white, 0.20)!;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -373,9 +403,106 @@ class _PortfolioCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (hasPriceData && portfolioGl != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(
+                          isGain
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                          color: isGain
+                              ? const Color(0xFF7BE87B)
+                              : const Color(0xFFFF8A8A),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Market Value  ${data.currencySymbol} ${marketTotal.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: (isGain
+                                    ? const Color(0xFF7BE87B)
+                                    : const Color(0xFFFF8A8A))
+                                .withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isGain
+                                  ? const Color(0xFF7BE87B)
+                                  : const Color(0xFFFF8A8A),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            '${isGain ? '+' : ''}${portfolioGl.toStringAsFixed(0)}'
+                            '  (${portfolioGlPct != null ? '${isGain ? '+' : ''}${portfolioGlPct.toStringAsFixed(1)}%' : '—'})',
+                            style: TextStyle(
+                              color: isGain
+                                  ? const Color(0xFF7BE87B)
+                                  : const Color(0xFFFF8A8A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PortfolioTrendButton extends StatelessWidget {
+  final AurumTheme appTheme;
+  const _PortfolioTrendButton({required this.appTheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/portfolio-chart'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: appTheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: appTheme.border),
+          boxShadow: [appTheme.cardShadow],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.show_chart_rounded, color: appTheme.primary, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'View Portfolio Trend',
+              style: TextStyle(
+                color: appTheme.inkDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Icon(Icons.chevron_right_rounded, color: appTheme.inkLight, size: 20),
           ],
         ),
       ),

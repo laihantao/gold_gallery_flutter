@@ -12,3 +12,4 @@ export 'main_shell_page.dart';
 export 'photo_viewer_page.dart';
 export 'export_pdf_page.dart';
 export 'pdf_preview_page.dart';
+export 'portfolio_chart_page.dart';

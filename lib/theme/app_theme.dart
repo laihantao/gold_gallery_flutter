@@ -100,17 +100,41 @@ const _blush = _Palette(
   errorLight: BlushColors.errorLight,
 );
 
-/// The three Aurum themes — each a "coloured notebook".
+const _noir = _Palette(
+  primaryBg: NoirColors.primaryBg,
+  surface: NoirColors.surface,
+  headerBg: NoirColors.headerBg,
+  patternColor: NoirColors.patternColor,
+  primary: NoirColors.primary,
+  primaryDark: NoirColors.primaryDark,
+  primaryLight: NoirColors.primaryLight,
+  accent: NoirColors.accent,
+  inkDark: NoirColors.inkDark,
+  inkMid: NoirColors.inkMid,
+  inkLight: NoirColors.inkLight,
+  border: NoirColors.border,
+  divider: NoirColors.divider,
+  shadow: NoirColors.shadow,
+  success: NoirColors.success,
+  warning: NoirColors.warning,
+  error: NoirColors.error,
+  errorLight: NoirColors.errorLight,
+);
+
+/// The four Aurum themes — each a "coloured notebook".
 ///
 /// Parchment is the default (golden honey treasure journal).
 enum AurumTheme {
   parchment('parchment', 'Aureate'),
   sky('sky', 'Sky'),
-  blush('blush', 'Blush');
+  blush('blush', 'Blush'),
+  noir('noir', 'Noir');
 
   final String id;
   final String label;
   const AurumTheme(this.id, this.label);
+
+  bool get isDark => this == AurumTheme.noir;
 
   /// Locale-aware theme name for display in the settings sheet.
   String localizedLabel(AppLocale locale) => switch (this) {
@@ -129,12 +153,18 @@ enum AurumTheme {
           AppLocale.zhCN => '玫瑰',
           AppLocale.ms => 'Merona',
         },
+        AurumTheme.noir => switch (locale) {
+          AppLocale.en => 'Noir',
+          AppLocale.zhCN => '暗金',
+          AppLocale.ms => 'Gelap',
+        },
       };
 
   _Palette get _p => switch (this) {
         AurumTheme.parchment => _parchment,
         AurumTheme.sky => _sky,
         AurumTheme.blush => _blush,
+        AurumTheme.noir => _noir,
       };
 
   // ── New palette roles ──
@@ -187,11 +217,11 @@ enum AurumTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: p.primaryBg,
       colorScheme: ColorScheme(
-        brightness: Brightness.light,
+        brightness: isDark ? Brightness.dark : Brightness.light,
         primary: p.primary,
-        onPrimary: Colors.white,
+        onPrimary: isDark ? p.inkDark : Colors.white,
         secondary: p.accent,
-        onSecondary: Colors.white,
+        onSecondary: isDark ? p.inkDark : Colors.white,
         surface: p.surface,
         onSurface: p.inkDark,
         error: p.error,

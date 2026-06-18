@@ -30,6 +30,8 @@ class GoldPriceNotifier extends ChangeNotifier {
   ShopPriceState stateFor(String shopName) =>
       _states[shopName] ?? const ShopPriceState(status: GoldPriceStatus.idle);
 
+  Map<String, ShopPriceState> get allStates => Map.unmodifiable(_states);
+
   GoldPriceNotifier() {
     _loadFromCache();
     fetchAll();

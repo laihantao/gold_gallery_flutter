@@ -7,6 +7,8 @@ import 'models/gold_price.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/gold_price_notifier.dart';
 import 'providers/locale_notifier.dart';
+import 'services/collection_service.dart';
+import 'services/gold_alert_service.dart';
 import 'services/gold_price_history_backfill_service.dart';
 import 'services/gold_price_history_seed_service.dart';
 import 'services/gold_price_history_service.dart';
@@ -39,6 +41,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
         ChangeNotifierProvider(create: (_) => GoldPriceNotifier()),
+        ChangeNotifierProvider(create: (_) => GoldAlertNotifier()),
+        ChangeNotifierProvider(create: (_) => CollectionNotifier()),
         ChangeNotifierProvider(create: (_) => LocaleNotifier()),
       ],
       child: Consumer2<ThemeNotifier, LocaleNotifier>(

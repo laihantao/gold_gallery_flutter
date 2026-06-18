@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/index.dart';
+import '../providers/gold_price_notifier.dart';
 import '../services/hive_service.dart';
+import '../services/market_value_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
@@ -15,11 +17,13 @@ import 'sketch_border.dart';
 class JewelleryCard extends StatelessWidget {
   final JewelleryDisplayItem item;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const JewelleryCard({
     super.key,
     required this.item,
     this.onTap,
+    this.onLongPress,
   });
 
   double _imageSize(BuildContext context) {
@@ -39,6 +43,9 @@ class JewelleryCard extends StatelessWidget {
     final l10n = context.l10n;
     final jewellery = item.jewellery;
     final imageSize = _imageSize(context);
+    final states = context.watch<GoldPriceNotifier>().allStates;
+    final gl = MarketValueService.gainLoss(jewellery, states);
+    final glPct = MarketValueService.gainLossPct(jewellery, states);
 
     final typeName = jewellery.jewelleryTypeId != null
         ? _nonBlank(HiveService.getJewelleryType(jewellery.jewelleryTypeId!)
@@ -57,6 +64,7 @@ class JewelleryCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -114,6 +122,16 @@ class JewelleryCard extends StatelessWidget {
                               purity: purity,
                               appTheme: appTheme,
                             ),
+                            if (gl != null &&
+                                jewellery.totalPrice != null &&
+                                jewellery.totalPrice! > 0) ...[
+                              const SizedBox(width: 6),
+                              _GlChip(
+                                gl: gl,
+                                glPct: glPct,
+                                appTheme: appTheme,
+                              ),
+                            ],
                             const Spacer(),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -318,6 +336,55 @@ class _PurityBadge extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+class _GlChip extends StatelessWidget {
+  final double gl;
+  final double? glPct;
+  final AppTheme appTheme;
+
+  const _GlChip({
+    required this.gl,
+    required this.glPct,
+    required this.appTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isGain = gl >= 0;
+    final color = isGain ? const Color(0xFF3DAA3D) : const Color(0xFFCC4444);
+    final label = glPct != null
+        ? '${isGain ? '+' : ''}${glPct!.toStringAsFixed(1)}%'
+        : '${isGain ? '+' : ''}${gl.toStringAsFixed(0)}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isGain ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+            color: color,
+            size: 10,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

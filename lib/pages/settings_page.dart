@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/locale_notifier.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
@@ -24,6 +25,35 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isExporting = false;
   bool _isImporting = false;
   bool _isSyncingHistory = false;
+  bool _biometricEnabled = false;
+  bool _biometricSupported = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final enabled = await AuthService.isBiometricEnabled();
+    final supported = await AuthService.isDeviceSupported();
+    if (mounted) {
+      setState(() {
+        _biometricEnabled = enabled;
+        _biometricSupported = supported;
+      });
+    }
+  }
+
+  Future<void> _toggleBiometric(bool value) async {
+    if (value) {
+      // Verify first before enabling
+      final ok = await AuthService.authenticate();
+      if (!ok || !mounted) return;
+    }
+    await AuthService.setBiometricEnabled(value);
+    if (mounted) setState(() => _biometricEnabled = value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +83,10 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingSection(
               title: l10n.themeSection,
               appTheme: appTheme,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              child: Wrap(
+                alignment: WrapAlignment.spaceEvenly,
+                spacing: 8,
+                runSpacing: 12,
                 children: [
                   _ThemeCircle(
                     theme: AurumTheme.parchment,
@@ -75,6 +107,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: () => context
                         .read<ThemeNotifier>()
                         .setTheme(AurumTheme.blush),
+                  ),
+                  _ThemeCircle(
+                    theme: AurumTheme.noir,
+                    isActive: appTheme == AurumTheme.noir,
+                    onTap: () => context
+                        .read<ThemeNotifier>()
+                        .setTheme(AurumTheme.noir),
                   ),
                 ],
               ),
@@ -136,6 +175,68 @@ class _SettingsPageState extends State<SettingsPage> {
                     onPressed: () => _syncHistory(context, appTheme, l10n),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // ── Security ────────────────────────────────────────
+            _SettingSection(
+              title: 'Security',
+              appTheme: appTheme,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: appTheme.primaryBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: appTheme.border.withValues(alpha: 0.6)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _biometricEnabled
+                          ? Icons.fingerprint_rounded
+                          : Icons.lock_outline_rounded,
+                      color: _biometricEnabled
+                          ? appTheme.primary
+                          : appTheme.inkMid,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Biometric / PIN Lock',
+                            style: TextStyle(
+                              color: appTheme.inkDark,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            _biometricSupported
+                                ? 'Lock app when it goes to background'
+                                : 'Not supported on this device',
+                            style: TextStyle(
+                                color: appTheme.inkLight, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _biometricEnabled,
+                      onChanged: _biometricSupported
+                          ? _toggleBiometric
+                          : null,
+                      activeThumbColor: appTheme.primary,
+                      activeTrackColor: appTheme.primaryLight,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),

@@ -181,6 +181,11 @@ final GoRouter router = GoRouter(
           _slidePage(state.pageKey, const ExportPdfPage()),
     ),
     GoRoute(
+      path: '/portfolio-chart',
+      pageBuilder: (context, state) =>
+          _slidePage(state.pageKey, const PortfolioChartPage()),
+    ),
+    GoRoute(
       path: '/pdf-preview',
       pageBuilder: (context, state) {
         final args = state.extra as Map<String, dynamic>;

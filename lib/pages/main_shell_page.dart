@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../screens/lock_screen.dart';
+import '../services/auth_service.dart';
 import '../theme/theme_notifier.dart';
 import '../components/bottom_navigation.dart';
 import 'home_page.dart';
@@ -35,12 +37,43 @@ class MainShellPage extends StatefulWidget {
   State<MainShellPage> createState() => _MainShellPageState();
 }
 
-class _MainShellPageState extends State<MainShellPage> {
+class _MainShellPageState extends State<MainShellPage>
+    with WidgetsBindingObserver {
   int _index = 0;
-
-  // Incremented whenever the FAB add-product push returns, so tab pages
-  // that need to refresh (Dashboard, Listing) can react via didUpdateWidget.
   int _refreshNonce = 0;
+
+  bool _isLocked = false;
+  bool _bioEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadLockPrefs();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _loadLockPrefs() async {
+    final enabled = await AuthService.isBiometricEnabled();
+    if (mounted) setState(() => _bioEnabled = enabled);
+    if (enabled) {
+      setState(() => _isLocked = true);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_bioEnabled) return;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      if (!_isLocked) setState(() => _isLocked = true);
+    }
+  }
 
   void _switchTab(int newIndex) {
     if (newIndex == _index) return;
@@ -77,6 +110,12 @@ class _MainShellPageState extends State<MainShellPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+
+    if (_isLocked) {
+      return LockScreen(
+        onUnlocked: () => setState(() => _isLocked = false),
+      );
+    }
 
     return TabScope(
       switchTab: _switchTab,

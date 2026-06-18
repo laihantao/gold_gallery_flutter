@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 /// Aurum colour palettes.
 ///
-/// Three "coloured notebooks":
+/// Four "coloured notebooks":
 ///   * [ParchmentColors] — warm cream / champagne-gold (DEFAULT)
 ///   * [SkyColors]       — soft blue watercolour field notes
 ///   * [BlushColors]     — rose pink keepsake diary
+///   * [NoirColors]      — deep charcoal with warm gold accents (dark mode)
 ///
 /// This is the ONLY place raw `Color(0xFF...)` literals should live.
 
@@ -90,4 +91,35 @@ class BlushColors {
   static const warning = Color(0xFFF5C842);
   static const error = Color(0xFFFF6B6B);
   static const errorLight = Color(0xFFFFEEEE);
+}
+
+// ── Theme D: Noir ── 暗金 · deep charcoal with warm gold accents ──
+class NoirColors {
+  // Backgrounds
+  static const primaryBg    = Color(0xFF1C1914); // deep warm charcoal
+  static const surface      = Color(0xFF26221C); // slightly lighter card surface
+  static const headerBg     = Color(0xFF2E2820); // dark warm header
+  static const patternColor = Color(0xFF3A3025); // subtle watermark pattern
+
+  // Accent — warm gold
+  static const primary      = Color(0xFFC9A84C); // warm gold
+  static const primaryDark  = Color(0xFFE8C86D); // lighter gold (higher contrast on dark)
+  static const primaryLight = Color(0xFF3D3020); // dark gold chip background
+  static const accent       = Color(0xFFE8C86D); // bright gold accent (FAB)
+
+  // Text
+  static const inkDark      = Color(0xFFF2EDE4); // warm cream — headings
+  static const inkMid       = Color(0xFFCEC0A4); // warm light — body
+  static const inkLight     = Color(0xFF8A7B66); // muted — captions / metadata
+
+  // UI chrome
+  static const border       = Color(0xFF3E3628); // dark warm border
+  static const divider      = Color(0xFF2E2820); // very dark divider
+  static const shadow       = Color(0xFF0A0805); // deep shadow
+
+  // Status
+  static const success      = Color(0xFF7BAE6E);
+  static const warning      = Color(0xFFC9A84C);
+  static const error        = Color(0xFFFF6B6B);
+  static const errorLight   = Color(0xFF4A2020);
 }

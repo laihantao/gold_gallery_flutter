@@ -6,6 +6,8 @@ import '../components/app_header.dart';
 import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../providers/jewellery_listing_notifier.dart';
+import '../services/collection_service.dart';
+import '../services/hive_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/filter_chip_bar.dart';
@@ -50,6 +52,8 @@ class _JewelleryListingView extends StatefulWidget {
 
 class _JewelleryListingViewState extends State<_JewelleryListingView> {
   final TextEditingController _searchController = TextEditingController();
+  // null = "All Items" tab; non-null = selected collection id
+  String? _selectedCollectionId;
 
   @override
   void dispose() {
@@ -63,6 +67,34 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     if (old.refreshNonce != widget.refreshNonce) {
       context.read<JewelleryListingNotifier>().refresh();
     }
+  }
+
+  void _showManageCollectionsSheet(BuildContext context,
+      CollectionNotifier collectionNotifier, AppTheme appTheme) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _ManageCollectionsSheet(
+        collectionNotifier: collectionNotifier,
+        appTheme: appTheme,
+      ),
+    );
+  }
+
+  void _showAddToCollectionSheet(BuildContext context, int jewelleryId) {
+    final collectionNotifier = context.read<CollectionNotifier>();
+    final appTheme = context.read<ThemeNotifier>().currentTheme;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AddToCollectionSheet(
+        jewelleryId: jewelleryId,
+        collectionNotifier: collectionNotifier,
+        appTheme: appTheme,
+      ),
+    );
   }
 
   Future<void> _openDetails(
@@ -115,12 +147,30 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
     final l10n = context.l10n;
+    final collectionNotifier = context.watch<CollectionNotifier>();
+    final collections = collectionNotifier.collections;
 
     return Scaffold(
       appBar: AppHeader(title: l10n.listingTitle, showBackButton: false),
       body: Consumer<JewelleryListingNotifier>(
         builder: (context, notifier, _) {
-          final filteredItems = notifier.filteredItems;
+          // Compute filtered items (optionally limited to a collection)
+          final allFiltered = notifier.filteredItems;
+          final filteredItems = _selectedCollectionId == null
+              ? allFiltered
+              : () {
+                  final col = collections.firstWhere(
+                    (c) => c.id == _selectedCollectionId,
+                    orElse: () => Collection(
+                        id: '',
+                        name: '',
+                        jewelleryIds: [],
+                        createdAt: DateTime.now()),
+                  );
+                  return allFiltered
+                      .where((i) => col.jewelleryIds.contains(i.jewellery.id))
+                      .toList();
+                }();
           final sortArrow =
               notifier.sortDirection == SortDirection.desc ? '↓' : '↑';
           final sortLabel = _sortFieldLabel(notifier.sortField, l10n);
@@ -137,6 +187,17 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                   hintText: l10n.searchHint,
                   onChanged: notifier.updateSearch,
                 ),
+              ),
+
+              // ── Collections segmented toggle ─────────────────
+              _CollectionToggle(
+                collections: collections,
+                selectedId: _selectedCollectionId,
+                appTheme: appTheme,
+                onSelect: (id) =>
+                    setState(() => _selectedCollectionId = id),
+                onManage: () => _showManageCollectionsSheet(
+                    context, collectionNotifier, appTheme),
               ),
 
               // ── Filter chips ────────────────────────────────
@@ -206,6 +267,8 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                               notifier,
                               item.jewellery.id,
                             ),
+                            onLongPress: () => _showAddToCollectionSheet(
+                                context, item.jewellery.id),
                           );
                         },
                       ),
@@ -317,6 +380,424 @@ class _SortOptionTile extends StatelessWidget {
         notifier.updateSort(field);
         Navigator.pop(context);
       },
+    );
+  }
+}
+
+// ── Collection segmented toggle ───────────────────────────────────────────────
+
+class _CollectionToggle extends StatelessWidget {
+  final List<Collection> collections;
+  final String? selectedId;
+  final AppTheme appTheme;
+  final ValueChanged<String?> onSelect;
+  final VoidCallback onManage;
+
+  const _CollectionToggle({
+    required this.collections,
+    required this.selectedId,
+    required this.appTheme,
+    required this.onSelect,
+    required this.onManage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Row(
+        children: [
+          _CollectionChip(
+            label: 'All',
+            icon: Icons.grid_view_rounded,
+            isActive: selectedId == null,
+            appTheme: appTheme,
+            onTap: () => onSelect(null),
+          ),
+          ...collections.map(
+            (c) => Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _CollectionChip(
+                label: c.name,
+                icon: Icons.folder_outlined,
+                isActive: selectedId == c.id,
+                appTheme: appTheme,
+                onTap: () => onSelect(c.id),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onManage,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: appTheme.primaryLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: appTheme.border.withValues(alpha: 0.6)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_rounded,
+                      color: appTheme.primaryDark, size: 14),
+                  const SizedBox(width: 3),
+                  Text(
+                    'Manage',
+                    style: TextStyle(
+                      color: appTheme.primaryDark,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CollectionChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isActive;
+  final AppTheme appTheme;
+  final VoidCallback onTap;
+
+  const _CollectionChip({
+    required this.label,
+    required this.icon,
+    required this.isActive,
+    required this.appTheme,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? appTheme.primary : appTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? appTheme.primaryDark : appTheme.border,
+            width: isActive ? 1.2 : 0.8,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 12,
+                color: isActive ? Colors.white : appTheme.inkMid),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.white : appTheme.inkDark,
+                fontSize: 12,
+                fontWeight:
+                    isActive ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Add to collection sheet ───────────────────────────────────────────────────
+
+class _AddToCollectionSheet extends StatelessWidget {
+  final int jewelleryId;
+  final CollectionNotifier collectionNotifier;
+  final AppTheme appTheme;
+
+  const _AddToCollectionSheet({
+    required this.jewelleryId,
+    required this.collectionNotifier,
+    required this.appTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final j = HiveService.getJewellery(jewelleryId);
+    final collections = collectionNotifier.collections;
+
+    return Container(
+      margin: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: appTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: appTheme.border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 10, bottom: 4),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: appTheme.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
+            child: Row(
+              children: [
+                Icon(Icons.folder_outlined,
+                    color: appTheme.primary, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Add "${j?.name ?? 'Item'}" to Collection',
+                    style: TextStyle(
+                      color: appTheme.inkDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(color: appTheme.border),
+          if (collections.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'No collections yet. Tap "Manage" in the listing to create one.',
+                style: TextStyle(color: appTheme.inkLight, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            ...collections.map(
+              (c) {
+                final isIn = collectionNotifier.isInCollection(c.id, jewelleryId);
+                return ListTile(
+                  leading: Icon(
+                    isIn ? Icons.folder_rounded : Icons.folder_outlined,
+                    color: isIn ? appTheme.primary : appTheme.inkMid,
+                  ),
+                  title: Text(c.name,
+                      style: TextStyle(
+                          color: appTheme.inkDark, fontSize: 13)),
+                  subtitle: Text('${c.jewelleryIds.length} items',
+                      style: TextStyle(
+                          color: appTheme.inkLight, fontSize: 11)),
+                  trailing: isIn
+                      ? Icon(Icons.check_circle_rounded,
+                          color: appTheme.primary, size: 20)
+                      : null,
+                  onTap: () async {
+                    if (isIn) {
+                      await collectionNotifier.removeFromCollection(
+                          c.id, jewelleryId);
+                    } else {
+                      await collectionNotifier.addToCollection(
+                          c.id, jewelleryId);
+                    }
+                    if (context.mounted) Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Manage collections sheet ──────────────────────────────────────────────────
+
+class _ManageCollectionsSheet extends StatefulWidget {
+  final CollectionNotifier collectionNotifier;
+  final AppTheme appTheme;
+
+  const _ManageCollectionsSheet({
+    required this.collectionNotifier,
+    required this.appTheme,
+  });
+
+  @override
+  State<_ManageCollectionsSheet> createState() =>
+      _ManageCollectionsSheetState();
+}
+
+class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
+  final _ctrl = TextEditingController();
+  AppTheme get appTheme => widget.appTheme;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _create() async {
+    final name = _ctrl.text.trim();
+    if (name.isEmpty) return;
+    await widget.collectionNotifier.createCollection(name);
+    _ctrl.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final collections = widget.collectionNotifier.collections;
+
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: appTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: appTheme.border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 4),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: appTheme.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.folder_special_outlined,
+                      color: appTheme.primary, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Manage Collections',
+                    style: TextStyle(
+                      color: appTheme.inkDark,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(color: appTheme.border),
+
+            // New collection input
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      style: TextStyle(
+                          color: appTheme.inkDark, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'New collection name…',
+                        hintStyle: TextStyle(
+                            color: appTheme.inkLight, fontSize: 12),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        filled: true,
+                        fillColor: appTheme.primaryBg,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                              BorderSide(color: appTheme.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                              color: appTheme.border, width: 0.8),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                              color: appTheme.primary, width: 1.2),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _create,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: appTheme.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.add_rounded,
+                          color: Colors.white, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (collections.isNotEmpty)
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 260),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: collections.length,
+                  itemBuilder: (_, i) {
+                    final c = collections[i];
+                    return ListTile(
+                      leading: Icon(Icons.folder_rounded,
+                          color: appTheme.primary),
+                      title: Text(c.name,
+                          style: TextStyle(
+                              color: appTheme.inkDark, fontSize: 13)),
+                      subtitle: Text('${c.jewelleryIds.length} items',
+                          style: TextStyle(
+                              color: appTheme.inkLight, fontSize: 11)),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete_outline_rounded,
+                            color: appTheme.error, size: 18),
+                        onPressed: () =>
+                            widget.collectionNotifier.deleteCollection(c.id),
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No collections yet. Create one above.',
+                  style: TextStyle(
+                      color: appTheme.inkLight,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
     );
   }
 }
