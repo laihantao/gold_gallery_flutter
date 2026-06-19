@@ -181,6 +181,11 @@ final GoRouter router = GoRouter(
           _slidePage(state.pageKey, const ExportPdfPage()),
     ),
     GoRoute(
+      path: '/price-alerts',
+      pageBuilder: (context, state) =>
+          _slidePage(state.pageKey, const PriceAlertsPage()),
+    ),
+    GoRoute(
       path: '/portfolio-chart',
       pageBuilder: (context, state) =>
           _slidePage(state.pageKey, const PortfolioChartPage()),
@@ -194,6 +199,33 @@ final GoRouter router = GoRouter(
           PdfPreviewPage(
             bytes: args['bytes'] as Uint8List,
             filename: args['filename'] as String,
+          ),
+        );
+      },
+    ),
+
+    // ── PIN lock screens ──────────────────────────────────────────────────
+    GoRoute(
+      path: '/pin-entry',
+      pageBuilder: (context, state) {
+        final dest = (state.extra as String?) ?? '/';
+        return _fadePage(
+          state.pageKey,
+          PinEntryPage(destinationRoute: dest),
+          duration: const Duration(milliseconds: 300),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/pin-setup',
+      pageBuilder: (context, state) {
+        final args = state.extra as Map<String, dynamic>?;
+        final mode = args?['mode'] as String? ?? 'create';
+        return _slidePage(
+          state.pageKey,
+          PinSetupPage(
+            mode: mode,
+            onComplete: () => context.go('/'),
           ),
         );
       },

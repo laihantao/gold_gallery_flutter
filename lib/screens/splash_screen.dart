@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../models/splash_caption.dart';
 import '../painters/bg_pattern_painter.dart';
 import '../providers/locale_notifier.dart';
+import '../services/auth_service.dart';
 import '../services/splash_caption_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
@@ -338,7 +339,14 @@ class _SplashScreenState extends State<SplashScreen>
     // All heavy init already runs in main() before runApp().
     // Wait for the minimum display time then navigate.
     await Future.delayed(const Duration(milliseconds: 2500));
-    if (mounted) context.go('/');
+    if (!mounted) return;
+    final pinEnabled = await AuthService.isPinEnabled();
+    if (!mounted) return;
+    if (pinEnabled) {
+      context.go('/pin-entry', extra: '/');
+    } else {
+      context.go('/');
+    }
   }
 
   // ── Dispose ───────────────────────────────────────────────────────────────

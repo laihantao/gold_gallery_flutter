@@ -161,6 +161,56 @@ class AppLocalizations {
   // ── Settings ─────────────────────────────────────────────────────────────────
   String get settingsTitle => _t(en: 'Settings', zh: '设置', ms: 'Tetapan');
   String get themeSection => _t(en: 'Theme', zh: '主题', ms: 'Tema');
+  String get priceAlertsSection =>
+      _t(en: 'Price Alerts', zh: '价格提醒', ms: 'Amaran Harga');
+  String get priceAlertsDesc => _t(
+        en: 'Set price thresholds per brand and purity. You will receive a notification when prices cross your targets.',
+        zh: '为每个品牌和纯度设置价格阈值，价格突破目标时将收到通知。',
+        ms: 'Tetapkan ambang harga untuk setiap jenama. Anda akan dimaklumkan apabila harga melangkaui sasaran.',
+      );
+  String get managePriceAlerts =>
+      _t(en: 'Manage Price Alerts', zh: '管理价格提醒', ms: 'Urus Amaran Harga');
+  String get testNotifButton =>
+      _t(en: 'Test Alert Notification', zh: '测试提醒通知', ms: 'Uji Notifikasi Amaran');
+  String get testNotifTitle =>
+      _t(en: 'Send Test Notification', zh: '发送测试通知', ms: 'Hantar Notifikasi Ujian');
+  String get testNotifDesc => _t(
+        en: 'Select a brand and purity to send a test OS notification, verifying that alerts are working on your device.',
+        zh: '选择品牌和纯度，发送测试通知以验证设备上的提醒功能是否正常。',
+        ms: 'Pilih jenama dan ketulenan untuk menghantar notifikasi ujian, mengesahkan amaran berfungsi di peranti anda.',
+      );
+  String get sendTestNotif =>
+      _t(en: 'Send Test', zh: '发送测试', ms: 'Hantar Ujian');
+  String get sending => _t(en: 'Sending…', zh: '发送中…', ms: 'Menghantar…');
+  String get testNotifSent => _t(
+        en: 'Test notification sent! Check your status bar.',
+        zh: '测试通知已发送！请查看状态栏。',
+        ms: 'Notifikasi ujian dihantar! Semak bar status anda.',
+      );
+  String get notifPermDenied => _t(
+        en: 'Notification permission denied. Please enable it in device settings.',
+        zh: '通知权限被拒绝，请在设备设置中启用。',
+        ms: 'Kebenaran notifikasi ditolak. Sila aktifkan dalam tetapan peranti.',
+      );
+  String get noAlertsConfigured =>
+      _t(en: 'No price alerts configured', zh: '暂无价格提醒', ms: 'Tiada amaran harga');
+  String get noAlertsHint => _t(
+        en: 'Tap the bell icon on any brand card on the home page to set up an alert.',
+        zh: '点击主页品牌卡片上的铃铛图标来设置提醒。',
+        ms: 'Ketik ikon loceng pada kad jenama di halaman utama untuk tetapkan amaran.',
+      );
+  String get deleteAlertTitle =>
+      _t(en: 'Remove Alert', zh: '删除提醒', ms: 'Padam Amaran');
+  String deleteAlertConfirm(String shop, String purity) => switch (locale) {
+        AppLocale.en => 'Remove the $purity price alert for $shop?',
+        AppLocale.zhCN => '确定删除 $shop 的 $purity 价格提醒吗？',
+        AppLocale.ms => 'Padam amaran harga $purity untuk $shop?',
+      };
+  String alertDeleted(String shop, String purity) => switch (locale) {
+        AppLocale.en => 'Price alert deleted — $shop $purity',
+        AppLocale.zhCN => '价格提醒已删除 — $shop $purity',
+        AppLocale.ms => 'Amaran harga dipadam — $shop $purity',
+      };
   String get languageSection => _t(en: 'Language', zh: '语言', ms: 'Bahasa');
   String get usersSection => _t(en: 'Users', zh: '用户', ms: 'Pengguna');
   String get brandsSection => _t(en: 'Brands', zh: '品牌', ms: 'Jenama');
@@ -252,6 +302,8 @@ class AppLocalizations {
       };
   String get pdfSuccess =>
       _t(en: 'PDF generated successfully', zh: 'PDF生成成功', ms: 'PDF berjaya dijana');
+  String get pdfSaved =>
+      _t(en: 'PDF saved successfully!', zh: 'PDF已保存成功！', ms: 'PDF berjaya disimpan!');
   String pdfFailed(Object e) => switch (locale) {
         AppLocale.en => 'PDF export failed: $e',
         AppLocale.zhCN => 'PDF导出失败：$e',

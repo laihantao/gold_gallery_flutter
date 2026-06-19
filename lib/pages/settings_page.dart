@@ -11,7 +11,6 @@ import '../components/app_header.dart';
 import '../components/buttons.dart';
 import '../services/backup_service.dart';
 import '../services/gold_price_history_backfill_service.dart';
-import '../widgets/sketch_border.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -25,34 +24,71 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isExporting = false;
   bool _isImporting = false;
   bool _isSyncingHistory = false;
-  bool _biometricEnabled = false;
-  bool _biometricSupported = false;
+  bool _pinEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _loadBiometricState();
+    _loadPinState();
   }
 
-  Future<void> _loadBiometricState() async {
-    final enabled = await AuthService.isBiometricEnabled();
-    final supported = await AuthService.isDeviceSupported();
-    if (mounted) {
-      setState(() {
-        _biometricEnabled = enabled;
-        _biometricSupported = supported;
-      });
-    }
+  Future<void> _loadPinState() async {
+    final enabled = await AuthService.isPinEnabled();
+    if (mounted) setState(() => _pinEnabled = enabled);
   }
 
-  Future<void> _toggleBiometric(bool value) async {
+  Future<void> _togglePin(bool value) async {
     if (value) {
-      // Verify first before enabling
-      final ok = await AuthService.authenticate();
-      if (!ok || !mounted) return;
+      // Navigate to setup; reload state when we come back
+      await GoRouter.of(context).push('/pin-setup');
+      await _loadPinState();
+    } else {
+      final confirmed = await _confirmDisable();
+      if (!confirmed || !mounted) return;
+      await AuthService.disablePin();
+      if (mounted) setState(() => _pinEnabled = false);
     }
-    await AuthService.setBiometricEnabled(value);
-    if (mounted) setState(() => _biometricEnabled = value);
+  }
+
+  Future<bool> _confirmDisable() async {
+    final appTheme = context.read<ThemeNotifier>().currentTheme;
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: appTheme.surface,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            title: Text('Disable App Lock',
+                style: TextStyle(
+                    color: appTheme.inkDark,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
+            content: Text(
+              'Your PIN and security question will be removed. '
+              'Jewellery data will not be affected.',
+              style: TextStyle(
+                  color: appTheme.inkMid, fontSize: 13, height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel',
+                    style: TextStyle(color: appTheme.inkLight)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: appTheme.error,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8))),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Disable'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
@@ -83,39 +119,25 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingSection(
               title: l10n.themeSection,
               appTheme: appTheme,
-              child: Wrap(
-                alignment: WrapAlignment.spaceEvenly,
-                spacing: 8,
-                runSpacing: 12,
-                children: [
-                  _ThemeCircle(
-                    theme: AurumTheme.parchment,
-                    isActive: appTheme == AurumTheme.parchment,
-                    onTap: () => context
-                        .read<ThemeNotifier>()
-                        .setTheme(AurumTheme.parchment),
-                  ),
-                  _ThemeCircle(
-                    theme: AurumTheme.sky,
-                    isActive: appTheme == AurumTheme.sky,
-                    onTap: () =>
-                        context.read<ThemeNotifier>().setTheme(AurumTheme.sky),
-                  ),
-                  _ThemeCircle(
-                    theme: AurumTheme.blush,
-                    isActive: appTheme == AurumTheme.blush,
-                    onTap: () => context
-                        .read<ThemeNotifier>()
-                        .setTheme(AurumTheme.blush),
-                  ),
-                  _ThemeCircle(
-                    theme: AurumTheme.noir,
-                    isActive: appTheme == AurumTheme.noir,
-                    onTap: () => context
-                        .read<ThemeNotifier>()
-                        .setTheme(AurumTheme.noir),
-                  ),
-                ],
+              child: SizedBox(
+                height: 96,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  children: [
+                    for (final theme in AurumTheme.values) ...[
+                      _ThemeCard(
+                        theme: theme,
+                        isActive: appTheme == theme,
+                        onTap: () => context
+                            .read<ThemeNotifier>()
+                            .setTheme(theme),
+                      ),
+                      if (theme != AurumTheme.values.last)
+                        const SizedBox(width: 10),
+                    ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -179,64 +201,103 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
 
+            // ── Price Alerts ────────────────────────────────────
+            _SettingSection(
+              title: l10n.priceAlertsSection,
+              appTheme: appTheme,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.priceAlertsDesc,
+                    style: TextStyle(
+                      color: appTheme.textBody.withValues(alpha: 0.65),
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  GhostButton(
+                    label: l10n.managePriceAlerts,
+                    onPressed: () => GoRouter.of(context).push('/price-alerts'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // ── Security ────────────────────────────────────────
             _SettingSection(
               title: 'Security',
               appTheme: appTheme,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: appTheme.primaryBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: appTheme.border.withValues(alpha: 0.6)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _biometricEnabled
-                          ? Icons.fingerprint_rounded
-                          : Icons.lock_outline_rounded,
-                      color: _biometricEnabled
-                          ? appTheme.primary
-                          : appTheme.inkMid,
-                      size: 20,
+              child: Column(
+                children: [
+                  // PIN toggle row
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: appTheme.primaryBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: appTheme.border.withValues(alpha: 0.6)),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Biometric / PIN Lock',
-                            style: TextStyle(
-                              color: appTheme.inkDark,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _pinEnabled
+                              ? Icons.lock_rounded
+                              : Icons.lock_outline_rounded,
+                          color: _pinEnabled
+                              ? appTheme.primary
+                              : appTheme.inkMid,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'App PIN Lock',
+                                style: TextStyle(
+                                  color: appTheme.inkDark,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                'Require a 4-digit PIN on startup',
+                                style: TextStyle(
+                                    color: appTheme.inkLight, fontSize: 11),
+                              ),
+                            ],
                           ),
-                          Text(
-                            _biometricSupported
-                                ? 'Lock app when it goes to background'
-                                : 'Not supported on this device',
-                            style: TextStyle(
-                                color: appTheme.inkLight, fontSize: 11),
-                          ),
-                        ],
-                      ),
+                        ),
+                        Switch(
+                          value: _pinEnabled,
+                          onChanged: _togglePin,
+                          activeThumbColor: appTheme.primary,
+                          activeTrackColor: appTheme.primaryLight,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
                     ),
-                    Switch(
-                      value: _biometricEnabled,
-                      onChanged: _biometricSupported
-                          ? _toggleBiometric
-                          : null,
-                      activeThumbColor: appTheme.primary,
-                      activeTrackColor: appTheme.primaryLight,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+
+                  // Change PIN (only visible when enabled)
+                  if (_pinEnabled) ...[
+                    const SizedBox(height: 10),
+                    GhostButton(
+                      label: 'Change PIN',
+                      onPressed: () async {
+                        await GoRouter.of(context)
+                            .push('/pin-setup', extra: {'mode': 'change'});
+                      },
                     ),
                   ],
-                ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -371,7 +432,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: isError ? appTheme.error : appTheme.inkDark,
+        backgroundColor: isError ? appTheme.error : appTheme.snackBarBg,
         duration: subtitle != null
             ? const Duration(seconds: 5)
             : const Duration(seconds: 3),
@@ -504,14 +565,17 @@ class _SettingSection extends StatelessWidget {
   }
 }
 
-// ── Theme circle ──────────────────────────────────────────────────────────────
+// ── Theme card (horizontal-scroll, compact) ───────────────────────────────────
+//
+// Inspired by Genshin Impact / Wuthering Waves character-select cards:
+// a portrait tile with a colour accent bar at top and theme name below.
 
-class _ThemeCircle extends StatelessWidget {
+class _ThemeCard extends StatelessWidget {
   final AppTheme theme;
   final bool isActive;
   final VoidCallback onTap;
 
-  const _ThemeCircle({
+  const _ThemeCard({
     required this.theme,
     required this.isActive,
     required this.onTap,
@@ -522,39 +586,59 @@ class _ThemeCircle extends StatelessWidget {
     final locale = context.l10n.locale;
     return GestureDetector(
       onTap: onTap,
-      child: SketchBorder(
-        radius: 18,
-        strokeWidth: isActive ? 2 : 1.5,
-        color: isActive ? theme.primary : theme.border,
-        child: Container(
-          width: 92,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          decoration: BoxDecoration(
-            color: theme.primaryBg,
-            borderRadius: BorderRadius.circular(18),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 72,
+        decoration: BoxDecoration(
+          color: theme.primaryBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isActive ? theme.primary : theme.border,
+            width: isActive ? 2 : 1,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.primary,
-                  border: Border.all(color: theme.primaryDark, width: 1.2),
-                ),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: theme.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : [],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Accent colour swatch with dark-ring border
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.primary,
+                border: Border.all(color: theme.primaryDark, width: 1.5),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '✦ ${theme.localizedLabel(locale)}',
-                style: AppTextStyles.handNote(theme.inkDark),
-                textAlign: TextAlign.center,
+              child: isActive
+                  ? Icon(Icons.check_rounded, size: 16, color: theme.primaryBg)
+                  : null,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              theme.localizedLabel(locale),
+              style: TextStyle(
+                color: isActive ? theme.inkDark : theme.inkMid,
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: 0.2,
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
   }
 }
+

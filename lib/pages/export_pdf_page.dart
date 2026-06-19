@@ -98,8 +98,18 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
   Future<void> _onExport() async {
     final bytes = await _generate(forPreview: false);
     if (bytes == null || !mounted) return;
-    await PdfExportService.savePdf(bytes, _filename);
-    // null return means user cancelled the picker — no snackbar needed.
+    final savedPath = await PdfExportService.savePdf(bytes, _filename);
+    if (!mounted) return;
+    if (savedPath != null) {
+      final appTheme = context.read<ThemeNotifier>().currentTheme;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: appTheme.snackBarBg,
+          content: Text(context.l10n.pdfSaved),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   // ── Date helpers ────────────────────────────────────────────────────────────

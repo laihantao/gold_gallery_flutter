@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/gold_price.dart';
 import '../services/gold_price_history_service.dart';
 import '../services/gold_price_service.dart';
+
+const _lastFetchPrefKey = 'last_price_fetch_ms';
+const _fetchCooldown = Duration(hours: 1);
 
 enum GoldPriceStatus { idle, loading, success, error }
 
@@ -34,7 +38,18 @@ class GoldPriceNotifier extends ChangeNotifier {
 
   GoldPriceNotifier() {
     _loadFromCache();
-    fetchAll();
+    _autoFetch();
+  }
+
+  /// Fetches only if the last fetch (by this app or the background task) was
+  /// more than [_fetchCooldown] ago. Manual [fetchAll] always bypasses this.
+  Future<void> _autoFetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastMs = prefs.getInt(_lastFetchPrefKey) ?? 0;
+    final elapsed = DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(lastMs));
+    if (elapsed < _fetchCooldown) return;
+    await fetchAll();
   }
 
   void _loadFromCache() {
@@ -48,6 +63,12 @@ class GoldPriceNotifier extends ChangeNotifier {
   }
 
   Future<void> fetchAll() async {
+    // Record the timestamp immediately so back-to-back opens don't re-fetch
+    // even if the network call fails. Both auto and manual refresh update this.
+    SharedPreferences.getInstance().then(
+      (p) => p.setInt(_lastFetchPrefKey, DateTime.now().millisecondsSinceEpoch),
+    );
+
     for (final source in GoldPriceService.sources) {
       _states[source.shopName] = ShopPriceState(
         status: GoldPriceStatus.loading,

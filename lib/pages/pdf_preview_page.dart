@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 import '../components/app_header.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/theme_notifier.dart';
 
 class PdfPreviewPage extends StatefulWidget {
@@ -60,12 +61,23 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
       final nameWithoutExt = widget.filename.endsWith('.pdf')
           ? widget.filename.substring(0, widget.filename.length - 4)
           : widget.filename;
-      await FileSaver.instance.saveAs(
+      final savedPath = await FileSaver.instance.saveAs(
         name: nameWithoutExt,
         bytes: widget.bytes,
         fileExtension: 'pdf',
         mimeType: MimeType.pdf,
       );
+      if (!mounted) return;
+      if (savedPath != null) {
+        final appTheme = context.read<ThemeNotifier>().currentTheme;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: appTheme.snackBarBg,
+            content: Text(context.l10n.pdfSaved),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

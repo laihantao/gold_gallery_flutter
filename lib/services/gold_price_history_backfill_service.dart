@@ -45,39 +45,55 @@ class GoldPriceHistoryBackfillService {
     return _fetchAndStore(from: earliestFrom, to: yesterday);
   }
 
-  /// Manual sync triggered by the user — always attempts a fetch from the
-  /// latest stored date up to today (inclusive), so the user can force a
-  /// refresh even when the auto-backfill found no gap.
+  /// Manual sync triggered by the user — scans the last [_lookbackDays] of
+  /// history per shop and fetches any missing days, including gaps in the
+  /// middle (e.g. June 18 absent even though June 19 is present).
   ///
   /// Returns the number of records inserted, or throws on network failure
   /// (so the caller can show a proper error message).
+  static const int _lookbackDays = 30;
+
   static Future<int> manualSync() async {
     final today = _dateOnly(DateTime.now());
+    final lookbackStart = today.subtract(const Duration(days: _lookbackDays));
 
-    DateTime? earliestFrom;
+    DateTime? earliestMissing;
 
     for (final shopName in _shopNames) {
       final history = GoldPriceHistoryService.historyFor(shopName);
 
-      DateTime fromDate;
       if (history.isEmpty) {
-        // No local data at all — fetch the last 30 days as a safe default.
-        fromDate = today.subtract(const Duration(days: 30));
-      } else {
-        final latestDate = _dateOnly(history.last.recordedAt);
-        if (!latestDate.isBefore(today)) continue; // fully up to date
-        fromDate = latestDate.add(const Duration(days: 1));
+        // No local data at all — pull the full lookback window.
+        if (earliestMissing == null || lookbackStart.isBefore(earliestMissing)) {
+          earliestMissing = lookbackStart;
+        }
+        continue;
       }
 
-      if (earliestFrom == null || fromDate.isBefore(earliestFrom)) {
-        earliestFrom = fromDate;
+      // Build a fast lookup of days we already have for this shop.
+      final existingDays = <String>{
+        for (final p in history) _fmt(_dateOnly(p.recordedAt)),
+      };
+
+      // Scan from the older of (first local record, lookbackStart) up to today.
+      // This detects internal gaps (e.g. June 18 missing while June 19 exists).
+      final firstLocal = _dateOnly(history.first.recordedAt);
+      final scanFrom = firstLocal.isBefore(lookbackStart) ? lookbackStart : firstLocal;
+
+      for (var d = scanFrom; !d.isAfter(today); d = d.add(const Duration(days: 1))) {
+        if (!existingDays.contains(_fmt(d))) {
+          if (earliestMissing == null || d.isBefore(earliestMissing)) {
+            earliestMissing = d;
+          }
+          break; // only need the earliest missing date per shop
+        }
       }
     }
 
-    if (earliestFrom == null) return 0; // all shops are current
+    if (earliestMissing == null) return 0; // no gaps found
 
     // propagateError = true so the UI can catch and show a proper message.
-    return _fetchAndStore(from: earliestFrom, to: today, propagateError: true);
+    return _fetchAndStore(from: earliestMissing, to: today, propagateError: true);
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

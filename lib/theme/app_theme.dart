@@ -187,6 +187,10 @@ enum AurumTheme {
   Color get error => _p.error;
   Color get errorLight => _p.errorLight;
 
+  /// Background colour for SnackBars — always dark enough for white text.
+  /// Light themes use inkDark (near-black); Noir uses surface (dark charcoal).
+  Color get snackBarBg => isDark ? _p.surface : _p.inkDark;
+
   // ── Legacy aliases (so existing screens keep compiling) ──
   Color get backgroundPrimary => _p.primaryBg;
   Color get backgroundSurface => _p.surface;
@@ -347,7 +351,7 @@ enum AurumTheme {
 
       // ── SnackBar ──
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: p.inkDark,
+        backgroundColor: snackBarBg,
         contentTextStyle: AppTextStyles.body(Colors.white),
         actionTextColor: p.primary,
         behavior: SnackBarBehavior.floating,

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/gold_alert.dart';
+import 'notification_service.dart';
 
 class GoldAlertNotifier extends ChangeNotifier {
   static const _prefKey = 'gold_alerts_v1';
@@ -41,9 +42,7 @@ class GoldAlertNotifier extends ChangeNotifier {
       _alerts.where((a) => a.shopName == shopName).toList();
 
   Future<void> addOrUpdate(GoldAlert alert) async {
-    final idx = _alerts.indexWhere(
-      (a) => a.shopName == alert.shopName && a.purity == alert.purity,
-    );
+    final idx = _alerts.indexWhere((a) => a.id == alert.id);
     if (idx >= 0) {
       _alerts[idx] = alert;
     } else {
@@ -54,8 +53,7 @@ class GoldAlertNotifier extends ChangeNotifier {
   }
 
   Future<void> remove(GoldAlert alert) async {
-    _alerts.removeWhere(
-        (a) => a.shopName == alert.shopName && a.purity == alert.purity);
+    _alerts.removeWhere((a) => a.id == alert.id);
     await _save();
     notifyListeners();
   }
@@ -83,6 +81,10 @@ class GoldAlertNotifier extends ChangeNotifier {
         ..clear()
         ..addAll(newTriggered);
       notifyListeners();
+      // Fire OS notifications for each triggered alert.
+      for (final t in newTriggered) {
+        NotificationService.showPriceAlert(t.alert, t.currentPrice);
+      }
     }
   }
 

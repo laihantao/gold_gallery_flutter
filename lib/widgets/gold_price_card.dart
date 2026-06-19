@@ -41,6 +41,11 @@ class BrandPriceCard extends StatelessWidget {
   /// Null → refresh icon shown but dimmed and non-tappable (layout consistency).
   final VoidCallback? onRefresh;
   final VoidCallback? onTap;
+
+  /// When non-null, a bell icon appears above the refresh button.
+  final VoidCallback? onAlertTap;
+  final bool hasActiveAlert;
+
   final AppTheme appTheme;
 
   static final _stampFmt = DateFormat('d MMMM yy, HH:mm');
@@ -60,6 +65,8 @@ class BrandPriceCard extends StatelessWidget {
     this.errorReason,
     this.onRefresh,
     this.onTap,
+    this.onAlertTap,
+    this.hasActiveAlert = false,
   });
 
   @override
@@ -100,6 +107,8 @@ class BrandPriceCard extends StatelessWidget {
                       isLoading: isLoading,
                       isError: isError,
                       onRefresh: onRefresh,
+                      onAlertTap: onAlertTap,
+                      hasActiveAlert: hasActiveAlert,
                       appTheme: appTheme,
                     ),
                     const SizedBox(height: 10),
@@ -148,6 +157,8 @@ class GoldPriceCard extends StatelessWidget {
   final AppTheme appTheme;
   final VoidCallback? onRetry;
   final VoidCallback? onTap;
+  final VoidCallback? onAlertTap;
+  final bool hasActiveAlert;
 
   const GoldPriceCard({
     super.key,
@@ -157,6 +168,8 @@ class GoldPriceCard extends StatelessWidget {
     required this.appTheme,
     this.onRetry,
     this.onTap,
+    this.onAlertTap,
+    this.hasActiveAlert = false,
   });
 
   @override
@@ -179,21 +192,26 @@ class GoldPriceCard extends StatelessWidget {
       errorReason: state.errorReason,
       onRefresh: onRetry,
       onTap: onTap,
+      onAlertTap: onAlertTap,
+      hasActiveAlert: hasActiveAlert,
       appTheme: appTheme,
     );
   }
 }
 
-// ── Row 1: Brand name + always-visible refresh button ────────────────────────
+// ── Row 1: Brand name + vertically-stacked bell & refresh buttons ────────────
 //
-// A fixed-width SizedBox on the left mirrors the refresh button on the right
+// A fixed-width SizedBox on the left mirrors the action column on the right
 // so the shop name text stays truly centred regardless of button state.
+// Bell (price alert) sits on top; refresh sits below — both flush right.
 
 class _NameRow extends StatelessWidget {
   final String shopName;
   final bool isLoading;
   final bool isError;
   final VoidCallback? onRefresh;
+  final VoidCallback? onAlertTap;
+  final bool hasActiveAlert;
   final AppTheme appTheme;
 
   const _NameRow({
@@ -202,6 +220,8 @@ class _NameRow extends StatelessWidget {
     required this.isError,
     required this.onRefresh,
     required this.appTheme,
+    this.onAlertTap,
+    this.hasActiveAlert = false,
   });
 
   static const double _btnW = 28;
@@ -209,8 +229,9 @@ class _NameRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(width: _btnW), // balance weight
+        const SizedBox(width: _btnW), // mirrors the right action column
         Expanded(
           child: Text(
             shopName,
@@ -225,12 +246,40 @@ class _NameRow extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(width: _btnW, child: _buildBtn()),
+        SizedBox(
+          width: _btnW,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (onAlertTap != null) ...[
+                _buildBellBtn(),
+                const SizedBox(height: 4),
+              ],
+              _buildRefreshBtn(),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildBtn() {
+  Widget _buildBellBtn() {
+    return GestureDetector(
+      onTap: onAlertTap,
+      child: Icon(
+        hasActiveAlert
+            ? Icons.notifications_active_rounded
+            : Icons.notifications_none_rounded,
+        size: 15,
+        color: hasActiveAlert
+            ? appTheme.primary
+            : appTheme.textBody.withValues(alpha: 0.35),
+      ),
+    );
+  }
+
+  Widget _buildRefreshBtn() {
     if (isLoading) {
       return Center(
         child: SizedBox(

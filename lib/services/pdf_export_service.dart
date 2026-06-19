@@ -139,7 +139,7 @@ class PdfExportService {
           mainAxisAlignment: pw.MainAxisAlignment.center,
           children: [
             pw.Text(
-              'Page ${ctx.pageNumber} of ${ctx.pagesCount}  |  Aurum Jewellery Tracker',
+              'Page ${ctx.pageNumber} of ${ctx.pagesCount}  |  Pocket Gold Inventory',
               style: pw.TextStyle(
                   font: fontRegular,
                   fontSize: 8,
@@ -163,7 +163,7 @@ class PdfExportService {
             decoration: pw.BoxDecoration(color: goldLight),
             children: [
               for (final c in cols)
-                _hCell(_colHeader(c, currencySymbol), fontBold, inkDark),
+                _hCell(_colHeader(c, currencySymbol), fontBold, inkDark, goldLight),
             ],
           );
 
@@ -179,7 +179,7 @@ class PdfExportService {
               children: [
                 for (final c in cols)
                   _cellForColumn(c, j, typeMap, userMap,
-                      currencySymbol, fmtDate, baseStyle),
+                      currencySymbol, fmtDate, baseStyle, bg),
               ],
             );
           }).toList();
@@ -462,7 +462,7 @@ class PdfExportService {
     }
 
     // ── Assemble document ───────────────────────────────────────────────────
-    final pdf = pw.Document(title: 'Aurum Jewellery Inventory');
+    final pdf = pw.Document(title: 'Pocket Gold Inventory');
 
     pdf.addPage(
       pw.MultiPage(
@@ -538,17 +538,20 @@ class PdfExportService {
     String currency,
     String Function(DateTime) fmtDate,
     pw.TextStyle style,
+    PdfColor bg,
   ) {
     final text = _valueForColumn(col, j, typeMap, userMap, currency, fmtDate);
-    return pw.Padding(
+    return pw.Container(
+      color: bg,
       padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       child: pw.Text(text, style: style),
     );
   }
 
   static pw.Widget _hCell(
-      String text, pw.Font fontBold, PdfColor color) {
-    return pw.Padding(
+      String text, pw.Font fontBold, PdfColor color, PdfColor bg) {
+    return pw.Container(
+      color: bg,
       padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 5),
       child: pw.Text(text,
           style: pw.TextStyle(font: fontBold, fontSize: 8, color: color)),
