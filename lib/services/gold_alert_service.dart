@@ -81,9 +81,9 @@ class GoldAlertNotifier extends ChangeNotifier {
         ..clear()
         ..addAll(newTriggered);
       notifyListeners();
-      // Fire OS notifications for each triggered alert.
+      // Fire OS notifications — at most once per calendar day per alert.
       for (final t in newTriggered) {
-        NotificationService.showPriceAlert(t.alert, t.currentPrice);
+        NotificationService.showPriceAlertOncePerDay(t.alert, t.currentPrice);
       }
     }
   }

@@ -225,7 +225,7 @@ final GoRouter router = GoRouter(
           state.pageKey,
           PinSetupPage(
             mode: mode,
-            onComplete: () => context.go('/'),
+            onComplete: () => context.pop(true),
           ),
         );
       },

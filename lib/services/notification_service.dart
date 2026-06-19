@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/gold_alert.dart';
 
@@ -34,7 +35,9 @@ class NotificationService {
   static Future<void> initialize() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    const iosSettings = DarwinInitializationSettings();
+    const initSettings =
+        InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _plugin.initialize(initSettings);
 
     // Create the high-importance channel on Android 8+.
@@ -74,6 +77,23 @@ class NotificationService {
           'RM ${alert.targetPrice.toStringAsFixed(2)})',
       _details,
     );
+  }
+
+  /// Like [showPriceAlert] but fires at most once per calendar day per alert.
+  /// Subsequent fetches on the same day only show the in-app banner; no repeat push.
+  static Future<void> showPriceAlertOncePerDay(
+      GoldAlert alert, double currentPrice) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = '_notif_date_${alert.id}';
+    final today = _todayString();
+    if (prefs.getString(key) == today) return;
+    await showPriceAlert(alert, currentPrice);
+    await prefs.setString(key, today);
+  }
+
+  static String _todayString() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   /// Show a test OS notification for the given brand and purity.

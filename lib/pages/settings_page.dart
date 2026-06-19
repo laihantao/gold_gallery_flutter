@@ -38,15 +38,21 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _togglePin(bool value) async {
+    final appTheme = context.read<ThemeNotifier>().currentTheme;
     if (value) {
-      // Navigate to setup; reload state when we come back
-      await GoRouter.of(context).push('/pin-setup');
+      await GoRouter.of(context).push<bool>('/pin-setup');
       await _loadPinState();
+      if (!mounted) return;
+      if (_pinEnabled) {
+        _showSnackBar('PIN lock enabled successfully.', appTheme);
+      }
     } else {
       final confirmed = await _confirmDisable();
       if (!confirmed || !mounted) return;
       await AuthService.disablePin();
-      if (mounted) setState(() => _pinEnabled = false);
+      if (!mounted) return;
+      setState(() => _pinEnabled = false);
+      _showSnackBar('PIN lock disabled.', appTheme);
     }
   }
 
@@ -292,8 +298,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     GhostButton(
                       label: 'Change PIN',
                       onPressed: () async {
+                        final appTheme =
+                            context.read<ThemeNotifier>().currentTheme;
                         await GoRouter.of(context)
-                            .push('/pin-setup', extra: {'mode': 'change'});
+                            .push<bool>('/pin-setup', extra: {'mode': 'change'});
+                        if (!mounted) return;
+                        _showSnackBar('PIN changed successfully.', appTheme);
                       },
                     ),
                   ],
