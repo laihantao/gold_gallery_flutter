@@ -1,4 +1,4 @@
-# Gold Gallery
+# Pocket Gold
 
 A personal gold jewellery inventory and price tracking app built with Flutter. Track your jewellery collection, monitor live gold prices from multiple Malaysian vendors, and export professional PDF reports — all stored offline on your device.
 
