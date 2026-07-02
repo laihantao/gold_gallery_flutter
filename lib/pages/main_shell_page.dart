@@ -10,14 +10,16 @@ import 'jewellery_listing_page.dart';
 import 'settings_page.dart';
 
 /// Exposes tab switching to any descendant page widget without prop-drilling.
+///
+/// [filterType] / [filterOwnerId] let a caller (e.g. Dashboard's "By
+/// Jewellery Type" / "By Owner" cards) jump to the Listing tab pre-filtered,
+/// instead of pushing a standalone route that would lose the shell's bottom
+/// nav bar.
 class TabScope extends InheritedWidget {
-  final void Function(int index) switchTab;
+  final void Function(int index, {String? filterType, String? filterOwnerId})
+  switchTab;
 
-  const TabScope({
-    super.key,
-    required this.switchTab,
-    required super.child,
-  });
+  const TabScope({super.key, required this.switchTab, required super.child});
 
   static TabScope? of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<TabScope>();
@@ -38,10 +40,18 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   int _index = 0;
   int _refreshNonce = 0;
+  String? _pendingListingType;
+  String? _pendingListingOwnerId;
 
-  void _switchTab(int newIndex) {
-    if (newIndex == _index) return;
-    setState(() => _index = newIndex);
+  void _switchTab(int newIndex, {String? filterType, String? filterOwnerId}) {
+    if (newIndex == _index && filterType == null && filterOwnerId == null) {
+      return;
+    }
+    setState(() {
+      _index = newIndex;
+      _pendingListingType = filterType;
+      _pendingListingOwnerId = filterOwnerId;
+    });
   }
 
   Future<void> _onFabPressed() async {
@@ -62,6 +72,8 @@ class _MainShellPageState extends State<MainShellPage> {
       case 3:
         return JewelleryListingPage(
           key: const ValueKey('listing'),
+          initialType: _pendingListingType,
+          initialOwnerId: _pendingListingOwnerId,
           refreshNonce: _refreshNonce,
         );
       case 4:
@@ -86,15 +98,16 @@ class _MainShellPageState extends State<MainShellPage> {
               curve: Curves.easeInOut,
             ),
             child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.015),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                ),
-              ),
+              position:
+                  Tween<Offset>(
+                    begin: const Offset(0, 0.015),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
               child: child,
             ),
           ),

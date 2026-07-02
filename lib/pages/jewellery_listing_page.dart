@@ -34,8 +34,9 @@ class JewelleryListingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => JewelleryListingNotifier()
-        ..load(initialType: initialType, initialOwnerId: initialOwnerId),
+      create: (_) =>
+          JewelleryListingNotifier()
+            ..load(initialType: initialType, initialOwnerId: initialOwnerId),
       child: _JewelleryListingView(refreshNonce: refreshNonce),
     );
   }
@@ -69,8 +70,11 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     }
   }
 
-  void _showManageCollectionsSheet(BuildContext context,
-      CollectionNotifier collectionNotifier, AppTheme appTheme) {
+  void _showManageCollectionsSheet(
+    BuildContext context,
+    CollectionNotifier collectionNotifier,
+    AppTheme appTheme,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -108,8 +112,11 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     }
   }
 
-  void _showSortSheet(BuildContext context, JewelleryListingNotifier notifier,
-      AppLocalizations l10n) {
+  void _showSortSheet(
+    BuildContext context,
+    JewelleryListingNotifier notifier,
+    AppLocalizations l10n,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
@@ -122,7 +129,9 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                 child: Text(
                   l10n.sortBy,
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               _SortOptionTile(
@@ -162,17 +171,19 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                   final col = collections.firstWhere(
                     (c) => c.id == _selectedCollectionId,
                     orElse: () => Collection(
-                        id: '',
-                        name: '',
-                        jewelleryIds: [],
-                        createdAt: DateTime.now()),
+                      id: '',
+                      name: '',
+                      jewelleryIds: [],
+                      createdAt: DateTime.now(),
+                    ),
                   );
                   return allFiltered
                       .where((i) => col.jewelleryIds.contains(i.jewellery.id))
                       .toList();
                 }();
-          final sortArrow =
-              notifier.sortDirection == SortDirection.desc ? '↓' : '↑';
+          final sortArrow = notifier.sortDirection == SortDirection.desc
+              ? '↓'
+              : '↑';
           final sortLabel = _sortFieldLabel(notifier.sortField, l10n);
 
           return Column(
@@ -194,10 +205,12 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                 collections: collections,
                 selectedId: _selectedCollectionId,
                 appTheme: appTheme,
-                onSelect: (id) =>
-                    setState(() => _selectedCollectionId = id),
+                onSelect: (id) => setState(() => _selectedCollectionId = id),
                 onManage: () => _showManageCollectionsSheet(
-                    context, collectionNotifier, appTheme),
+                  context,
+                  collectionNotifier,
+                  appTheme,
+                ),
               ),
 
               // ── Filter chips ────────────────────────────────
@@ -210,8 +223,9 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                   _searchController.clear();
                   notifier.updateSearch('');
                 },
-                availableOwners:
-                    notifier.hasMultipleOwners ? notifier.availableOwners : null,
+                availableOwners: notifier.hasMultipleOwners
+                    ? notifier.availableOwners
+                    : null,
                 selectedOwnerId: notifier.selectedOwnerId,
                 selectedOwnerName: notifier.selectedOwnerName,
                 onSortTap: () => _showSortSheet(context, notifier, l10n),
@@ -228,10 +242,9 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Text(
                   l10n.itemsFound(filteredItems.length),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: appTheme.inkLight),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: appTheme.inkLight),
                 ),
               ),
 
@@ -242,14 +255,15 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.search_off_outlined,
-                                size: 48, color: appTheme.inkLight),
+                            Icon(
+                              Icons.search_off_outlined,
+                              size: 48,
+                              color: appTheme.inkLight,
+                            ),
                             const SizedBox(height: 12),
                             Text(
                               l10n.noJewelleryFound,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
+                              style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(color: appTheme.inkLight),
                             ),
                           ],
@@ -268,7 +282,9 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                               item.jewellery.id,
                             ),
                             onLongPress: () => _showAddToCollectionSheet(
-                                context, item.jewellery.id),
+                              context,
+                              item.jewellery.id,
+                            ),
                           );
                         },
                       ),
@@ -281,7 +297,8 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
   }
 }
 
-String _sortFieldLabel(SortField field, AppLocalizations l10n) => switch (field) {
+String _sortFieldLabel(SortField field, AppLocalizations l10n) =>
+    switch (field) {
       SortField.date => l10n.labelDate,
       SortField.name => l10n.rowName,
     };
@@ -310,8 +327,11 @@ class _SearchBar extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: appTheme.inkLight, fontSize: 13),
-        prefixIcon:
-            Icon(Icons.search_outlined, color: appTheme.inkLight, size: 20),
+        prefixIcon: Icon(
+          Icons.search_outlined,
+          color: appTheme.inkLight,
+          size: 20,
+        ),
         suffixIcon: ValueListenableBuilder<TextEditingValue>(
           valueListenable: controller,
           builder: (_, value, _) {
@@ -321,15 +341,20 @@ class _SearchBar extends StatelessWidget {
                 controller.clear();
                 onChanged('');
               },
-              child: Icon(Icons.clear_outlined,
-                  color: appTheme.inkLight, size: 18),
+              child: Icon(
+                Icons.clear_outlined,
+                color: appTheme.inkLight,
+                size: 18,
+              ),
             );
           },
         ),
         filled: true,
         fillColor: appTheme.surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: appTheme.border, width: 1),
@@ -436,13 +461,17 @@ class _CollectionToggle extends StatelessWidget {
                 color: appTheme.primaryLight,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: appTheme.border.withValues(alpha: 0.6)),
+                  color: appTheme.border.withValues(alpha: 0.6),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add_rounded,
-                      color: appTheme.primaryDark, size: 14),
+                  Icon(
+                    Icons.add_rounded,
+                    color: appTheme.primaryDark,
+                    size: 14,
+                  ),
                   const SizedBox(width: 3),
                   Text(
                     'Manage',
@@ -495,17 +524,18 @@ class _CollectionChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 12,
-                color: isActive ? Colors.white : appTheme.inkMid),
+            Icon(
+              icon,
+              size: 12,
+              color: isActive ? Colors.white : appTheme.inkMid,
+            ),
             const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
                 color: isActive ? Colors.white : appTheme.inkDark,
                 fontSize: 12,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],
@@ -556,8 +586,7 @@ class _AddToCollectionSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
             child: Row(
               children: [
-                Icon(Icons.folder_outlined,
-                    color: appTheme.primary, size: 18),
+                Icon(Icons.folder_outlined, color: appTheme.primary, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -583,37 +612,55 @@ class _AddToCollectionSheet extends StatelessWidget {
               ),
             )
           else
-            ...collections.map(
-              (c) {
-                final isIn = collectionNotifier.isInCollection(c.id, jewelleryId);
-                return ListTile(
-                  leading: Icon(
-                    isIn ? Icons.folder_rounded : Icons.folder_outlined,
-                    color: isIn ? appTheme.primary : appTheme.inkMid,
-                  ),
-                  title: Text(c.name,
-                      style: TextStyle(
-                          color: appTheme.inkDark, fontSize: 13)),
-                  subtitle: Text('${c.jewelleryIds.length} items',
-                      style: TextStyle(
-                          color: appTheme.inkLight, fontSize: 11)),
-                  trailing: isIn
-                      ? Icon(Icons.check_circle_rounded,
-                          color: appTheme.primary, size: 20)
-                      : null,
-                  onTap: () async {
-                    if (isIn) {
-                      await collectionNotifier.removeFromCollection(
-                          c.id, jewelleryId);
-                    } else {
-                      await collectionNotifier.addToCollection(
-                          c.id, jewelleryId);
-                    }
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
-                );
-              },
-            ),
+            ...collections.map((c) {
+              final isIn = collectionNotifier.isInCollection(c.id, jewelleryId);
+              return ListTile(
+                leading: Icon(
+                  isIn ? Icons.folder_rounded : Icons.folder_outlined,
+                  color: isIn ? appTheme.primary : appTheme.inkMid,
+                ),
+                title: Text(
+                  c.name,
+                  style: TextStyle(color: appTheme.inkDark, fontSize: 13),
+                ),
+                subtitle: Text(
+                  '${c.jewelleryIds.length} items',
+                  style: TextStyle(color: appTheme.inkLight, fontSize: 11),
+                ),
+                trailing: isIn
+                    ? Icon(
+                        Icons.check_circle_rounded,
+                        color: appTheme.primary,
+                        size: 20,
+                      )
+                    : null,
+                onTap: () async {
+                  if (isIn) {
+                    await collectionNotifier.removeFromCollection(
+                      c.id,
+                      jewelleryId,
+                    );
+                  } else {
+                    await collectionNotifier.addToCollection(c.id, jewelleryId);
+                  }
+                  if (!context.mounted) return;
+                  // Capture messenger before popping so we can show the
+                  // snackbar after.
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.of(context).pop();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      backgroundColor: appTheme.snackBarBg,
+                      content: Text(
+                        isIn
+                            ? 'Removed from "${c.name}"'
+                            : 'Added to "${c.name}"',
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
           const SizedBox(height: 12),
         ],
       ),
@@ -652,6 +699,14 @@ class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
     if (name.isEmpty) return;
     await widget.collectionNotifier.createCollection(name);
     _ctrl.clear();
+    if (!mounted) return;
+    setState(() {}); // refresh the in-sheet collections list
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: appTheme.snackBarBg,
+        content: Text('Collection "$name" created'),
+      ),
+    );
   }
 
   @override
@@ -660,7 +715,8 @@ class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
 
     return Padding(
       padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         margin: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -684,8 +740,11 @@ class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
               child: Row(
                 children: [
-                  Icon(Icons.folder_special_outlined,
-                      color: appTheme.primary, size: 18),
+                  Icon(
+                    Icons.folder_special_outlined,
+                    color: appTheme.primary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Manage Collections',
@@ -708,31 +767,37 @@ class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
                   Expanded(
                     child: TextField(
                       controller: _ctrl,
-                      style: TextStyle(
-                          color: appTheme.inkDark, fontSize: 13),
+                      style: TextStyle(color: appTheme.inkDark, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'New collection name…',
                         hintStyle: TextStyle(
-                            color: appTheme.inkLight, fontSize: 12),
+                          color: appTheme.inkLight,
+                          fontSize: 12,
+                        ),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         filled: true,
                         fillColor: appTheme.primaryBg,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              BorderSide(color: appTheme.border),
+                          borderSide: BorderSide(color: appTheme.border),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                              color: appTheme.border, width: 0.8),
+                            color: appTheme.border,
+                            width: 0.8,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                              color: appTheme.primary, width: 1.2),
+                            color: appTheme.primary,
+                            width: 1.2,
+                          ),
                         ),
                       ),
                     ),
@@ -746,8 +811,11 @@ class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
                         color: appTheme.primary,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.add_rounded,
-                          color: Colors.white, size: 18),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
                   ),
                 ],
@@ -763,19 +831,33 @@ class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
                   itemBuilder: (_, i) {
                     final c = collections[i];
                     return ListTile(
-                      leading: Icon(Icons.folder_rounded,
-                          color: appTheme.primary),
-                      title: Text(c.name,
-                          style: TextStyle(
-                              color: appTheme.inkDark, fontSize: 13)),
-                      subtitle: Text('${c.jewelleryIds.length} items',
-                          style: TextStyle(
-                              color: appTheme.inkLight, fontSize: 11)),
+                      leading: Icon(
+                        Icons.folder_rounded,
+                        color: appTheme.primary,
+                      ),
+                      title: Text(
+                        c.name,
+                        style: TextStyle(color: appTheme.inkDark, fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        '${c.jewelleryIds.length} items',
+                        style: TextStyle(
+                          color: appTheme.inkLight,
+                          fontSize: 11,
+                        ),
+                      ),
                       trailing: IconButton(
-                        icon: Icon(Icons.delete_outline_rounded,
-                            color: appTheme.error, size: 18),
-                        onPressed: () =>
-                            widget.collectionNotifier.deleteCollection(c.id),
+                        icon: Icon(
+                          Icons.delete_outline_rounded,
+                          color: appTheme.error,
+                          size: 18,
+                        ),
+                        onPressed: () async {
+                          await widget.collectionNotifier.deleteCollection(
+                            c.id,
+                          );
+                          if (mounted) setState(() {});
+                        },
                       ),
                     );
                   },
@@ -787,9 +869,10 @@ class _ManageCollectionsSheetState extends State<_ManageCollectionsSheet> {
                 child: Text(
                   'No collections yet. Create one above.',
                   style: TextStyle(
-                      color: appTheme.inkLight,
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic),
+                    color: appTheme.inkLight,
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),

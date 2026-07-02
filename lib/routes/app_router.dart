@@ -42,9 +42,7 @@ CustomTransitionPage<void> _slidePage(
       final slide = Tween<Offset>(
         begin: const Offset(0, 0.06),
         end: Offset.zero,
-      ).animate(
-        CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-      );
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
       return FadeTransition(
         opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
         child: SlideTransition(position: slide, child: child),
@@ -73,21 +71,6 @@ final GoRouter router = GoRouter(
       path: '/',
       pageBuilder: (context, state) =>
           _fadePage(state.pageKey, const MainShellPage()),
-    ),
-
-    // ── Listing drill-down (pushed from Dashboard with type/owner filter) ─
-    GoRoute(
-      path: '/listing',
-      pageBuilder: (context, state) {
-        final extra = state.extra as Map<String, String?>?;
-        return _slidePage(
-          state.pageKey,
-          JewelleryListingPage(
-            initialType: extra?['type'],
-            initialOwnerId: extra?['owner'],
-          ),
-        );
-      },
     ),
 
     // ── Push drill-down routes (slide-up + fade) ──────────────────────────
@@ -134,10 +117,7 @@ final GoRouter router = GoRouter(
         final args = state.extra as Map<String, dynamic>?;
         final mode = args?['mode'] as String? ?? 'add';
         final id = args?['id'] as int?;
-        return _slidePage(
-          state.pageKey,
-          UserFormPage(mode: mode, userId: id),
-        );
+        return _slidePage(state.pageKey, UserFormPage(mode: mode, userId: id));
       },
     ),
     GoRoute(
@@ -223,10 +203,7 @@ final GoRouter router = GoRouter(
         final mode = args?['mode'] as String? ?? 'create';
         return _slidePage(
           state.pageKey,
-          PinSetupPage(
-            mode: mode,
-            onComplete: () => context.pop(true),
-          ),
+          PinSetupPage(mode: mode, onComplete: () => context.pop(true)),
         );
       },
     ),
