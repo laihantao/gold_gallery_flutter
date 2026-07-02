@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -65,8 +64,9 @@ class PhotoViewerPage extends StatefulWidget {
 
 class _PhotoViewerPageState extends State<PhotoViewerPage> {
   late final PageController _pageController;
-  // ValueNotifier to scope UI rebuilds to navigation elements only.
   final ValueNotifier<int> _currentIndex = ValueNotifier(0);
+  // True whenever any page is zoomed in — hides all chrome (close, arrows, etc.)
+  final ValueNotifier<bool> _anyZoomed = ValueNotifier(false);
   late final List<ImageProvider> _providers;
 
   @override
@@ -74,7 +74,6 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     super.initState();
     _currentIndex.value = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
-    // Resolve providers once; MemoryImage caches the Uint8List.
     _providers = widget.imagePaths.map(_resolveProvider).toList();
   }
 
@@ -82,6 +81,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
   void dispose() {
     _pageController.dispose();
     _currentIndex.dispose();
+    _anyZoomed.dispose();
     super.dispose();
   }
 
@@ -89,32 +89,27 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
     final count = widget.imagePaths.length;
+    final topPad = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
           // ── Swipeable pages ──────────────────────────────────────────────
-          // NeverScrollableScrollPhysics removes PageView from the gesture
-          // arena so InteractiveViewer can win horizontal drags when zoomed.
-          // Each _ZoomableImagePage handles swipe-navigation when not zoomed.
           PageView.builder(
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (i) => _currentIndex.value = i,
+            onPageChanged: (i) {
+              _currentIndex.value = i;
+              // Reset UI visibility when page changes (zoom resets per-page)
+              _anyZoomed.value = false;
+            },
             itemCount: count,
             itemBuilder: (context, index) => _ZoomableImagePage(
               key: ValueKey(index),
               imageProvider: _providers[index],
+              onZoomChanged: (zoomed) => _anyZoomed.value = zoomed,
               onSwipeLeft: index < count - 1
                   ? () => _pageController.nextPage(
                         duration: const Duration(milliseconds: 300),
@@ -130,108 +125,151 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
             ),
           ),
 
-          // ── Navigation arrows + counter pill ────────────────────────────
-          if (count > 1)
-            ValueListenableBuilder<int>(
-              valueListenable: _currentIndex,
-              builder: (_, idx, _) => Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Left arrow
-                  if (idx > 0)
-                    _ArrowButton(
-                      side: _ArrowSide.left,
-                      onTap: () => _pageController.previousPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      ),
-                    ),
-                  // Right arrow
-                  if (idx < count - 1)
-                    _ArrowButton(
-                      side: _ArrowSide.right,
-                      onTap: () => _pageController.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      ),
-                    ),
-                  // Counter pill
-                  Positioned(
-                    bottom: 80,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          '${idx + 1} / $count',
-                          style: TextStyle(
-                            color: appTheme.textBody,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+          // ── All chrome — fades out when zoomed ───────────────────────────
+          ValueListenableBuilder<bool>(
+            valueListenable: _anyZoomed,
+            builder: (_, zoomed, _) => AnimatedOpacity(
+              opacity: zoomed ? 0.0 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: IgnorePointer(
+                ignoring: zoomed,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Close button (replaces AppBar so it can be hidden)
+                    Positioned(
+                      top: topPad + 4,
+                      left: 8,
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withValues(alpha: 0.6),
                           ),
+                          child: const Icon(Icons.close,
+                              color: Colors.white, size: 20),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
 
-          // ── Thumbnail strip ──────────────────────────────────────────────
-          if (count > 1)
-            ValueListenableBuilder<int>(
-              valueListenable: _currentIndex,
-              builder: (_, idx, _) => Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.7),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 12),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: List.generate(
-                        count,
-                        (i) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: GestureDetector(
-                            onTap: () => _pageController.animateToPage(
-                              i,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            ),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: idx == i
-                                      ? appTheme.accentPrimary
-                                      : Colors.white.withValues(alpha: 0.2),
-                                  width: idx == i ? 2 : 1,
+                    // Navigation arrows + counter pill (multi-image only)
+                    if (count > 1)
+                      ValueListenableBuilder<int>(
+                        valueListenable: _currentIndex,
+                        builder: (_, idx, _) => Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (idx > 0)
+                              _ArrowButton(
+                                side: _ArrowSide.left,
+                                onTap: () => _pageController.previousPage(
+                                  duration:
+                                      const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
                                 ),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(5),
-                                child: ColoredBox(
-                                  color: Colors.grey.shade800,
-                                  child: Image(
-                                    image: _providers[i],
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => const Icon(
-                                      Icons.image,
-                                      color: Colors.white38,
-                                      size: 24,
+                            if (idx < count - 1)
+                              _ArrowButton(
+                                side: _ArrowSide.right,
+                                onTap: () => _pageController.nextPage(
+                                  duration:
+                                      const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                ),
+                              ),
+                            Positioned(
+                              bottom: 80,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    '${idx + 1} / $count',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // Thumbnail strip (multi-image only)
+                    if (count > 1)
+                      ValueListenableBuilder<int>(
+                        valueListenable: _currentIndex,
+                        builder: (_, idx, _) => Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 12),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: List.generate(
+                                  count,
+                                  (i) => Padding(
+                                    padding:
+                                        const EdgeInsets.only(right: 8),
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          _pageController.animateToPage(
+                                        i,
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        curve: Curves.easeInOut,
+                                      ),
+                                      child: AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 150),
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: idx == i
+                                                ? appTheme.accentPrimary
+                                                : Colors.white
+                                                    .withValues(alpha: 0.2),
+                                            width: idx == i ? 2 : 1,
+                                          ),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(5),
+                                          child: ColoredBox(
+                                            color: Colors.grey.shade800,
+                                            child: Image(
+                                              image: _providers[i],
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  const Icon(
+                                                Icons.image,
+                                                color: Colors.white38,
+                                                size: 24,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -240,11 +278,11 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -257,16 +295,17 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
 
 class _ZoomableImagePage extends StatefulWidget {
   final ImageProvider imageProvider;
-
-  // Called when user swipes past the edge while not zoomed in.
   final VoidCallback? onSwipeLeft;
   final VoidCallback? onSwipeRight;
+  // Notifies parent when zoom state changes so it can show/hide chrome.
+  final void Function(bool isZoomed)? onZoomChanged;
 
   const _ZoomableImagePage({
     super.key,
     required this.imageProvider,
     this.onSwipeLeft,
     this.onSwipeRight,
+    this.onZoomChanged,
   });
 
   @override
@@ -278,13 +317,9 @@ class _ZoomableImagePageState extends State<_ZoomableImagePage>
   final TransformationController _transform = TransformationController();
   late final AnimationController _animController;
 
-  // Tracks zoom so the swipe recognizer is toggled without touching InteractiveViewer.
   final ValueNotifier<bool> _isZoomed = ValueNotifier(false);
 
-  // Capture position between onDoubleTapDown → onDoubleTap.
   TapDownDetails? _doubleTapDetails;
-
-  // Animation endpoints updated on each double-tap.
   Matrix4? _animBegin;
   Matrix4? _animEnd;
 
@@ -312,11 +347,12 @@ class _ZoomableImagePageState extends State<_ZoomableImagePage>
 
   void _onTransformChanged() {
     final zoomed = _transform.value.getMaxScaleOnAxis() > 1.05;
-    if (_isZoomed.value != zoomed) _isZoomed.value = zoomed;
+    if (_isZoomed.value != zoomed) {
+      _isZoomed.value = zoomed;
+      widget.onZoomChanged?.call(zoomed);
+    }
   }
 
-  // Linear interpolation between two Matrix4 values.
-  // Correct for pure scale+translate matrices (no rotation shear).
   void _onAnimTick() {
     if (_animBegin == null || _animEnd == null) return;
     final t = CurvedAnimation(
@@ -344,8 +380,6 @@ class _ZoomableImagePageState extends State<_ZoomableImagePage>
     if (isZoomedIn) {
       target = Matrix4.identity();
     } else {
-      // Zoom to the tapped position.
-      // At scale 1 the matrix is identity, so local tap coords == child coords.
       final pos = _doubleTapDetails!.localPosition;
       const s = _doubleTapScale;
       target = Matrix4.diagonal3Values(s, s, 1.0)
@@ -366,45 +400,42 @@ class _ZoomableImagePageState extends State<_ZoomableImagePage>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // Capture tap position BEFORE the double-tap fires.
       onDoubleTapDown: _onDoubleTapDown,
       onDoubleTap: _onDoubleTap,
       child: ValueListenableBuilder<bool>(
         valueListenable: _isZoomed,
-        // `child` is built once; InteractiveViewer's element is kept alive
-        // by Flutter's reconciler across recognizer-map updates.
-        child: InteractiveViewer(
-          transformationController: _transform,
-          minScale: 1.0,
-          maxScale: _maxScale,
-          // boundaryMargin lets the user pan to image edges when zoomed.
-          boundaryMargin: const EdgeInsets.all(20),
-          child: Center(
-            child: Image(
-              image: widget.imageProvider,
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => const Center(
-                child:
-                    Icon(Icons.broken_image, color: Colors.white54, size: 64),
+        builder: (_, isZoomed, _) => Stack(
+          fit: StackFit.expand,
+          children: [
+            // panEnabled=false when not zoomed so InteractiveViewer doesn't
+            // compete with the swipe overlay for single-finger horizontal drags.
+            InteractiveViewer(
+              transformationController: _transform,
+              minScale: 1.0,
+              maxScale: _maxScale,
+              panEnabled: isZoomed,
+              boundaryMargin: const EdgeInsets.all(20),
+              child: Center(
+                child: Image(
+                  image: widget.imageProvider,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const Center(
+                    child: Icon(Icons.broken_image,
+                        color: Colors.white54, size: 64),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        builder: (_, isZoomed, child) => RawGestureDetector(
-          // When zoomed: empty map → InteractiveViewer wins horizontal drags.
-          // When not zoomed: swipe recognizer fires page navigation.
-          gestures: isZoomed
-              ? const <Type, GestureRecognizerFactory>{}
-              : <Type, GestureRecognizerFactory>{
-                  HorizontalDragGestureRecognizer:
-                      GestureRecognizerFactoryWithHandlers<
-                          HorizontalDragGestureRecognizer>(
-                    HorizontalDragGestureRecognizer.new,
-                    (r) => r.onEnd = _onHorizontalDragEnd,
-                  ),
-                },
-          behavior: HitTestBehavior.translucent,
-          child: child!,
+            // Swipe-to-change-page overlay — only active when not zoomed.
+            // translucent so 2-finger pinch still reaches InteractiveViewer.
+            if (!isZoomed)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onHorizontalDragEnd: _onHorizontalDragEnd,
+                ),
+              ),
+          ],
         ),
       ),
     );

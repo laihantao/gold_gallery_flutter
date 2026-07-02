@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,9 +11,6 @@ import '../theme/app_theme.dart';
 class ShareCardWidget extends StatelessWidget {
   final Jewellery jewellery;
   final String? ownerName;
-  final double? currentValue;
-  final double? gainLoss;
-  final double? gainLossPct;
   final String currencySymbol;
   final AppTheme appTheme;
 
@@ -20,22 +18,72 @@ class ShareCardWidget extends StatelessWidget {
     super.key,
     required this.jewellery,
     required this.ownerName,
-    required this.currentValue,
-    required this.gainLoss,
-    required this.gainLossPct,
     required this.currencySymbol,
     required this.appTheme,
   });
 
+  Widget _buildPhoto() {
+    const double h = 180;
+    if (jewellery.jewelleryPhoto.isEmpty ||
+        jewellery.jewelleryPhoto.first.isEmpty) {
+      return _NoPhoto(appTheme: appTheme);
+    }
+    final path = jewellery.jewelleryPhoto.first;
+
+    if (path.startsWith('assets/')) {
+      return SizedBox(
+        height: h,
+        width: double.infinity,
+        child: Image.asset(
+          path,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: h,
+        ),
+      );
+    }
+
+    if (File(path).existsSync()) {
+      return SizedBox(
+        height: h,
+        width: double.infinity,
+        child: Image.file(
+          File(path),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: h,
+          errorBuilder: (_, _, _) => _NoPhoto(appTheme: appTheme),
+        ),
+      );
+    }
+
+    // Try as base64
+    try {
+      final bytes = base64Decode(path);
+      return SizedBox(
+        height: h,
+        width: double.infinity,
+        child: Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: h,
+          errorBuilder: (_, _, _) => _NoPhoto(appTheme: appTheme),
+        ),
+      );
+    } catch (_) {
+      return _NoPhoto(appTheme: appTheme);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isGain = (gainLoss ?? 0) >= 0;
-    final gainColor = isGain ? const Color(0xFF3DAA3D) : const Color(0xFFCC4444);
-    final hasPhoto =
-        jewellery.jewelleryPhoto.isNotEmpty && jewellery.jewelleryPhoto.first.isNotEmpty;
+    final hasTotal =
+        jewellery.totalPrice != null && jewellery.totalPrice! > 0;
 
     return Container(
       width: 320,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: appTheme.surface,
         borderRadius: BorderRadius.circular(20),
@@ -55,7 +103,8 @@ class ShareCardWidget extends StatelessWidget {
           Container(
             height: 5,
             decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
               gradient: LinearGradient(
                 colors: [appTheme.primary, appTheme.primaryDark],
               ),
@@ -63,24 +112,11 @@ class ShareCardWidget extends StatelessWidget {
           ),
 
           // ── Photo ──
-          if (hasPhoto)
-            ClipRRect(
-              child: SizedBox(
-                height: 180,
-                width: double.infinity,
-                child: Image.file(
-                  File(jewellery.jewelleryPhoto.first),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, err, stack) => _NoPhoto(appTheme: appTheme),
-                ),
-              ),
-            )
-          else
-            _NoPhoto(appTheme: appTheme),
+          _buildPhoto(),
 
           // ── Body ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -158,33 +194,34 @@ class ShareCardWidget extends StatelessWidget {
                   ],
                 ),
 
-                if (currentValue != null) ...[
+                // ── Total Paid card ──
+                if (hasTotal) ...[
                   const SizedBox(height: 12),
-                  // ── Market value card ──
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: appTheme.primaryBg,
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: appTheme.border.withValues(alpha: 0.6)),
+                      border: Border.all(
+                          color: appTheme.border.withValues(alpha: 0.6)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Market Value',
+                              'Total Paid',
                               style: GoogleFonts.nunito(
                                 color: appTheme.inkLight,
                                 fontSize: 10,
                               ),
                             ),
                             Text(
-                              '$currencySymbol ${currentValue!.toStringAsFixed(2)}',
+                              '$currencySymbol ${jewellery.totalPrice!.toStringAsFixed(2)}',
                               style: GoogleFonts.nunito(
                                 color: appTheme.inkDark,
                                 fontSize: 16,
@@ -193,59 +230,74 @@ class ShareCardWidget extends StatelessWidget {
                             ),
                           ],
                         ),
-                        if (gainLoss != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: gainColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: gainColor.withValues(alpha: 0.3)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isGain
-                                      ? Icons.arrow_upward_rounded
-                                      : Icons.arrow_downward_rounded,
-                                  color: gainColor,
-                                  size: 13,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (jewellery.pricePerGram != null) ...[
+                              Text(
+                                'Price / g',
+                                style: GoogleFonts.nunito(
+                                  color: appTheme.inkLight,
+                                  fontSize: 10,
                                 ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  gainLossPct != null
-                                      ? '${isGain ? '+' : ''}${gainLossPct!.toStringAsFixed(1)}%'
-                                      : '${isGain ? '+' : ''}$currencySymbol ${gainLoss!.toStringAsFixed(0)}',
-                                  style: GoogleFonts.nunito(
-                                    color: gainColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                              ),
+                              Text(
+                                '$currencySymbol ${jewellery.pricePerGram}',
+                                style: GoogleFonts.nunito(
+                                  color: appTheme.inkMid,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            ],
+                            if (jewellery.laborFees != null &&
+                                jewellery.laborFees! > 0) ...[
+                              if (jewellery.pricePerGram != null)
+                                const SizedBox(height: 6),
+                              Text(
+                                'Labor Cost',
+                                style: GoogleFonts.nunito(
+                                  color: appTheme.inkLight,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              Text(
+                                '$currencySymbol ${jewellery.laborFees!.toStringAsFixed(2)}',
+                                style: GoogleFonts.nunito(
+                                  color: appTheme.inkMid,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ],
 
                 const SizedBox(height: 14),
-                // ── Footer watermark ──
+                // ── Footer ──
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.diamond_outlined,
                         color: appTheme.primary, size: 11),
                     const SizedBox(width: 4),
                     Text(
-                      'Gold Gallery',
+                      'Pocket Gold',
                       style: GoogleFonts.caveat(
                         color: appTheme.inkLight,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Generated ${DateFormat('d MMM yyyy').format(DateTime.now())}',
+                      style: GoogleFonts.nunito(
+                        color: appTheme.inkLight,
+                        fontSize: 9,
                       ),
                     ),
                   ],
@@ -278,7 +330,8 @@ class _StatChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: appTheme.primaryBg,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: appTheme.border.withValues(alpha: 0.5)),
+          border:
+              Border.all(color: appTheme.border.withValues(alpha: 0.5)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'gold_price_history_service.dart';
 
@@ -17,6 +18,29 @@ class GoldPriceHistoryBackfillService {
 
   static const List<String> _shopNames = ['Chiang Heng', 'Poh Kong', 'Tomei'];
   static const Duration _timeout = Duration(seconds: 15);
+
+  static const _reconcileKey = 'gold_history_reconciled';
+
+  /// Reconciles the last 7 days of history against Google Sheets.
+  ///
+  /// At startup this runs at most once per day ([force] = false).
+  /// When triggered manually from Settings, pass [force] = true to always run.
+  static Future<void> reconcileRecentHistory({bool force = false}) async {
+    final today = _fmt(_dateOnly(DateTime.now()));
+
+    if (!force) {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getString(_reconcileKey) == today) return;
+    }
+
+    final from = _dateOnly(DateTime.now().subtract(const Duration(days: 7)));
+    await _fetchAndStore(from: from, to: _dateOnly(DateTime.now()));
+
+    if (!force) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_reconcileKey, today);
+    }
+  }
 
   /// Auto-backfill on startup — returns the number of records inserted.
   /// Returns 0 when there are no gaps (fast path, no HTTP call made).

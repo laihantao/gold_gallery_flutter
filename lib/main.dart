@@ -29,6 +29,7 @@ void main() async {
   await HiveService.initialize();
   await GoldPriceHistorySeedService.seedIfNeeded();
   await GoldPriceHistoryBackfillService.backfillIfNeeded();
+  await GoldPriceHistoryBackfillService.reconcileRecentHistory();
   await SplashCaptionService.initialize();
   await NotificationService.initialize();
   await registerDailyPriceCheck();

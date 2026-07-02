@@ -186,6 +186,9 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingSection(
               title: l10n.priceHistorySection,
               appTheme: appTheme,
+              tooltip:
+                  'Corrects the last 7 days of prices from the source of truth, '
+                  'and fills any missing days in the past 30 days.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -362,7 +365,10 @@ class _SettingsPageState extends State<SettingsPage> {
     if (_isSyncingHistory) return;
     setState(() => _isSyncingHistory = true);
     try {
+      // Fill any gaps in the last 30 days, then reconcile recent days against
+      // Sheets to overwrite stale data (e.g. a morning fetch with wrong price).
       final count = await GoldPriceHistoryBackfillService.manualSync();
+      await GoldPriceHistoryBackfillService.reconcileRecentHistory(force: true);
       if (!mounted) return;
       _showSnackBar(
         count == 0 ? l10n.syncUpToDate : l10n.syncedCount(count),
@@ -552,11 +558,13 @@ class _SettingSection extends StatelessWidget {
   final String title;
   final Widget child;
   final AppTheme appTheme;
+  final String? tooltip;
 
   const _SettingSection({
     required this.title,
     required this.child,
     required this.appTheme,
+    this.tooltip,
   });
 
   @override
@@ -566,8 +574,27 @@ class _SettingSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title,
-            style: AppTextStyles.title(appTheme.inkDark, locale: locale)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(title,
+                style: AppTextStyles.title(appTheme.inkDark, locale: locale)),
+            if (tooltip != null) ...[
+              const SizedBox(width: 6),
+              Tooltip(
+                message: tooltip!,
+                triggerMode: TooltipTriggerMode.tap,
+                preferBelow: true,
+                showDuration: const Duration(seconds: 4),
+                child: Icon(
+                  Icons.info_outline,
+                  size: 15,
+                  color: appTheme.textBody.withValues(alpha: 0.45),
+                ),
+              ),
+            ],
+          ],
+        ),
         const SizedBox(height: 12),
         child,
       ],

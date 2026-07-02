@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
+import 'package:http/http.dart' as http;
 
 import '../models/gold_price.dart';
 import 'http_client_factory.dart';
@@ -74,7 +76,15 @@ class PohKongPriceSource implements GoldPriceSource {
 }
 
 class ChiangHengPriceSource implements GoldPriceSource {
-  static const _url = 'https://chiangheng.com/';
+  // Primary: JSON API from chgold.com.my (updates every ~1 min via websocket)
+  static const _apiUrl =
+      'https://api-srs.chgold.com.my/api/goldPrice/chGetGoldPrices'
+      '?symbolArr%5B%5D=916&symbolArr%5B%5D=999';
+  static const _apiToken =
+      'Basic ZDc3ZDAwNzAwYmM3OTM5MmY2OGZhMWI3YTc3MDVhZjY1MjIwNzEwZTIwYTQ1NzIyNTExZjZkYzBjMjY4MzkxNzpZMmhuYjJ4a1gyRmtiV2x1T21Ob1gyOXNaRjl3WVhOemQyOXlaQT09';
+
+  // Fallback: HTML scrape from chiangheng.com
+  static const _htmlUrl = 'https://chiangheng.com/';
   static const _headingSelector =
       'p.elementor-heading-title.elementor-size-small';
   static const _lastUpdatedPrefix = 'Last Updated :';
@@ -92,7 +102,70 @@ class ChiangHengPriceSource implements GoldPriceSource {
   @override
   Future<GoldPrice> fetch() async {
     try {
-      final html = await _client.fetchHtml(_url);
+      return await _fetchFromApi();
+    } catch (_) {
+      return await _fetchFromWebsite();
+    }
+  }
+
+  Future<GoldPrice> _fetchFromApi() async {
+    late http.Response response;
+    try {
+      response = await http.get(
+        Uri.parse(_apiUrl),
+        headers: {'authorization': _apiToken},
+      ).timeout(kFetchTimeout);
+    } on TimeoutException {
+      throw GoldPriceFetchException(shopName, reason: 'timeout');
+    }
+
+    if (response.statusCode != 200) {
+      throw GoldPriceFetchException(
+          shopName, reason: 'http_${response.statusCode}');
+    }
+
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final dataList = (json['data'] as List<dynamic>?) ?? [];
+
+    double? price916;
+    double? price999;
+    String? websiteDate;
+
+    for (final item in dataList) {
+      final map = item as Map<String, dynamic>;
+      final symbol = map['symbol'] as String?;
+      // Use sell price (what customers pay); fall back to buy price if zero.
+      final sell = (map['sellPrice'] as num?)?.toDouble() ?? 0;
+      final buy = (map['buyPrice'] as num?)?.toDouble() ?? 0;
+      final price = sell > 0 ? sell : (buy > 0 ? buy : null);
+      final updatedAt = map['updateDatetime'] as String?;
+
+      if (symbol == '916' && price != null) {
+        price916 = price;
+        websiteDate ??= updatedAt;
+      } else if (symbol == '999' && price != null) {
+        price999 = price;
+        websiteDate ??= updatedAt;
+      }
+    }
+
+    if (price916 == null || price999 == null) {
+      throw GoldPriceFetchException(shopName, reason: 'parse');
+    }
+
+    return GoldPrice(
+      shopName: shopName,
+      price916: price916,
+      price999: price999,
+      fetchedAt: DateTime.now(),
+      websiteDate: websiteDate,
+      logoAsset: logoAsset,
+    );
+  }
+
+  Future<GoldPrice> _fetchFromWebsite() async {
+    try {
+      final html = await _client.fetchHtml(_htmlUrl);
       final document = html_parser.parse(html);
       final headings = document.querySelectorAll(_headingSelector);
 
@@ -106,9 +179,7 @@ class ChiangHengPriceSource implements GoldPriceSource {
 
         for (final bold in boldTags) {
           final price = _parseRmPrice(bold.text);
-          if (price != null) {
-            rmPrices.add(price);
-          }
+          if (price != null) rmPrices.add(price);
         }
 
         if (rmPrices.length >= 2) {
