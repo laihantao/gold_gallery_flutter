@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Renders a jewellery-type image asset identified by [iconKey].
 ///
 /// Valid [iconKey] values: 'ring' | 'pendant' | 'necklace' | 'bracelet' |
-/// 'earrings' | 'goldbar' | 'other'
+/// 'earrings' | 'goldbar' | 'virtual' | 'other'
 ///
 /// 'other' (and any unknown key) falls back to a Material icon so the widget
 /// is always safe to call with any user-supplied string.
@@ -26,6 +26,7 @@ class JewelleryTypeIcon extends StatelessWidget {
     'bracelet': 'assets/images/jewellery_type/bracelet-removebg-preview.png',
     'earrings': 'assets/images/jewellery_type/earrings-removebg-preview.png',
     'goldbar':  'assets/images/jewellery_type/goldbar-removebg-preview.png',
+    'virtual':  'assets/images/jewellery_type/virtual-removebg-preview.png',
   };
 
   /// Returns the asset path for [key], or null for 'other' / unknown keys.
@@ -33,7 +34,7 @@ class JewelleryTypeIcon extends StatelessWidget {
 
   /// All valid icon key values, in display order.
   static const List<String> validKeys = [
-    'ring', 'pendant', 'necklace', 'bracelet', 'earrings', 'goldbar', 'other',
+    'ring', 'pendant', 'necklace', 'bracelet', 'earrings', 'goldbar', 'virtual',
   ];
 
   @override

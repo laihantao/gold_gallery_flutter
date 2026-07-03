@@ -392,7 +392,7 @@ class _AlertSheetState extends State<_AlertSheet> {
                       _ChoiceChip(
                         label: '≥  Above or equal',
                         selected: _above,
-                        activeColor: const Color(0xFF3DAA3D),
+                        activeColor: _t.success,
                         appTheme: _t,
                         onTap: () => setState(() => _above = true),
                       ),
@@ -400,7 +400,7 @@ class _AlertSheetState extends State<_AlertSheet> {
                       _ChoiceChip(
                         label: '≤  Below or equal',
                         selected: !_above,
-                        activeColor: const Color(0xFFCC4444),
+                        activeColor: _t.error,
                         appTheme: _t,
                         onTap: () => setState(() => _above = false),
                       ),
@@ -580,7 +580,7 @@ class _AlertBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final alert = triggered.alert;
     final isAbove = alert.alertAbove;
-    final color = isAbove ? const Color(0xFF3DAA3D) : const Color(0xFFCC4444);
+    final color = isAbove ? appTheme.success : appTheme.error;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),

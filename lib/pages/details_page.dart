@@ -19,6 +19,7 @@ import '../services/market_value_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
+import '../widgets/gold_gradient_card.dart';
 import '../widgets/share_card_widget.dart';
 
 class DetailsPage extends StatefulWidget {
@@ -652,22 +653,10 @@ class _DetailsPageState extends State<DetailsPage> {
 
     String fmt(double v) => '$sym ${v.toStringAsFixed(2)}';
 
-    final highlight = Color.lerp(appTheme.primary, Colors.white, 0.20)!;
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            appTheme.primaryDark,
-            appTheme.primary,
-            highlight,
-            appTheme.primaryDark.withValues(alpha: 0.90),
-          ],
-          stops: const [0.0, 0.38, 0.62, 1.0],
-        ),
+        gradient: goldGradient(appTheme),
         borderRadius: const BorderRadius.all(Radius.circular(22)),
         boxShadow: [
           BoxShadow(
@@ -688,19 +677,8 @@ class _DetailsPageState extends State<DetailsPage> {
         child: Stack(
           children: [
             // Top-left shimmer — matches _PortfolioCard style
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.center,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.13),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
+            const Positioned.fill(
+              child: GoldGradientShimmer(),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),

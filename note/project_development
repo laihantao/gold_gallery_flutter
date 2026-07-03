@@ -1,0 +1,27 @@
+# Flutter build
+
+## Dev
+`flutter build apk --flavor dev --target lib/main_dev.dart --dart-define=CHANNEL=dev`
+
+## Prd
+`flutter build apk --flavor prod --target lib/main_prod.dart --dart-define=CHANNEL=prod`
+
+
+# Mobile debug
+`flutter run -d SDEDU19B13004173 --flavor dev --target lib/main_dev.dart --dart-define=CHANNEL=dev`
+
+`flutter run -d SDEDU19B13004173--flavor prod --target lib/main_prod.dart --dart-define=CHANNEL=prod`
+
+
+# Add new jewellery type
+```
+1. Drop the image file into assets/images/jewellery_type/ — no pubspec.yaml change needed, since that whole folder is already declared as an asset directory (pubspec.yaml:86), so any file placed there is picked up automatically.
+
+2. Register the key in lib/widgets/jewellery_type_icon.dart:
+
+Add an entry to _assetMap — 'yourKey': 'assets/images/jewellery_type/your-file.png'
+Add the same key to validKeys (its position there is the display order in the icon-picker grid)
+That's it for making a new icon selectable in the picker (management page's "add/edit jewellery type" dialog) and rendered anywhere JewelleryTypeIcon is used.
+
+Optional 3rd step — only if you also want it pre-seeded as a default jewellery type (like Ring/Pendant/etc. rather than something a user manually creates): add an entry to assets/data/init_jewellery_types.json with a matching iconKey. Since that file only seeds data on first app install/fresh Hive box, existing installs (including your own test device) won't automatically pick up new entries added there later — that'd need a small migration/backfill if you go this route for future types, similar to GoldPriceHistoryBackfillService
+```

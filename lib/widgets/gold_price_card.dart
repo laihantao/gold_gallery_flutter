@@ -430,6 +430,7 @@ class _PriceColumn extends StatelessWidget {
                     current: price!,
                     previous: prevPrice!,
                     mutedColor: mutedColor,
+                    appTheme: appTheme,
                   ),
                 )
               : null,
@@ -478,7 +479,7 @@ class _FooterRow extends StatelessWidget {
         child: Text(
           _friendlyError(errorReason, l10n),
           style: TextStyle(
-            color: const Color(0xFFE06666).withValues(alpha: 0.9),
+            color: appTheme.error.withValues(alpha: 0.9),
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -513,11 +514,13 @@ class _DeltaChip extends StatelessWidget {
   final double current;
   final double previous;
   final Color mutedColor;
+  final AppTheme appTheme;
 
   const _DeltaChip({
     required this.current,
     required this.previous,
     required this.mutedColor,
+    required this.appTheme,
   });
 
   @override
@@ -529,8 +532,7 @@ class _DeltaChip extends StatelessWidget {
     }
 
     final up = diff > 0;
-    final color =
-        up ? const Color(0xFF3FB66E) : const Color(0xFFE06666);
+    final color = up ? appTheme.success : appTheme.error;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,

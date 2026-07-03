@@ -355,7 +355,7 @@ class _GlChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isGain = gl >= 0;
-    final color = isGain ? const Color(0xFF3DAA3D) : const Color(0xFFCC4444);
+    final color = isGain ? appTheme.success : appTheme.error;
     final label = glPct != null
         ? '${isGain ? '+' : ''}${glPct!.toStringAsFixed(1)}%'
         : '${isGain ? '+' : ''}${gl.toStringAsFixed(0)}';

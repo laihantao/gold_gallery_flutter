@@ -197,8 +197,7 @@ class _SummaryRow extends StatelessWidget {
     final diff = last - first;
     final pct = first > 0 ? (diff / first) * 100 : 0.0;
     final isGain = diff >= 0;
-    final gainColor =
-        isGain ? const Color(0xFF3DAA3D) : const Color(0xFFCC4444);
+    final gainColor = isGain ? appTheme.success : appTheme.error;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -330,9 +329,7 @@ class _Chart extends StatelessWidget {
 
     final isGainOverall =
         points.last.totalValue >= points.first.totalValue;
-    final lineColor = isGainOverall
-        ? const Color(0xFF3DAA3D)
-        : const Color(0xFFCC4444);
+    final lineColor = isGainOverall ? appTheme.success : appTheme.error;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 20, 8),

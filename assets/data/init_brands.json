@@ -6,5 +6,6 @@
   { "id": 5, "name": "Tian Si", "logo": "assets/images/brands/logo_tiansi.png", "description": "" },
   { "id": 6, "name": "SK Jewellery", "logo": "assets/images/brands/logo_skjewellery.png", "description": "" },
   { "id": 7, "name": "Wah Chan", "logo": "assets/images/brands/logo_wahchan.png", "description": "" },
-  { "id": 8, "name": "Habib", "logo": "assets/images/brands/logo_habib.png", "description": "" }
+  { "id": 8, "name": "Habib", "logo": "assets/images/brands/logo_habib.png", "description": "" },
+  { "id": 9, "name": "TNG", "logo": "assets/images/brands/logo_tng.png", "description": "" }
 ]

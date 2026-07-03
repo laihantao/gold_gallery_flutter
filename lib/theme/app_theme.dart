@@ -187,6 +187,11 @@ enum AurumTheme {
   Color get error => _p.error;
   Color get errorLight => _p.errorLight;
 
+  /// Success/error tuned for contrast on top of the primary gradient (e.g.
+  /// Portfolio Overview / Market Value cards) — same across all themes.
+  Color get successOnGradient => GradientContrastColors.success;
+  Color get errorOnGradient => GradientContrastColors.error;
+
   /// Background colour for SnackBars — always dark enough for white text.
   /// Light themes use inkDark (near-black); Noir uses surface (dark charcoal).
   Color get snackBarBg => isDark ? _p.surface : _p.inkDark;

@@ -123,3 +123,14 @@ class NoirColors {
   static const error        = Color(0xFFFF6B6B);
   static const errorLight   = Color(0xFF4A2020);
 }
+
+// ── Gradient-contrast status colors ──
+//
+// Success/error tuned for legibility when drawn directly on top of the
+// primary gold gradient (Portfolio Overview / Market Value cards), where a
+// theme's normal `success`/`error` tokens may not have enough contrast.
+// Same across all 4 themes.
+class GradientContrastColors {
+  static const success = Color(0xFF7BE87B);
+  static const error = Color(0xFFFF8A8A);
+}

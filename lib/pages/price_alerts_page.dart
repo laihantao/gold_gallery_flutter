@@ -135,7 +135,7 @@ class _DismissibleAlertCard extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         decoration: BoxDecoration(
-          color: const Color(0xFFCC3333),
+          color: appTheme.error,
           borderRadius: BorderRadius.circular(14),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -194,7 +194,7 @@ class _AlertCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dirColor =
-        alert.alertAbove ? const Color(0xFF3DAA3D) : const Color(0xFFCC4444);
+        alert.alertAbove ? appTheme.success : appTheme.error;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -276,13 +276,13 @@ class _AlertCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFFCC3333).withValues(alpha: 0.08),
+                color: appTheme.error.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.delete_outline_rounded,
                 size: 18,
-                color: Color(0xFFCC3333),
+                color: appTheme.error,
               ),
             ),
           ),

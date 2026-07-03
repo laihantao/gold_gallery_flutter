@@ -10,6 +10,7 @@ import '../painters/bg_pattern_painter.dart';
 import '../providers/gold_price_notifier.dart';
 import '../services/hive_service.dart';
 import '../services/market_value_service.dart';
+import '../widgets/gold_gradient_card.dart';
 import '../widgets/jewellery_type_icon.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_theme.dart';
@@ -328,22 +329,11 @@ class _PortfolioCard extends StatelessWidget {
         : null;
 
     final isGain = (portfolioGl ?? 0) >= 0;
-    final highlight = Color.lerp(appTheme.primary, Colors.white, 0.20)!;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            appTheme.primaryDark,
-            appTheme.primary,
-            highlight,
-            appTheme.primaryDark.withValues(alpha: 0.90),
-          ],
-          stops: const [0.0, 0.38, 0.62, 1.0],
-        ),
+        gradient: goldGradient(appTheme),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -363,19 +353,8 @@ class _PortfolioCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.center,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.13),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
+            const Positioned.fill(
+              child: GoldGradientShimmer(),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -431,8 +410,8 @@ class _PortfolioCard extends StatelessWidget {
                               ? Icons.trending_up_rounded
                               : Icons.trending_down_rounded,
                           color: isGain
-                              ? const Color(0xFF7BE87B)
-                              : const Color(0xFFFF8A8A),
+                              ? appTheme.successOnGradient
+                              : appTheme.errorOnGradient,
                           size: 18,
                         ),
                         const SizedBox(width: 6),
@@ -456,8 +435,8 @@ class _PortfolioCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isGain
-                                  ? const Color(0xFF7BE87B)
-                                  : const Color(0xFFFF8A8A),
+                                  ? appTheme.successOnGradient
+                                  : appTheme.errorOnGradient,
                               width: 1,
                             ),
                           ),
@@ -466,8 +445,8 @@ class _PortfolioCard extends StatelessWidget {
                             '  (${portfolioGlPct != null ? '${isGain ? '+' : ''}${portfolioGlPct.toStringAsFixed(1)}%' : '—'})',
                             style: TextStyle(
                               color: isGain
-                                  ? const Color(0xFF7BE87B)
-                                  : const Color(0xFFFF8A8A),
+                                  ? appTheme.successOnGradient
+                                  : appTheme.errorOnGradient,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                             ),
