@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/buttons.dart';
+import '../components/form_section.dart';
 
 class ProductFormPage extends StatefulWidget {
   final String mode;
@@ -328,208 +329,226 @@ class _ProductFormPageState extends State<ProductFormPage> {
     return Scaffold(
       appBar: AppHeader(
         title: widget.mode == 'add' ? l10n.addProduct : l10n.editProduct,
+        colored: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildFormField(
-              '${l10n.dateOfPurchase} *',
-              _dateController,
-              appTheme,
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime.now(),
-                );
-                if (picked != null) {
-                  _dateController.text = DateFormat(
-                    'dd/MM/yyyy',
-                  ).format(picked);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildFormField('${l10n.productName} *', _nameController, appTheme),
-            const SizedBox(height: 16),
-            _buildDropdown(
-              l10n.rowBrand,
-              _selectedBrand,
-              brands.map((b) => b.name).toList(),
-              (value) => setState(() => _selectedBrand = value),
-              appTheme,
-              l10n,
-            ),
-            const SizedBox(height: 16),
-            _buildDropdown(
-              l10n.rowPurity,
-              _selectedPurity,
-              ['916', '999'],
-              (value) => setState(() => _selectedPurity = value),
-              appTheme,
-              l10n,
-            ),
-            const SizedBox(height: 16),
-            _buildUserDropdown(l10n.rowOwner, _selectedOwnerId, users, (value) {
-              setState(() => _selectedOwnerId = value);
-            }, appTheme, l10n),
-            const SizedBox(height: 16),
-            _buildUserDropdown(l10n.rowPayer, _selectedPayerId, users, (value) {
-              setState(() => _selectedPayerId = value);
-            }, appTheme, l10n),
-            const SizedBox(height: 16),
-            _buildTypeDropdown(l10n.rowJewelleryType, _selectedTypeId, types, (
-              value,
-            ) {
-              setState(() => _selectedTypeId = value);
-            }, appTheme, l10n),
-            const SizedBox(height: 16),
-            _buildFormField(
-              l10n.rowSize,
-              _sizeController,
-              appTheme,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildDropdown(
-              l10n.measurementUnit,
-              _selectedMeasurementUnit,
-              ['', 'mm', 'cm'],
-              (value) => setState(() => _selectedMeasurementUnit = value),
-              appTheme,
-              l10n,
-            ),
-            const SizedBox(height: 16),
-            _buildCurrencyDropdown(
-              l10n.rowCurrency,
-              _selectedCurrency?.id.toString(),
-              currencies,
-              (value) {
-                setState(() {
-                  _selectedCurrency = _findCurrencyById(int.tryParse(value ?? ''));
-                });
-              },
-              appTheme,
-            ),
-            const SizedBox(height: 16),
-            _buildFormField(
-              l10n.rowPricePerGram,
-              _pricePerGramController,
-              appTheme,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (_) => _calculateTotalPrice(),
-            ),
-            const SizedBox(height: 16),
-            _buildFormField(
-              l10n.rowWeight,
-              _weightController,
-              appTheme,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-              onChanged: (_) => _calculateTotalPrice(),
-            ),
-            const SizedBox(height: 16),
-            _buildFormField(
-              l10n.rowLaborFees,
-              _laborFeesController,
-              appTheme,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-              onChanged: (_) => _calculateTotalPrice(),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildFormField(
-                    l10n.rowTotalPrice,
-                    _totalPriceController,
+            FormSection(
+              title: l10n.sectionBasicInfo,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFormField(
+                    '${l10n.productName} *',
+                    _nameController,
                     appTheme,
-                    enabled: !_autoCalculateTotal,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Checkbox(
-                  value: !_autoCalculateTotal,
-                  onChanged: (value) {
-                    setState(() => _autoCalculateTotal = !value!);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildFormField(l10n.rowPurchaseLocation, _locationController, appTheme),
-            const SizedBox(height: 16),
-            Text(
-              l10n.photosLabel,
-              style: TextStyle(
-                color: appTheme.textHeading,
-                fontWeight: FontWeight.w500,
+                  const SizedBox(height: 14),
+                  _fieldRow(
+                    _buildDropdown(
+                      l10n.rowBrand,
+                      _selectedBrand,
+                      brands.map((b) => b.name).toList(),
+                      (value) => setState(() => _selectedBrand = value),
+                      appTheme,
+                      l10n,
+                    ),
+                    _buildDropdown(
+                      l10n.rowPurity,
+                      _selectedPurity,
+                      ['916', '999'],
+                      (value) => setState(() => _selectedPurity = value),
+                      appTheme,
+                      l10n,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _fieldRow(
+                    _buildUserDropdown(l10n.rowOwner, _selectedOwnerId, users,
+                        (value) {
+                      setState(() => _selectedOwnerId = value);
+                    }, appTheme, l10n),
+                    _buildUserDropdown(l10n.rowPayer, _selectedPayerId, users,
+                        (value) {
+                      setState(() => _selectedPayerId = value);
+                    }, appTheme, l10n),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildTypeDropdown(
+                      l10n.rowJewelleryType, _selectedTypeId, types, (value) {
+                    setState(() => _selectedTypeId = value);
+                  }, appTheme, l10n),
+                  const SizedBox(height: 14),
+                  _fieldRow(
+                    _buildFormField(
+                      l10n.rowSize,
+                      _sizeController,
+                      appTheme,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
+                      ],
+                    ),
+                    _buildDropdown(
+                      l10n.measurementUnit,
+                      _selectedMeasurementUnit,
+                      ['', 'mm', 'cm'],
+                      (value) =>
+                          setState(() => _selectedMeasurementUnit = value),
+                      appTheme,
+                      l10n,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            if (_selectedPhotos.isNotEmpty)
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemCount: _selectedPhotos.length,
-                itemBuilder: (context, index) {
-                  return Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: appTheme.backgroundSubtle,
-                        ),
-                        child: _buildImageWidget(
-                          _selectedPhotos[index],
-                          index,
-                          fit: BoxFit.cover,
-                          appTheme: appTheme,
-                        ),
-                      ),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: () => _removePhoto(index),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.red,
-                            ),
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                      ),
+            const SizedBox(height: 24),
+
+            FormSection(
+              title: l10n.sectionPricing,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFormField(
+                    '${l10n.dateOfPurchase} *',
+                    _dateController,
+                    appTheme,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        _dateController.text = DateFormat(
+                          'dd/MM/yyyy',
+                        ).format(picked);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  _buildCurrencyDropdown(
+                    l10n.rowCurrency,
+                    _selectedCurrency?.id.toString(),
+                    currencies,
+                    (value) {
+                      setState(() {
+                        _selectedCurrency =
+                            _findCurrencyById(int.tryParse(value ?? ''));
+                      });
+                    },
+                    appTheme,
+                  ),
+                  const SizedBox(height: 14),
+                  _fieldRow(
+                    _buildFormField(
+                      l10n.rowPricePerGram,
+                      _pricePerGramController,
+                      appTheme,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (_) => _calculateTotalPrice(),
+                    ),
+                    _buildFormField(
+                      l10n.rowWeight,
+                      _weightController,
+                      appTheme,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}')),
+                      ],
+                      onChanged: (_) => _calculateTotalPrice(),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildFormField(
+                    l10n.rowLaborFees,
+                    _laborFeesController,
+                    appTheme,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}')),
                     ],
-                  );
-                },
+                    onChanged: (_) => _calculateTotalPrice(),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildTotalPriceField(appTheme, l10n),
+                  const SizedBox(height: 14),
+                  _buildFormField(
+                      l10n.rowPurchaseLocation, _locationController, appTheme),
+                ],
               ),
-            const SizedBox(height: 12),
-            PrimaryButton(label: l10n.addPhotos, onPressed: _pickImages),
-            const SizedBox(height: 16),
-            _buildFormField(
-              l10n.rowRemarks,
-              _remarksController,
-              appTheme,
-              maxLines: 3,
+            ),
+            const SizedBox(height: 24),
+
+            FormSection(
+              title: l10n.sectionPhotosNotes,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_selectedPhotos.isNotEmpty) ...[
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: _selectedPhotos.length,
+                      itemBuilder: (context, index) {
+                        return Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: appTheme.backgroundSubtle,
+                              ),
+                              child: _buildImageWidget(
+                                _selectedPhotos[index],
+                                index,
+                                fit: BoxFit.cover,
+                                appTheme: appTheme,
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () => _removePhoto(index),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.red,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  GhostButton(label: l10n.addPhotos, onPressed: _pickImages),
+                  const SizedBox(height: 14),
+                  _buildFormField(
+                    l10n.rowRemarks,
+                    _remarksController,
+                    appTheme,
+                    maxLines: 3,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             PrimaryButton(label: l10n.saveProduct, onPressed: _savProduct),
@@ -537,6 +556,80 @@ class _ProductFormPageState extends State<ProductFormPage> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Two fields side by side with the standard gap, used throughout the form.
+  Widget _fieldRow(Widget a, Widget b) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: a),
+        const SizedBox(width: 10),
+        Expanded(child: b),
+      ],
+    );
+  }
+
+  /// Total Price field with an inline "manual calculate" toggle in its label
+  /// row — toggling it flips [_autoCalculateTotal] exactly like the checkbox
+  /// it replaces.
+  Widget _buildTotalPriceField(AppTheme appTheme, AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                l10n.rowTotalPrice,
+                style: TextStyle(
+                  color: appTheme.textHeading,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () =>
+                  setState(() => _autoCalculateTotal = !_autoCalculateTotal),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _autoCalculateTotal
+                        ? Icons.check_box_outline_blank_rounded
+                        : Icons.check_box_rounded,
+                    size: 16,
+                    color: _autoCalculateTotal
+                        ? appTheme.textBody.withValues(alpha: 0.5)
+                        : appTheme.accentPrimary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    l10n.manualCalculate,
+                    style: TextStyle(
+                      color: appTheme.textBody.withValues(alpha: 0.7),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _totalPriceController,
+          enabled: !_autoCalculateTotal,
+          decoration: _fieldDecoration(appTheme),
+          style: TextStyle(color: appTheme.textHeading),
+        ),
+      ],
     );
   }
 
@@ -569,29 +662,35 @@ class _ProductFormPageState extends State<ProductFormPage> {
           inputFormatters: inputFormatters,
           onChanged: onChanged,
           onTap: onTap,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: appTheme.borderColor.withValues(alpha: 0.3),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: appTheme.borderColor.withValues(alpha: 0.3),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: appTheme.accentPrimary),
-            ),
-            filled: true,
-            fillColor: appTheme.backgroundSurface,
-          ),
+          decoration: _fieldDecoration(appTheme),
           style: TextStyle(color: appTheme.textHeading),
         ),
       ],
+    );
+  }
+
+  /// Shared text-field chrome (border/fill colours) used across every field
+  /// in this form, so all inputs stay visually consistent in one place.
+  InputDecoration _fieldDecoration(AppTheme appTheme) {
+    return InputDecoration(
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: appTheme.borderColor.withValues(alpha: 0.3),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: appTheme.borderColor.withValues(alpha: 0.3),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: appTheme.accentPrimary),
+      ),
+      filled: true,
+      fillColor: appTheme.backgroundSurface,
     );
   }
 

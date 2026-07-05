@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../providers/gold_price_notifier.dart';
 import '../services/gold_price_history_service.dart';
 import '../services/gold_price_service.dart';
+import '../theme/app_text_styles.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/gold_price_card.dart';
@@ -137,6 +138,9 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
   int _totalPages(int totalRows) =>
       totalRows == 0 ? 1 : ((totalRows + _pageSize - 1) ~/ _pageSize);
 
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   // ── Chart gesture ─────────────────────────────────────────────────────────
 
   void _onChartTouch(
@@ -186,7 +190,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
         .toList();
 
     return Scaffold(
-      appBar: AppHeader(title: widget.shopName),
+      appBar: AppHeader(title: widget.shopName, colored: true),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -393,6 +397,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
         ),
         const SizedBox(height: 8),
         Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: appTheme.backgroundSurface,
             borderRadius: BorderRadius.circular(12),
@@ -406,7 +411,11 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
                 _TableDataRow(
                   appTheme: appTheme,
                   point: pageRows[i],
+                  prevPoint: (startIdx + i + 1) < rows.length
+                      ? rows[startIdx + i + 1]
+                      : null,
                   shaded: i.isOdd,
+                  isToday: _isSameDay(pageRows[i].recordedAt, DateTime.now()),
                   dateFmt: _dateFmt,
                 ),
               _PaginationFooter(
@@ -442,7 +451,7 @@ class _LoadingScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppHeader(title: title),
+      appBar: AppHeader(title: title, colored: true),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -610,15 +619,19 @@ class _TableHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final s = TextStyle(
-        color: appTheme.textBody.withValues(alpha: 0.7),
+    const s = TextStyle(
+        color: Colors.white,
         fontSize: 11,
-        fontWeight: FontWeight.w600);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4);
+    return Container(
+      color: appTheme.primaryDark,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       child: Row(
         children: [
-          Expanded(flex: 4, child: Text(l10n.labelDate, style: s)),
+          Expanded(
+              flex: 4,
+              child: Text(l10n.labelDate.toUpperCase(), style: s)),
           Expanded(
               flex: 3,
               child: Text('916', style: s, textAlign: TextAlign.right)),
@@ -636,49 +649,151 @@ class _TableHeaderRow extends StatelessWidget {
 class _TableDataRow extends StatelessWidget {
   final AppTheme appTheme;
   final GoldPriceHistoryPoint point;
+  final GoldPriceHistoryPoint? prevPoint;
   final bool shaded;
+  final bool isToday;
   final DateFormat dateFmt;
 
   const _TableDataRow({
     required this.appTheme,
     required this.point,
+    required this.prevPoint,
     required this.shaded,
+    required this.isToday,
     required this.dateFmt,
+  });
+
+  double? _delta(double? current, double? previous) =>
+      (current == null || previous == null) ? null : current - previous;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    String fmt(double? v) => v == null ? '—' : v.toStringAsFixed(0);
+    final valStyle = AppTextStyles.priceSmall(appTheme.textHeading);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isToday
+            ? appTheme.primaryLight
+            : (shaded
+                ? appTheme.backgroundSubtle.withValues(alpha: 0.4)
+                : Colors.transparent),
+        border: isToday
+            ? Border(
+                left: BorderSide(color: appTheme.accentPrimary, width: 3))
+            : null,
+      ),
+      padding: EdgeInsets.only(
+        left: isToday ? 11 : 14,
+        right: 14,
+        top: 11,
+        bottom: 11,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateFmt.format(point.recordedAt),
+                  style: TextStyle(
+                    color: appTheme.textHeading,
+                    fontSize: 13,
+                    fontWeight: isToday ? FontWeight.w800 : FontWeight.w400,
+                  ),
+                ),
+                if (isToday)
+                  Text(
+                    l10n.historyTodayLabel,
+                    style: TextStyle(
+                      color: appTheme.accentSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: _ValueCell(
+              value: fmt(point.price916),
+              delta: _delta(point.price916, prevPoint?.price916),
+              isToday: isToday,
+              appTheme: appTheme,
+              valStyle: valStyle,
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: _ValueCell(
+              value: fmt(point.price999),
+              delta: _delta(point.price999, prevPoint?.price999),
+              isToday: isToday,
+              appTheme: appTheme,
+              valStyle: valStyle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Value + delta cell (right-aligned, Space Mono figures) ────────────────────
+
+class _ValueCell extends StatelessWidget {
+  final String value;
+  final double? delta;
+  final bool isToday;
+  final AppTheme appTheme;
+  final TextStyle valStyle;
+
+  const _ValueCell({
+    required this.value,
+    required this.delta,
+    required this.isToday,
+    required this.appTheme,
+    required this.valStyle,
   });
 
   @override
   Widget build(BuildContext context) {
-    String fmt(double? v) =>
-        v == null ? '—' : 'RM ${v.toStringAsFixed(0)}';
-    final valStyle = TextStyle(
-        color: appTheme.textHeading,
-        fontSize: 12.5,
-        fontWeight: FontWeight.w500);
+    String? deltaText;
+    Color deltaColor = appTheme.textBody.withValues(alpha: 0.5);
+    if (delta != null) {
+      final rounded = delta!.round();
+      deltaText = rounded > 0 ? '+$rounded' : '$rounded';
+      if (rounded > 0) {
+        deltaColor = appTheme.success;
+      } else if (rounded < 0) {
+        deltaColor = appTheme.error;
+      }
+    }
 
-    return Container(
-      color: shaded
-          ? appTheme.backgroundSubtle.withValues(alpha: 0.4)
-          : Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Text(
-              dateFmt.format(point.recordedAt),
-              style: TextStyle(color: appTheme.textBody, fontSize: 12.5),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          value,
+          style: isToday
+              ? valStyle.copyWith(fontWeight: FontWeight.w800)
+              : valStyle,
+        ),
+        if (deltaText != null)
+          Text(
+            deltaText,
+            style: TextStyle(
+              color: deltaColor,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          Expanded(
-              flex: 3,
-              child: Text(fmt(point.price916),
-                  style: valStyle, textAlign: TextAlign.right)),
-          Expanded(
-              flex: 3,
-              child: Text(fmt(point.price999),
-                  style: valStyle, textAlign: TextAlign.right)),
-        ],
-      ),
+      ],
     );
   }
 }

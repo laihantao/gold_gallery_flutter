@@ -66,7 +66,13 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
   void didUpdateWidget(_JewelleryListingView old) {
     super.didUpdateWidget(old);
     if (old.refreshNonce != widget.refreshNonce) {
-      context.read<JewelleryListingNotifier>().refresh();
+      // Defer to after this frame — calling notifyListeners() synchronously
+      // from didUpdateWidget (which runs mid-rebuild) trips the framework's
+      // '_dirty' assertion when a listener rebuilds during the same pass.
+      final notifier = context.read<JewelleryListingNotifier>();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) notifier.refresh();
+      });
     }
   }
 

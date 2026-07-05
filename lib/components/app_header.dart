@@ -10,12 +10,19 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onBackPressed;
   final bool showBackButton;
 
+  /// Forces the gold/theme header background on or off, independent of
+  /// [showBackButton]. By default, only root tab pages (no back button) get
+  /// the coloured header; pass `true` here to give a pushed sub-page the same
+  /// coloured header while still keeping its back arrow.
+  final bool? colored;
+
   const AppHeader({
     super.key,
     required this.title,
     this.actions,
     this.onBackPressed,
     this.showBackButton = true,
+    this.colored,
   });
 
   @override
@@ -23,7 +30,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
     final locale = context.l10n.locale;
 
-    final bool colored = !showBackButton;
+    final bool colored = this.colored ?? !showBackButton;
     final Color bg = colored ? appTheme.headerBg : appTheme.surface;
     final Color fg = appTheme.inkDark;
 

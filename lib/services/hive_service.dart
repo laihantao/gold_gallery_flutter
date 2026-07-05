@@ -31,6 +31,7 @@ class HiveService {
     await _seedCurrency();
     await _seedJewelleryTypes();
     await _backfillGoldBar();
+    await _backfillVirtualType();
   }
 
   static Future<void> _seedBrands() async {
@@ -113,6 +114,24 @@ class HiveService {
       updatedAt: now,
     );
     await _jewelleryTypeBox.put('6', jsonEncode(goldBar.toJson()));
+  }
+
+  // Backfill Virtual for installs that were seeded before id 7 was added.
+  static Future<void> _backfillVirtualType() async {
+    if (_jewelleryTypeBox.containsKey('7')) return;
+    final now = DateTime.now();
+    final virtual = JewelleryType(
+      id: 7,
+      name: 'Virtual',
+      nameZh: '虚拟',
+      nameMs: 'Maya',
+      iconKey: 'virtual',
+      isDefault: true,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _jewelleryTypeBox.put('7', jsonEncode(virtual.toJson()));
   }
 
   // Jewellery methods

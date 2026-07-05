@@ -9,6 +9,7 @@ import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
 import '../components/app_header.dart';
 import '../components/buttons.dart';
+import '../components/form_section.dart';
 import '../services/backup_service.dart';
 import '../services/gold_price_history_backfill_service.dart';
 
@@ -106,6 +107,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppHeader(
         title: l10n.settingsTitle,
         showBackButton: false,
+        colored: true,
         actions: [
           IconButton(
             icon: Icon(Icons.language_outlined,
@@ -122,9 +124,8 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Theme ──────────────────────────────────────────
-            _SettingSection(
+            FormSection(
               title: l10n.themeSection,
-              appTheme: appTheme,
               child: SizedBox(
                 height: 96,
                 child: ListView(
@@ -148,44 +149,34 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
 
-            // ── Users ───────────────────────────────────────────
-            _SettingSection(
-              title: l10n.usersSection,
-              appTheme: appTheme,
-              child: PrimaryButton(
-                label: l10n.manageUsers,
-                onPressed: () => GoRouter.of(context).push('/users'),
+            // ── General (Users / Brands / Jewellery Types) ──────
+            FormSection(
+              title: l10n.generalSection,
+              child: Column(
+                children: [
+                  PrimaryButton(
+                    label: l10n.manageUsers,
+                    onPressed: () => GoRouter.of(context).push('/users'),
+                  ),
+                  const SizedBox(height: 10),
+                  PrimaryButton(
+                    label: l10n.manageBrands,
+                    onPressed: () => GoRouter.of(context).push('/brands'),
+                  ),
+                  const SizedBox(height: 10),
+                  PrimaryButton(
+                    label: l10n.manageTypes,
+                    onPressed: () =>
+                        GoRouter.of(context).push('/jewellery-types'),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // ── Brands ─────────────────────────────────────────
-            _SettingSection(
-              title: l10n.brandsSection,
-              appTheme: appTheme,
-              child: PrimaryButton(
-                label: l10n.manageBrands,
-                onPressed: () => GoRouter.of(context).push('/brands'),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // ── Jewellery Types ─────────────────────────────────
-            _SettingSection(
-              title: l10n.jewelleryTypesSection,
-              appTheme: appTheme,
-              child: PrimaryButton(
-                label: l10n.manageTypes,
-                onPressed: () =>
-                    GoRouter.of(context).push('/jewellery-types'),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // ── Price History ───────────────────────────────────
-            _SettingSection(
-              title: l10n.priceHistorySection,
-              appTheme: appTheme,
+            // ── Price Data (History sync + Alerts) ──────────────
+            FormSection(
+              title: l10n.priceDataSection,
               tooltip:
                   'Corrects the last 7 days of prices from the source of truth, '
                   'and fills any missing days in the past 30 days.',
@@ -205,18 +196,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     label: _isSyncingHistory ? l10n.syncing : l10n.syncHistory,
                     onPressed: () => _syncHistory(context, appTheme, l10n),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // ── Price Alerts ────────────────────────────────────
-            _SettingSection(
-              title: l10n.priceAlertsSection,
-              appTheme: appTheme,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+                  const SizedBox(height: 16),
                   Text(
                     l10n.priceAlertsDesc,
                     style: TextStyle(
@@ -226,7 +206,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  GhostButton(
+                  PrimaryButton(
                     label: l10n.managePriceAlerts,
                     onPressed: () => GoRouter.of(context).push('/price-alerts'),
                   ),
@@ -236,70 +216,59 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24),
 
             // ── Security ────────────────────────────────────────
-            _SettingSection(
-              title: 'Security',
-              appTheme: appTheme,
+            FormSection(
+              title: l10n.securitySection,
               child: Column(
                 children: [
                   // PIN toggle row
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: appTheme.primaryBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: appTheme.border.withValues(alpha: 0.6)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _pinEnabled
-                              ? Icons.lock_rounded
-                              : Icons.lock_outline_rounded,
-                          color: _pinEnabled
-                              ? appTheme.primary
-                              : appTheme.inkMid,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'App PIN Lock',
-                                style: TextStyle(
-                                  color: appTheme.inkDark,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                  Row(
+                    children: [
+                      Icon(
+                        _pinEnabled
+                            ? Icons.lock_rounded
+                            : Icons.lock_outline_rounded,
+                        color: _pinEnabled
+                            ? appTheme.primary
+                            : appTheme.inkMid,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.appPinLockTitle,
+                              style: TextStyle(
+                                color: appTheme.inkDark,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
-                              Text(
-                                'Require a 4-digit PIN on startup',
-                                style: TextStyle(
-                                    color: appTheme.inkLight, fontSize: 11),
-                              ),
-                            ],
-                          ),
+                            ),
+                            Text(
+                              l10n.appPinLockDesc,
+                              style: TextStyle(
+                                  color: appTheme.inkLight, fontSize: 11),
+                            ),
+                          ],
                         ),
-                        Switch(
-                          value: _pinEnabled,
-                          onChanged: _togglePin,
-                          activeThumbColor: appTheme.primary,
-                          activeTrackColor: appTheme.primaryLight,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ],
-                    ),
+                      ),
+                      Switch(
+                        value: _pinEnabled,
+                        onChanged: _togglePin,
+                        activeThumbColor: appTheme.primary,
+                        activeTrackColor: appTheme.primaryLight,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ],
                   ),
 
                   // Change PIN (only visible when enabled)
                   if (_pinEnabled) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
                     GhostButton(
-                      label: 'Change PIN',
+                      label: l10n.changePin,
                       onPressed: () async {
                         final appTheme =
                             context.read<ThemeNotifier>().currentTheme;
@@ -316,9 +285,8 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24),
 
             // ── Data ────────────────────────────────────────────
-            _SettingSection(
+            FormSection(
               title: l10n.dataSection,
-              appTheme: appTheme,
               child: Column(
                 children: [
                   Row(
@@ -548,56 +516,6 @@ class _LanguageSheet extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-// ── Section scaffold ──────────────────────────────────────────────────────────
-
-class _SettingSection extends StatelessWidget {
-  final String title;
-  final Widget child;
-  final AppTheme appTheme;
-  final String? tooltip;
-
-  const _SettingSection({
-    required this.title,
-    required this.child,
-    required this.appTheme,
-    this.tooltip,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Watch locale directly so the font style updates on language change.
-    final locale = context.l10n.locale;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(title,
-                style: AppTextStyles.title(appTheme.inkDark, locale: locale)),
-            if (tooltip != null) ...[
-              const SizedBox(width: 6),
-              Tooltip(
-                message: tooltip!,
-                triggerMode: TooltipTriggerMode.tap,
-                preferBelow: true,
-                showDuration: const Duration(seconds: 4),
-                child: Icon(
-                  Icons.info_outline,
-                  size: 15,
-                  color: appTheme.textBody.withValues(alpha: 0.45),
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 12),
-        child,
-      ],
     );
   }
 }

@@ -335,6 +335,18 @@ class AppLocalizations {
   String get priceHistorySection =>
       _t(en: 'Price History', zh: '价格历史', ms: 'Sejarah Harga');
   String get dataSection => _t(en: 'Data', zh: '数据', ms: 'Data');
+  String get generalSection => _t(en: 'General', zh: '常规', ms: 'Umum');
+  String get priceDataSection =>
+      _t(en: 'Price Data', zh: '价格数据', ms: 'Data Harga');
+  String get securitySection => _t(en: 'Security', zh: '安全', ms: 'Keselamatan');
+  String get appPinLockTitle =>
+      _t(en: 'App PIN Lock', zh: '应用PIN锁', ms: 'Kunci PIN Aplikasi');
+  String get appPinLockDesc => _t(
+    en: 'Require a 4-digit PIN on startup',
+    zh: '启动时需要4位PIN码',
+    ms: 'Perlukan PIN 4 digit semasa mula',
+  );
+  String get changePin => _t(en: 'Change PIN', zh: '更改PIN', ms: 'Tukar PIN');
   String get manageUsers =>
       _t(en: 'Manage Users', zh: '管理用户', ms: 'Urus Pengguna');
   String get manageBrands =>
@@ -448,6 +460,13 @@ class AppLocalizations {
   String get addPhotos => _t(en: 'Add Photos', zh: '添加照片', ms: 'Tambah Foto');
   String get saveProduct =>
       _t(en: 'Save Product', zh: '保存产品', ms: 'Simpan Produk');
+  String get sectionBasicInfo =>
+      _t(en: 'Basic Info', zh: '基本信息', ms: 'Maklumat Asas');
+  String get sectionPricing => _t(en: 'Pricing', zh: '价格', ms: 'Harga');
+  String get sectionPhotosNotes =>
+      _t(en: 'Photos & Notes', zh: '照片与备注', ms: 'Foto & Nota');
+  String get manualCalculate =>
+      _t(en: 'Manual calculate', zh: '手动计算', ms: 'Kira Manual');
 
   // ── Active / inactive toggle ─────────────────────────────────────────────────
   String get activeLabel => _t(en: 'Active', zh: '启用', ms: 'Aktif');
@@ -510,6 +529,7 @@ class AppLocalizations {
   );
   String get gold916 => _t(en: '916 Gold', zh: '916 金', ms: '916 Emas');
   String get gold999 => _t(en: '999 Gold', zh: '999 金', ms: '999 Emas');
+  String get historyTodayLabel => _t(en: 'Today', zh: '今天', ms: 'Hari ini');
 
   // ── Gold price card ──────────────────────────────────────────────────────────
   String get errTimeout =>
