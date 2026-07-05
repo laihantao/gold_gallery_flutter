@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0-dev",
+  "apk_url": "https://github.com/laihantao/gold_gallery_flutter/releases/download/dev-latest/app-dev-release.apk",
+  "notes": "Initial dev build.",
+  "force_update": false,
+  "release_date": "2026-07-05"
+}

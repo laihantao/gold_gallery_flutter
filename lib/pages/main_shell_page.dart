@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../services/update_checker.dart';
 import '../theme/theme_notifier.dart';
+import '../widgets/update_dialog.dart';
 import '../components/bottom_navigation.dart';
 import 'home_page.dart';
 import 'dashboard_page.dart';
@@ -42,6 +44,21 @@ class _MainShellPageState extends State<MainShellPage> {
   int _refreshNonce = 0;
   String? _pendingListingType;
   String? _pendingListingOwnerId;
+
+  @override
+  void initState() {
+    super.initState();
+    // Runs after the first frame so it never delays the splash/first paint;
+    // silent by design (see UpdateChecker) so a broken manifest or offline
+    // device can't surface as a startup crash.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
+  }
+
+  Future<void> _checkForUpdate() async {
+    final info = await UpdateChecker.checkForUpdate();
+    if (info == null || !mounted) return;
+    await UpdateDialog.show(context, info);
+  }
 
   void _switchTab(int newIndex, {String? filterType, String? filterOwnerId}) {
     if (newIndex == _index && filterType == null && filterOwnerId == null) {

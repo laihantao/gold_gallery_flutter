@@ -56,6 +56,8 @@ dependencies:
   local_auth: ^3.0.1
   flutter_local_notifications: ^18.0.0
   crypto: ^3.0.3
+  package_info_plus: ^9.0.1
+  ota_update: ^7.1.0
 
 dev_dependencies:
   flutter_test:
