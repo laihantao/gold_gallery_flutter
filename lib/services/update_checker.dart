@@ -29,9 +29,9 @@ class UpdateChecker {
   static const Duration _timeout = Duration(seconds: 10);
 
   static const String _devManifestUrl =
-      'https://raw.githubusercontent.com/laihantao/gold_gallery_flutter/main/release_manifests/version-dev.json';
+      'https://raw.githubusercontent.com/laihantao/pocket-gold-releases/main/release_manifests/version-dev.json';
   static const String _prodManifestUrl =
-      'https://raw.githubusercontent.com/laihantao/gold_gallery_flutter/main/release_manifests/version-prod.json';
+      'https://raw.githubusercontent.com/laihantao/pocket-gold-releases/main/release_manifests/version-prod.json';
 
   static Future<UpdateInfo?> checkForUpdate() async {
     try {
