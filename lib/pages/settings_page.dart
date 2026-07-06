@@ -334,7 +334,10 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             if (_versionLabel != null) ...[
               const SizedBox(height: 24),
-              Center(
+              // Right-aligned so it clears the centre-docked FAB, which
+              // floats above this scroll content at bottom-centre.
+              Align(
+                alignment: Alignment.centerRight,
                 child: Text(
                   _versionLabel!,
                   style: TextStyle(
