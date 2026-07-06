@@ -1,5 +1,6 @@
 {
   "version": "1.0.0",
+  "build_number": 1,
   "apk_url": "https://github.com/laihantao/gold_gallery_flutter/releases/download/v1.0.0/app-prod-release.apk",
   "notes": "Initial release.",
   "force_update": false,

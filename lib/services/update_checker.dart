@@ -54,9 +54,18 @@ class UpdateChecker {
       final notes = json['notes'] is String ? json['notes'] as String : '';
       final forceUpdate = json['force_update'] == true;
 
-      final localVersion = (await PackageInfo.fromPlatform()).version;
+      final localInfo = await PackageInfo.fromPlatform();
+      final remoteBuildNumber = _asInt(json['build_number']);
+      final localBuildNumber = int.tryParse(localInfo.buildNumber);
 
-      if (!_isNewer(remoteVersion, localVersion)) return null;
+      final isNewer = remoteBuildNumber != null && localBuildNumber != null
+          // CI sets --build-number to a monotonically increasing run number,
+          // so this is authoritative when present and avoids the ambiguity
+          // of comparing two "1.0.0-dev" builds that only differ by build.
+          ? remoteBuildNumber > localBuildNumber
+          : _isNewer(remoteVersion, localInfo.version);
+
+      if (!isNewer) return null;
 
       return UpdateInfo(
         version: remoteVersion,
@@ -95,5 +104,11 @@ class UpdateChecker {
         .split('.')
         .map((part) => int.tryParse(part) ?? 0)
         .toList();
+  }
+
+  static int? _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

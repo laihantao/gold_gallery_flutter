@@ -1,0 +1,99 @@
+name: Release (dev)
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          channel: stable
+          cache: true
+
+      - name: Decode release keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/release-key.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=../release-key.jks
+          EOF
+
+      - name: Resolve base version from pubspec
+        id: version
+        run: |
+          BASE_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
+          echo "base_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - run: flutter pub get
+
+      - name: Build dev APK
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          flutter build apk --flavor dev --target lib/main_dev.dart \
+            --dart-define=CHANNEL=dev --release \
+            --build-name="$BASE_VERSION" --build-number="$BUILD_NUMBER"
+
+      - name: Create/update rolling dev-latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-latest
+          name: "Dev build #${{ github.run_number }}"
+          body: "Automated dev build from commit ${{ github.sha }}."
+          prerelease: true
+          files: build/app/outputs/flutter-apk/app-dev-release.apk
+
+      - name: Update version-dev.json on main
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          git fetch origin main
+          git checkout main
+          python3 - <<'PYEOF'
+          import json, os, datetime
+          version = f'{os.environ["BASE_VERSION"]}-dev.{os.environ["BUILD_NUMBER"]}'
+          data = {
+              "version": version,
+              "build_number": int(os.environ["BUILD_NUMBER"]),
+              "apk_url": (
+                  f'https://github.com/{os.environ["REPO"]}/releases/download/'
+                  f'dev-latest/app-dev-release.apk'
+              ),
+              "notes": f'Automated dev build from commit {os.environ["SHA"][:7]}.',
+              "force_update": False,
+              "release_date": datetime.date.today().isoformat(),
+          }
+          os.makedirs("release_manifests", exist_ok=True)
+          with open("release_manifests/version-dev.json", "w") as f:
+              json.dump(data, f, indent=2, ensure_ascii=False)
+              f.write("\n")
+          PYEOF
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add release_manifests/version-dev.json
+          git diff --cached --quiet || git commit -m "chore: update version-dev.json build $BUILD_NUMBER [skip ci]"
+          git push origin main

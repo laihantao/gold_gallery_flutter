@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/locale_notifier.dart';
@@ -26,11 +27,22 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isImporting = false;
   bool _isSyncingHistory = false;
   bool _pinEnabled = false;
+  String? _versionLabel;
 
   @override
   void initState() {
     super.initState();
     _loadPinState();
+    _loadVersionLabel();
+  }
+
+  Future<void> _loadVersionLabel() async {
+    final info = await PackageInfo.fromPlatform();
+    // versionName already carries the per-flavor suffix (e.g. "1.0.0-dev" vs
+    // "1.0.0"), since it's set via `versionNameSuffix` in build.gradle.kts.
+    if (mounted) {
+      setState(() => _versionLabel = 'v${info.version} (${info.buildNumber})');
+    }
   }
 
   Future<void> _loadPinState() async {
@@ -320,6 +332,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
+            if (_versionLabel != null) ...[
+              const SizedBox(height: 24),
+              Center(
+                child: Text(
+                  _versionLabel!,
+                  style: TextStyle(
+                    color: appTheme.inkLight.withValues(alpha: 0.5),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
