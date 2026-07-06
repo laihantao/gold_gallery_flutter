@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
-  "build_number": 1,
-  "apk_url": "https://github.com/laihantao/gold_gallery_flutter/releases/download/v1.0.1/app-prod-release.apk",
-  "notes": "Merge branch 'develop'",
+  "version": "1.0.2",
+  "build_number": 2,
+  "apk_url": "https://github.com/laihantao/gold_gallery_flutter/releases/download/v1.0.2/app-prod-release.apk",
+  "notes": " Merge branch 'develop'",
   "force_update": false,
   "release_date": "2026-07-06"
 }
