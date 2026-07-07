@@ -119,6 +119,17 @@ jobs:
           REPO: laihantao/pocket-gold-releases
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
+          cd releases-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # The checkout of this repo happened before the (multi-minute) build
+          # step, so another run (e.g. a concurrent dev build) may have pushed
+          # to main in the meantime. Retry with a hard reset onto the latest
+          # main instead of assuming our checkout is still current — safe
+          # because the manifest content below is fully regenerated from this
+          # run's own env vars each time.
+          for attempt in 1 2 3 4 5; do
           python3 - <<'PYEOF'
           import json, os, datetime
           data = {
@@ -132,14 +143,61 @@ jobs:
               "force_update": False,
               "release_date": datetime.date.today().isoformat(),
           }
-          os.makedirs("releases-repo/release_manifests", exist_ok=True)
-          with open("releases-repo/release_manifests/version-prod.json", "w") as f:
+          os.makedirs("release_manifests", exist_ok=True)
+          with open("release_manifests/version-prod.json", "w") as f:
               json.dump(data, f, indent=2, ensure_ascii=False)
               f.write("\n")
           PYEOF
-          cd releases-repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add release_manifests/version-prod.json
-          git diff --cached --quiet || git commit -m "chore: update version-prod.json for $TAG [skip ci]"
-          git push origin main
+
+            git add release_manifests/version-prod.json
+            if git diff --cached --quiet; then
+              break
+            fi
+            git commit -m "chore: update version-prod.json for $TAG [skip ci]"
+            if git push origin main; then
+              break
+            fi
+            echo "Push rejected (attempt $attempt/5), syncing with remote and retrying..."
+            git fetch origin main
+            git reset --hard origin/main
+          done
+
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATUS: ${{ job.status }}
+          SHA: ${{ github.sha }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+          else
+            EMOJI="❌"
+          fi
+          SHORT_SHA="${SHA:0:7}"
+          DATETIME=$(date -u -d '+8 hours' +'%d%m%y, %H%M')
+
+          MESSAGE=$(cat <<EOF
+          🚀 <b>Pocket Gold — PROD Release ${RELEASE_TAG}</b>
+          $EMOJI Status: ${STATUS^^}
+          Tag: $RELEASE_TAG
+          Revision: <a href="https://github.com/$REPO/commit/$SHA">$SHORT_SHA</a>
+          DateTime: $DATETIME (UTC+8)
+          Author: $ACTOR
+          🔗 <a href="$RUN_URL">View run</a>
+          EOF
+          )
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "parse_mode=HTML" \
+            --data-urlencode "text=${MESSAGE}") || true
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::Telegram notification failed (HTTP ${HTTP_CODE:-unknown})"
+          fi
