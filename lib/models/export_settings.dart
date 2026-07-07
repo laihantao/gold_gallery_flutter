@@ -1,14 +1,14 @@
 enum ExportFormat { table, productCard }
 
 enum ExportColumn {
-  date('Date', 1.4),
-  name('Name', 2.8),
-  type('Type', 1.3),
+  date('Date', 1.5),
+  name('Name', 2.5),
+  type('Type', 1.35),
   brand('Brand', 1.6),
-  purity('Purity', 0.9),
-  owner('Owner', 1.2),
-  price('Price', 1.6),
-  remarks('Remarks', 2.6);
+  purity('Purity', 1.1),
+  owner('Owner', 1.45),
+  price('Price', 1.55),
+  remarks('Remarks', 2.4);
 
   final String label;
   final double flex;
