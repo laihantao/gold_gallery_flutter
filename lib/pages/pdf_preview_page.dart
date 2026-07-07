@@ -86,14 +86,15 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
+    final l10n = context.l10n;
     final pages = _pages;
     final total = pages?.length ?? 0;
 
     return Scaffold(
       appBar: AppHeader(
         title: pages != null && total > 0
-            ? 'Page ${_currentPage + 1} of $total'
-            : 'Preview',
+            ? l10n.pageOf(_currentPage + 1, total)
+            : l10n.previewButton,
         actions: [
           _isSaving
               ? const Padding(
@@ -107,14 +108,14 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
               : IconButton(
                   icon: Icon(Icons.download_outlined,
                       color: appTheme.inkDark, size: 24),
-                  tooltip: 'Save to device',
+                  tooltip: l10n.saveToDevice,
                   onPressed: _onSave,
                 ),
         ],
       ),
       body: switch (pages) {
         null => const Center(child: CircularProgressIndicator()),
-        [] => const Center(child: Text('No content to preview.')),
+        [] => Center(child: Text(l10n.noContentToPreview)),
         _ => PhotoViewGallery.builder(
             pageController: _pageController,
             itemCount: pages.length,

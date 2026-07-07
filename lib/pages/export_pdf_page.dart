@@ -23,7 +23,11 @@ class ExportPdfPage extends StatefulWidget {
 
 class _ExportPdfPageState extends State<ExportPdfPage> {
   ExportFormat _format = ExportFormat.table;
-  Set<ExportColumn> _columns = ExportColumn.values.toSet();
+  // Price/gram and labor fees are opt-in: the default table layout keeps the
+  // classic 8 columns so nothing gets cramped unless the user asks for more.
+  Set<ExportColumn> _columns = ExportColumn.values.toSet()
+    ..remove(ExportColumn.pricePerGram)
+    ..remove(ExportColumn.laborFees);
   List<User> _users = [];
   Set<int> _selectedUserIds = {};
   DateTime? _fromDate;
@@ -71,7 +75,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to generate PDF: $e')),
+          SnackBar(content: Text(context.l10n.pdfFailed(e))),
         );
       }
       return null;
@@ -146,10 +150,11 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
-    final locale = context.l10n.locale;
+    final l10n = context.l10n;
+    final locale = l10n.locale;
 
     return Scaffold(
-      appBar: AppHeader(title: 'Export PDF'),
+      appBar: AppHeader(title: l10n.exportPdfTitle),
       backgroundColor: appTheme.primaryBg,
       body: Column(
         children: [
@@ -159,16 +164,16 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: SegmentedButton<ExportFormat>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: ExportFormat.table,
-                  icon: Icon(Icons.table_rows_outlined, size: 18),
-                  label: Text('Table'),
+                  icon: const Icon(Icons.table_rows_outlined, size: 18),
+                  label: Text(l10n.formatTable),
                 ),
                 ButtonSegment(
                   value: ExportFormat.productCard,
-                  icon: Icon(Icons.view_agenda_outlined, size: 18),
-                  label: Text('Product Card'),
+                  icon: const Icon(Icons.view_agenda_outlined, size: 18),
+                  label: Text(l10n.formatProductCard),
                 ),
               ],
               selected: {_format},
@@ -192,44 +197,44 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _SectionCard(
-                    title: 'Columns',
+                    title: l10n.columnsSection,
                     appTheme: appTheme,
                     locale: locale,
-                    child: _buildColumns(appTheme),
+                    child: _buildColumns(appTheme, l10n),
                   ),
                   const SizedBox(height: 12),
 
                   if (_format == ExportFormat.productCard) ...[
                     _SectionCard(
-                      title: 'Image',
+                      title: l10n.imageSection,
                       appTheme: appTheme,
                       locale: locale,
-                      child: _buildImageOption(appTheme),
+                      child: _buildImageOption(appTheme, l10n),
                     ),
                     const SizedBox(height: 12),
                   ],
 
                   _SectionCard(
-                    title: 'Users',
+                    title: l10n.usersSection,
                     appTheme: appTheme,
                     locale: locale,
-                    child: _buildUsers(appTheme),
+                    child: _buildUsers(appTheme, l10n),
                   ),
                   const SizedBox(height: 12),
 
                   _SectionCard(
-                    title: 'Date Range',
+                    title: l10n.dateRangeSection,
                     appTheme: appTheme,
                     locale: locale,
-                    child: _buildDateRange(appTheme, locale),
+                    child: _buildDateRange(appTheme, l10n),
                   ),
                   const SizedBox(height: 12),
 
                   _SectionCard(
-                    title: 'Grouping',
+                    title: l10n.groupingSection,
                     appTheme: appTheme,
                     locale: locale,
-                    child: _buildGrouping(appTheme),
+                    child: _buildGrouping(appTheme, l10n),
                   ),
                   const SizedBox(height: 80),
                 ],
@@ -238,7 +243,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
           ),
 
           // ── Bottom action bar ─────────────────────────────────────────────
-          _buildBottomBar(appTheme, locale),
+          _buildBottomBar(appTheme, l10n),
         ],
       ),
     );
@@ -246,12 +251,27 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
 
   // ── Section: Columns ────────────────────────────────────────────────────────
 
-  Widget _buildColumns(AurumTheme appTheme) {
+  String _columnLabel(ExportColumn col, AppLocalizations l10n) {
+    return switch (col) {
+      ExportColumn.date => l10n.labelDate,
+      ExportColumn.name => l10n.rowName,
+      ExportColumn.type => l10n.labelType,
+      ExportColumn.brand => l10n.rowBrand,
+      ExportColumn.purity => l10n.rowPurity,
+      ExportColumn.owner => l10n.rowOwner,
+      ExportColumn.pricePerGram => l10n.rowPricePerGram,
+      ExportColumn.laborFees => l10n.rowLaborFees,
+      ExportColumn.price => l10n.labelPrice,
+      ExportColumn.remarks => l10n.rowRemarks,
+    };
+  }
+
+  Widget _buildColumns(AurumTheme appTheme, AppLocalizations l10n) {
     final allSelected = _columns.length == ExportColumn.values.length;
     return Column(
       children: [
         _MasterToggle(
-          label: 'Select All',
+          label: l10n.selectAllLabel,
           value: allSelected,
           onChanged: (v) => setState(() => _columns = v
               ? ExportColumn.values.toSet()
@@ -261,7 +281,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
         const Divider(height: 8),
         for (final col in ExportColumn.values)
           _CheckRow(
-            label: col.label,
+            label: _columnLabel(col, l10n),
             value: _columns.contains(col),
             onChanged: (v) => setState(() {
               v ? _columns.add(col) : _columns.remove(col);
@@ -274,9 +294,9 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
 
   // ── Section: Image ──────────────────────────────────────────────────────────
 
-  Widget _buildImageOption(AurumTheme appTheme) {
+  Widget _buildImageOption(AurumTheme appTheme, AppLocalizations l10n) {
     return _CheckRow(
-      label: 'Include product thumbnail',
+      label: l10n.includeThumbnailLabel,
       value: _includePhotos,
       onChanged: (v) => setState(() => _includePhotos = v),
       appTheme: appTheme,
@@ -285,11 +305,11 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
 
   // ── Section: Users ──────────────────────────────────────────────────────────
 
-  Widget _buildUsers(AurumTheme appTheme) {
+  Widget _buildUsers(AurumTheme appTheme, AppLocalizations l10n) {
     if (_users.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text('No users found.',
+        child: Text(l10n.noUsersFound,
             style: TextStyle(color: appTheme.inkLight, fontSize: 13)),
       );
     }
@@ -297,7 +317,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
     return Column(
       children: [
         _MasterToggle(
-          label: 'Select All',
+          label: l10n.selectAllLabel,
           value: allSelected,
           onChanged: (v) => setState(() => _selectedUserIds = v
               ? _users.map((u) => u.id).toSet()
@@ -322,27 +342,27 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
 
   // ── Section: Date Range ─────────────────────────────────────────────────────
 
-  Widget _buildDateRange(AurumTheme appTheme, AppLocale locale) {
+  Widget _buildDateRange(AurumTheme appTheme, AppLocalizations l10n) {
     return Column(
       children: [
         _DateRow(
-          label: 'From',
+          label: l10n.dateFromLabel,
+          emptyText: l10n.noDateFilterLabel,
           date: _fromDate,
           fmtDate: _fmtDate,
           onPick: () => _pickDate(isFrom: true),
           onClear: () => setState(() => _fromDate = null),
           appTheme: appTheme,
-          locale: locale,
         ),
         const SizedBox(height: 8),
         _DateRow(
-          label: 'To',
+          label: l10n.dateToLabel,
+          emptyText: l10n.noDateFilterLabel,
           date: _toDate,
           fmtDate: _fmtDate,
           onPick: () => _pickDate(isFrom: false),
           onClear: () => setState(() => _toDate = null),
           appTheme: appTheme,
-          locale: locale,
         ),
       ],
     );
@@ -350,9 +370,9 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
 
   // ── Section: Grouping ────────────────────────────────────────────────────────
 
-  Widget _buildGrouping(AurumTheme appTheme) {
+  Widget _buildGrouping(AurumTheme appTheme, AppLocalizations l10n) {
     return _CheckRow(
-      label: 'Group by User (separate table per owner)',
+      label: l10n.groupByUserLabel,
       value: _groupByUser,
       onChanged: (v) => setState(() => _groupByUser = v),
       appTheme: appTheme,
@@ -361,7 +381,8 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
 
   // ── Bottom bar ───────────────────────────────────────────────────────────────
 
-  Widget _buildBottomBar(AurumTheme appTheme, AppLocale locale) {
+  Widget _buildBottomBar(AurumTheme appTheme, AppLocalizations l10n) {
+    final locale = l10n.locale;
     return Container(
       color: appTheme.surface,
       padding: EdgeInsets.fromLTRB(
@@ -378,7 +399,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
                           strokeWidth: 2, color: appTheme.primary),
                     )
                   : const Icon(Icons.visibility_outlined, size: 18),
-              label: Text('Preview',
+              label: Text(l10n.previewButton,
                   style: AppTextStyles.bodyBold(appTheme.primary,
                       locale: locale)),
               onPressed: _isBusy ? null : _onPreview,
@@ -401,7 +422,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
                           strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.download_outlined, size: 18),
-              label: Text('Export PDF',
+              label: Text(l10n.exportPdfTitle,
                   style: AppTextStyles.bodyBold(Colors.white,
                       locale: locale)),
               onPressed: _isBusy ? null : _onExport,
@@ -532,21 +553,21 @@ class _CheckRow extends StatelessWidget {
 
 class _DateRow extends StatelessWidget {
   final String label;
+  final String emptyText;
   final DateTime? date;
   final String Function(DateTime) fmtDate;
   final VoidCallback onPick;
   final VoidCallback onClear;
   final AurumTheme appTheme;
-  final AppLocale locale;
 
   const _DateRow({
     required this.label,
+    required this.emptyText,
     required this.date,
     required this.fmtDate,
     required this.onPick,
     required this.onClear,
     required this.appTheme,
-    required this.locale,
   });
 
   @override
@@ -565,7 +586,7 @@ class _DateRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            date != null ? fmtDate(date!) : 'No filter',
+            date != null ? fmtDate(date!) : emptyText,
             style: TextStyle(
                 fontSize: 13,
                 color: date != null

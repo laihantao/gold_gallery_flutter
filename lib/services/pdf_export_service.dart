@@ -109,6 +109,7 @@ class PdfExportService {
 
     // ── Formatting helpers ──────────────────────────────────────────────────
     final moneyFmt = NumberFormat('#,##0.00');
+    final intFmt = NumberFormat('#,##0');
     String fmtMoney(double? v) => moneyFmt.format(v ?? 0);
     String fmtDate(DateTime d) =>
         '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -383,6 +384,11 @@ class PdfExportService {
       if (cols.isEmpty) return [];
 
       int flexOf(ExportColumn c) => (c.flex * 10).round();
+      // Numeric columns share the price column's right alignment.
+      bool numeric(ExportColumn c) =>
+          c == ExportColumn.price ||
+          c == ExportColumn.pricePerGram ||
+          c == ExportColumn.laborFees;
 
       pw.Widget headerRow() => pw.Container(
             decoration: pw.BoxDecoration(
@@ -398,7 +404,7 @@ class PdfExportService {
                       padding:
                           const pw.EdgeInsets.fromLTRB(4.5, 0, 4.5, 7.5),
                       child: pw.Column(
-                        crossAxisAlignment: c == ExportColumn.price
+                        crossAxisAlignment: numeric(c)
                             ? pw.CrossAxisAlignment.end
                             : pw.CrossAxisAlignment.start,
                         children: [
@@ -454,6 +460,24 @@ class PdfExportService {
                 j.ownerId != null ? (userMap[j.ownerId] ?? '—') : '—',
                 style: pw.TextStyle(
                     font: cjk, fontSize: 8.6, color: _muted));
+          case ExportColumn.pricePerGram:
+            return pw.Align(
+              alignment: pw.Alignment.topRight,
+              child: pw.Text(
+                  j.pricePerGram != null
+                      ? intFmt.format(j.pricePerGram)
+                      : '—',
+                  style: pw.TextStyle(
+                      font: serif, fontSize: 9.4, color: _ink)),
+            );
+          case ExportColumn.laborFees:
+            return pw.Align(
+              alignment: pw.Alignment.topRight,
+              child: pw.Text(
+                  j.laborFees != null ? fmtMoney(j.laborFees) : '—',
+                  style: pw.TextStyle(
+                      font: serif, fontSize: 9.4, color: _ink)),
+            );
           case ExportColumn.price:
             // Header already says Price (RM) — no currency per row.
             return pw.Align(
@@ -556,6 +580,20 @@ class PdfExportService {
                     fontSize: 9.4,
                     color: _ink,
                     fontFallback: [cjk]));
+          case ExportColumn.pricePerGram:
+            return pw.Text(
+                j.pricePerGram != null
+                    ? '$currencySymbol ${intFmt.format(j.pricePerGram)}'
+                    : '—',
+                style: pw.TextStyle(
+                    font: serif, fontSize: 9.4, color: _ink));
+          case ExportColumn.laborFees:
+            return pw.Text(
+                j.laborFees != null
+                    ? '$currencySymbol ${fmtMoney(j.laborFees)}'
+                    : '—',
+                style: pw.TextStyle(
+                    font: serif, fontSize: 9.4, color: _ink));
           case ExportColumn.price:
             return pw.Text(
                 '$currencySymbol ${fmtMoney(j.totalPrice)}',
@@ -809,6 +847,8 @@ class PdfExportService {
       ExportColumn.brand => '品牌',
       ExportColumn.purity => '纯度',
       ExportColumn.owner => '拥有者',
+      ExportColumn.pricePerGram => '每克价格',
+      ExportColumn.laborFees => '工费',
       ExportColumn.price => '价格',
       ExportColumn.remarks => '备注',
     };

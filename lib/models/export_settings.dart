@@ -7,6 +7,8 @@ enum ExportColumn {
   brand('Brand', 1.6),
   purity('Purity', 1.1),
   owner('Owner', 1.45),
+  pricePerGram('Price/g', 1.3),
+  laborFees('Labor', 1.2),
   price('Price', 1.55),
   remarks('Remarks', 2.4);
 

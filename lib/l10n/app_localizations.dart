@@ -569,6 +569,49 @@ class AppLocalizations {
   String get gold999 => _t(en: '999 Gold', zh: '999 金', ms: '999 Emas');
   String get historyTodayLabel => _t(en: 'Today', zh: '今天', ms: 'Hari ini');
 
+  // ── Export PDF page ──────────────────────────────────────────────────────────
+  String get exportPdfTitle =>
+      _t(en: 'Export PDF', zh: '导出PDF', ms: 'Eksport PDF');
+  String get formatTable => _t(en: 'Table', zh: '表格', ms: 'Jadual');
+  String get formatProductCard =>
+      _t(en: 'Product Card', zh: '产品卡片', ms: 'Kad Produk');
+  String get columnsSection => _t(en: 'Columns', zh: '字段', ms: 'Lajur');
+  String get imageSection => _t(en: 'Image', zh: '图片', ms: 'Imej');
+  String get dateRangeSection =>
+      _t(en: 'Date Range', zh: '日期范围', ms: 'Julat Tarikh');
+  String get groupingSection => _t(en: 'Grouping', zh: '分组', ms: 'Kumpulan');
+  String get selectAllLabel => _t(en: 'Select All', zh: '全选', ms: 'Pilih Semua');
+  String get includeThumbnailLabel => _t(
+    en: 'Include product thumbnail',
+    zh: '包含产品缩略图',
+    ms: 'Sertakan imej kecil produk',
+  );
+  String get noUsersFound =>
+      _t(en: 'No users found.', zh: '未找到用户。', ms: 'Tiada pengguna.');
+  String get dateFromLabel => _t(en: 'From', zh: '从', ms: 'Dari');
+  String get dateToLabel => _t(en: 'To', zh: '至', ms: 'Hingga');
+  String get noDateFilterLabel =>
+      _t(en: 'No filter', zh: '不限', ms: 'Tiada tapisan');
+  String get groupByUserLabel => _t(
+    en: 'Group by User (separate table per owner)',
+    zh: '按拥有者分组（每位拥有者单独列表）',
+    ms: 'Kumpul ikut pemilik (jadual berasingan setiap pemilik)',
+  );
+  String get previewButton => _t(en: 'Preview', zh: '预览', ms: 'Pratonton');
+  String get labelPrice => _t(en: 'Price', zh: '价格', ms: 'Harga');
+  String pageOf(int page, int total) => switch (locale) {
+    AppLocale.en => 'Page $page of $total',
+    AppLocale.zhCN => '第 $page 页 · 共 $total 页',
+    AppLocale.ms => 'Halaman $page / $total',
+  };
+  String get noContentToPreview => _t(
+    en: 'No content to preview.',
+    zh: '暂无可预览内容。',
+    ms: 'Tiada kandungan untuk pratonton.',
+  );
+  String get saveToDevice =>
+      _t(en: 'Save to device', zh: '保存到设备', ms: 'Simpan ke peranti');
+
   // ── Gold price card ──────────────────────────────────────────────────────────
   String get errTimeout =>
       _t(en: 'Request timed out', zh: '请求超时', ms: 'Permintaan tamat masa');
