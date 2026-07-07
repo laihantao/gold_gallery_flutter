@@ -54,7 +54,7 @@ class _ExportPdfPageState extends State<ExportPdfPage> {
 
   String get _filename {
     final now = DateTime.now();
-    return 'aurum_inventory_'
+    return 'pocket_gold_inventory_'
         '${now.day.toString().padLeft(2, '0')}'
         '${now.month.toString().padLeft(2, '0')}'
         '${now.year}.pdf';
