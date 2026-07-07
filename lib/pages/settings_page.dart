@@ -41,7 +41,8 @@ class _SettingsPageState extends State<SettingsPage> {
     // versionName already carries the per-flavor suffix (e.g. "1.0.0-dev" vs
     // "1.0.0"), since it's set via `versionNameSuffix` in build.gradle.kts.
     if (mounted) {
-      setState(() => _versionLabel = 'v${info.version} (${info.buildNumber})');
+      // setState(() => _versionLabel = 'v${info.version} (${info.buildNumber})');
+        setState(() => _versionLabel = 'v${info.version}');
     }
   }
 
