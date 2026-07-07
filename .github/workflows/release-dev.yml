@@ -173,7 +173,7 @@ jobs:
             EMOJI="❌"
           fi
           SHORT_SHA="${SHA:0:7}"
-          DATETIME=$(date -u -d '+8 hours' +'%d%m%y, %H%M')
+          DATETIME=$(date -u -d '+8 hours' +'%d %B %y, %-l:%M %p')
 
           MESSAGE=$(cat <<EOF
           🧪 <b>Pocket Gold — DEV Build #${RUN_NUMBER}</b>
