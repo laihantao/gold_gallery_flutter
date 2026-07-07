@@ -439,6 +439,44 @@ class AppLocalizations {
     AppLocale.ms => 'Eksport PDF gagal: $e',
   };
 
+  // ── Update / OTA ─────────────────────────────────────────────────────────────
+  String updateFoundTitle(String version) => switch (locale) {
+    AppLocale.en => 'New update found: $version',
+    AppLocale.zhCN => '发现新版本 $version',
+    AppLocale.ms => 'Kemas kini baharu ditemui: $version',
+  };
+  String get updateLater => _t(en: 'Later', zh: '稍后', ms: 'Kemudian');
+  String get updateNow =>
+      _t(en: 'Update Now', zh: '立即更新', ms: 'Kemas Kini Sekarang');
+  String get updateDownloading =>
+      _t(en: 'Downloading…', zh: '下载中…', ms: 'Memuat turun…');
+  String get updateInstalling =>
+      _t(en: 'Installing…', zh: '正在安装…', ms: 'Memasang…');
+  String get updateDownloadFailed => _t(
+    en: 'Download failed. Please check your connection and try again.',
+    zh: '下载失败，请检查网络后重试。',
+    ms: 'Muat turun gagal. Sila semak sambungan dan cuba lagi.',
+  );
+  String get updatePermissionRequired => _t(
+    en: 'Please enable the "Install unknown apps" permission to finish updating.',
+    zh: '需要开启"安装未知应用"权限才能完成更新。',
+    ms: 'Sila aktifkan kebenaran "Pasang aplikasi tidak dikenali" untuk selesaikan kemas kini.',
+  );
+  String get updateFailed => _t(
+    en: 'Update failed. Please try again later.',
+    zh: '更新失败，请稍后重试。',
+    ms: 'Kemas kini gagal. Sila cuba lagi kemudian.',
+  );
+  String get checkForUpdate =>
+      _t(en: 'Check for Updates', zh: '检查更新', ms: 'Semak Kemas Kini');
+  String get checkingForUpdate =>
+      _t(en: 'Checking…', zh: '检查中…', ms: 'Menyemak…');
+  String get updateUpToDate => _t(
+    en: "You're on the latest version",
+    zh: '已是最新版本',
+    ms: 'Anda menggunakan versi terkini',
+  );
+
   // ── Theme names (proper-noun translations) ───────────────────────────────────
   String get themeNameParchment => _t(en: 'Aureate', zh: '暖金', ms: 'Keemasan');
   String get themeNameSky => _t(en: 'Sky', zh: '天蓝', ms: 'Langit');

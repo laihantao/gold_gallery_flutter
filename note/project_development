@@ -25,3 +25,15 @@ That's it for making a new icon selectable in the picker (management page's "add
 
 Optional 3rd step — only if you also want it pre-seeded as a default jewellery type (like Ring/Pendant/etc. rather than something a user manually creates): add an entry to assets/data/init_jewellery_types.json with a matching iconKey. Since that file only seeds data on first app install/fresh Hive box, existing installs (including your own test device) won't automatically pick up new entries added there later — that'd need a small migration/backfill if you go this route for future types, similar to GoldPriceHistoryBackfillService 
 ```
+
+
+# Deployment for production
+
+```
+git checkout main
+git pull origin main
+git merge develop
+git push origin main
+git tag v1.0.3        # bump per your versioning
+git push origin v1.0.3
+```

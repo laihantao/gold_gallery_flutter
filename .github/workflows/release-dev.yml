@@ -1,9 +1,6 @@
 name: Release (dev)
 
 on:
-  push:
-    branches:
-      - develop
   workflow_dispatch:
 
 permissions:
@@ -51,6 +48,38 @@ jobs:
           BASE_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//' | cut -d'+' -f1)
           echo "base_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve commit notes since last dev build
+        id: notes
+        run: |
+          # Diff against the SHA recorded in the last published manifest, so the
+          # dialog shows what actually changed since the last dev build instead
+          # of a single commit hash.
+          OLD_SHA=$(python3 -c "
+          import json
+          try:
+              print(json.load(open('releases-repo/release_manifests/version-dev.json')).get('commit_sha', ''))
+          except FileNotFoundError:
+              print('')
+          " 2>/dev/null || true)
+
+          if [ -n "$OLD_SHA" ] && git cat-file -e "$OLD_SHA" 2>/dev/null; then
+            RANGE="$OLD_SHA..HEAD"
+          else
+            RANGE="-5"
+          fi
+
+          NOTES=$(git log $RANGE --pretty=format:'- %s' --no-merges \
+            | grep -Ev '^- chore: update version-(dev|prod)\.json.*\[skip ci\]$' || true)
+          if [ -z "$NOTES" ]; then
+            NOTES="- ${GITHUB_SHA:0:7}"
+          fi
+
+          {
+            echo "notes<<NOTES_EOF"
+            echo "$NOTES"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - run: flutter pub get
 
       - name: Build dev APK
@@ -79,6 +108,7 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           REPO: laihantao/pocket-gold-releases
           SHA: ${{ github.sha }}
+          NOTES: ${{ steps.notes.outputs.notes }}
         run: |
           python3 - <<'PYEOF'
           import json, os, datetime
@@ -90,7 +120,8 @@ jobs:
                   f'https://github.com/{os.environ["REPO"]}/releases/download/'
                   f'dev-latest/app-dev-release.apk'
               ),
-              "notes": f'Automated dev build from commit {os.environ["SHA"][:7]}.',
+              "notes": os.environ["NOTES"],
+              "commit_sha": os.environ["SHA"],
               "force_update": False,
               "release_date": datetime.date.today().isoformat(),
           }
