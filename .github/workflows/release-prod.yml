@@ -55,8 +55,32 @@ jobs:
         id: notes
         env:
           TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          NOTES=$(git tag -l --format='%(contents)' "$TAG")
+          # Primary source: the "## [<version>]" section of CHANGELOG.md, kept
+          # up to date by hand (see CHANGELOG.md). Falls back to the tag
+          # annotation, then the last commit message, for versions that
+          # forgot to update it.
+          NOTES=$(python3 - <<'PYEOF'
+          import os, re
+
+          version = os.environ["VERSION"]
+          try:
+              text = open("CHANGELOG.md", encoding="utf-8").read()
+          except FileNotFoundError:
+              text = ""
+
+          m = re.search(
+              rf'##\s*\[{re.escape(version)}\][^\n]*\n(.*?)(?=\n##\s*\[|\Z)',
+              text,
+              re.S,
+          )
+          print(m.group(1).strip() if m else "")
+          PYEOF
+          )
+          if [ -z "$NOTES" ]; then
+            NOTES=$(git tag -l --format='%(contents)' "$TAG")
+          fi
           if [ -z "$NOTES" ]; then
             NOTES=$(git log -1 --pretty=%B)
           fi

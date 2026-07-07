@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:ota_update/ota_update.dart';
+import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
+import '../providers/locale_notifier.dart';
 import '../services/install_permission_service.dart';
 import '../services/update_checker.dart';
 
@@ -53,7 +56,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         if (!mounted) return;
         setState(() {
           _downloading = false;
-          _error = '下载失败,请检查网络后重试';
+          _error = context.read<LocaleNotifier>().localizations.updateDownloadFailed;
         });
       },
     );
@@ -61,6 +64,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
   Future<void> _handleEvent(OtaEvent event) async {
     if (!mounted) return;
+    final l10n = context.read<LocaleNotifier>().localizations;
 
     switch (event.status) {
       case OtaStatus.DOWNLOADING:
@@ -82,7 +86,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       case OtaStatus.PERMISSION_NOT_GRANTED_ERROR:
         setState(() {
           _downloading = false;
-          _error = '需要开启"安装未知应用"权限才能完成更新';
+          _error = l10n.updatePermissionRequired;
         });
         final canInstall =
             await InstallPermissionService.canRequestPackageInstalls();
@@ -98,7 +102,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       case OtaStatus.CHECKSUM_ERROR:
         setState(() {
           _downloading = false;
-          _error = '更新失败,请稍后重试';
+          _error = l10n.updateFailed;
         });
         break;
 
@@ -111,11 +115,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
   @override
   Widget build(BuildContext context) {
     final canDismiss = !widget.info.forceUpdate;
+    final l10n = context.l10n;
 
     return PopScope(
       canPop: canDismiss,
       child: AlertDialog(
-        title: Text('发现新版本 ${widget.info.version}'),
+        title: Text(l10n.updateFoundTitle(widget.info.version)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -128,7 +133,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 const SizedBox(height: 6),
                 Text(
                   _progress == null
-                      ? '正在安装…'
+                      ? l10n.updateInstalling
                       : '${(_progress! * 100).clamp(0, 100).toStringAsFixed(0)}%',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -147,11 +152,11 @@ class _UpdateDialogState extends State<UpdateDialog> {
           if (canDismiss && !_downloading)
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('稍后'),
+              child: Text(l10n.updateLater),
             ),
           TextButton(
             onPressed: _downloading ? null : _startDownload,
-            child: Text(_downloading ? '下载中…' : '立即更新'),
+            child: Text(_downloading ? l10n.updateDownloading : l10n.updateNow),
           ),
         ],
       ),

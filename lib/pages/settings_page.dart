@@ -13,6 +13,8 @@ import '../components/buttons.dart';
 import '../components/form_section.dart';
 import '../services/backup_service.dart';
 import '../services/gold_price_history_backfill_service.dart';
+import '../services/update_checker.dart';
+import '../widgets/update_dialog.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -27,6 +29,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isImporting = false;
   bool _isSyncingHistory = false;
   bool _pinEnabled = false;
+  bool _isCheckingUpdate = false;
   String? _versionLabel;
 
   @override
@@ -41,8 +44,7 @@ class _SettingsPageState extends State<SettingsPage> {
     // versionName already carries the per-flavor suffix (e.g. "1.0.0-dev" vs
     // "1.0.0"), since it's set via `versionNameSuffix` in build.gradle.kts.
     if (mounted) {
-      // setState(() => _versionLabel = 'v${info.version} (${info.buildNumber})');
-        setState(() => _versionLabel = 'v${info.version}');
+      setState(() => _versionLabel = 'v${info.version} (${info.buildNumber})');
     }
   }
 
@@ -333,8 +335,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
+            const SizedBox(height: 24),
+            GhostButton(
+              label: _isCheckingUpdate ? l10n.checkingForUpdate : l10n.checkForUpdate,
+              isLoading: _isCheckingUpdate,
+              onPressed: () => _checkForUpdate(appTheme, l10n),
+            ),
             if (_versionLabel != null) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
               // Right-aligned so it clears the centre-docked FAB, which
               // floats above this scroll content at bottom-centre.
               Align(
@@ -434,6 +442,22 @@ class _SettingsPageState extends State<SettingsPage> {
       _showSnackBar(l10n.importFailed(e), appTheme, isError: true);
     } finally {
       if (mounted) setState(() => _isImporting = false);
+    }
+  }
+
+  Future<void> _checkForUpdate(AppTheme appTheme, AppLocalizations l10n) async {
+    if (_isCheckingUpdate) return;
+    setState(() => _isCheckingUpdate = true);
+    try {
+      final info = await UpdateChecker.checkForUpdate();
+      if (!mounted) return;
+      if (info == null) {
+        _showSnackBar(l10n.updateUpToDate, appTheme);
+      } else {
+        await UpdateDialog.show(context, info);
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingUpdate = false);
     }
   }
 
