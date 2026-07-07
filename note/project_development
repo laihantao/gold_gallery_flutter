@@ -30,10 +30,17 @@ Optional 3rd step — only if you also want it pre-seeded as a default jewellery
 # Deployment for production
 
 ```
+# 1. 合并 develop 进 main，处理完冲突
 git checkout main
 git pull origin main
 git merge develop
+# ...解决冲突、git add、git commit（如果有冲突的话）...
 git push origin main
-git tag v1.0.3        # bump per your versioning
-git push origin v1.0.3
+
+# 2. 确认 main 现在的 HEAD 就是你想发布的那个 commit
+git log -1 --oneline main
+
+# 3. 确认无误后才打 tag（此时 tag 会指向刚 push 上去的那个 commit）
+git tag v1.0.4
+git push origin v1.0.4    # 这一步才会真正触发 release-prod.yml
 ```
