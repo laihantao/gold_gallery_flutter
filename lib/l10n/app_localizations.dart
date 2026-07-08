@@ -119,6 +119,10 @@ class AppLocalizations {
   String get labelDate => _t(en: 'Date', zh: '日期', ms: 'Tarikh');
   String get labelType => _t(en: 'Type', zh: '类型', ms: 'Jenis');
 
+  // Collapsible filter section
+  String get filtersLabel => _t(en: 'Filters', zh: '筛选', ms: 'Penapis');
+  String get clearLabel => _t(en: 'Clear', zh: '清除', ms: 'Kosongkan');
+
   // ── Details ─────────────────────────────────────────────────────────────────
   String get detailsTitle => _t(en: 'Details', zh: '详情', ms: 'Butiran');
   String get jewelleryNotFound => _t(
@@ -251,6 +255,28 @@ class AppLocalizations {
     zh: '暂无收藏夹，请在列表页创建。',
     ms: 'Tiada koleksi lagi. Cipta satu dari tab Senarai.',
   );
+
+  // Manage collections (sheet + settings entry + quick create)
+  String get manageCollections =>
+      _t(en: 'Manage Collections', zh: '管理收藏夹', ms: 'Urus Koleksi');
+  String get newCollectionTitle =>
+      _t(en: 'New Collection', zh: '新建收藏夹', ms: 'Koleksi Baharu');
+  String get newCollectionHint => _t(
+    en: 'New collection name…',
+    zh: '新收藏夹名称…',
+    ms: 'Nama koleksi baharu…',
+  );
+  String get noCollectionsCreateHint => _t(
+    en: 'No collections yet. Create one above.',
+    zh: '暂无收藏夹，请在上方创建。',
+    ms: 'Tiada koleksi lagi. Cipta satu di atas.',
+  );
+  String get createLabel => _t(en: 'Create', zh: '创建', ms: 'Cipta');
+  String collectionCreated(String name) => switch (locale) {
+    AppLocale.en => 'Collection "$name" created',
+    AppLocale.zhCN => '已创建收藏夹“$name”',
+    AppLocale.ms => 'Koleksi "$name" dicipta',
+  };
 
   // Share card (Certificate design)
   String get certificateOfOwnership =>

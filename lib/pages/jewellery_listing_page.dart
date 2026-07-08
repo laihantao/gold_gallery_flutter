@@ -55,6 +55,9 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
   final TextEditingController _searchController = TextEditingController();
   // null = "All Items" tab; non-null = selected collection id
   String? _selectedCollectionId;
+  // Collapsible collection + filter section. Defaults to expanded; not
+  // persisted across app launches (intentionally view-local state).
+  bool _filtersExpanded = true;
 
   @override
   void dispose() {
@@ -192,48 +195,113 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
               : '↑';
           final sortLabel = _sortFieldLabel(notifier.sortField, l10n);
 
+          // Active narrowing = collection selection + filter values. Used for
+          // the collapsed-state badge (count) and summary strip (values).
+          final selectedCollectionName = _selectedCollectionId == null
+              ? null
+              : collections
+                    .where((c) => c.id == _selectedCollectionId)
+                    .map((c) => c.name)
+                    .firstOrNull;
+          final activeValues = <String>[
+            if (selectedCollectionName != null &&
+                selectedCollectionName.isNotEmpty)
+              selectedCollectionName,
+            if ((notifier.selectedBrand ?? '').isNotEmpty)
+              notifier.selectedBrand!,
+            if ((notifier.selectedPurity ?? '').isNotEmpty)
+              notifier.selectedPurity!,
+            if ((notifier.selectedType ?? '').isNotEmpty)
+              notifier.selectedType!,
+            if ((notifier.selectedOwnerName ?? '').isNotEmpty)
+              notifier.selectedOwnerName!,
+          ];
+          final activeCount = activeValues.length;
+          final showStrip = !_filtersExpanded && activeCount > 0;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Search bar ──────────────────────────────────
+              // ── Search bar + collapse toggle ────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: _SearchBar(
-                  controller: _searchController,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _SearchBar(
+                        controller: _searchController,
+                        appTheme: appTheme,
+                        hintText: l10n.searchHint,
+                        onChanged: notifier.updateSearch,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _FilterToggleButton(
+                      expanded: _filtersExpanded,
+                      badgeCount: activeCount,
+                      appTheme: appTheme,
+                      tooltip: l10n.filtersLabel,
+                      onTap: () => setState(
+                        () => _filtersExpanded = !_filtersExpanded,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Active-filter summary strip (collapsed only) ─
+              if (showStrip)
+                _ActiveFilterStrip(
+                  values: activeValues,
                   appTheme: appTheme,
-                  hintText: l10n.searchHint,
-                  onChanged: notifier.updateSearch,
+                  clearLabel: l10n.clearLabel,
+                  onExpand: () => setState(() => _filtersExpanded = true),
+                  onClear: () {
+                    notifier.resetFilters();
+                    setState(() => _selectedCollectionId = null);
+                  },
                 ),
-              ),
 
-              // ── Collections segmented toggle ─────────────────
-              _CollectionToggle(
-                collections: collections,
-                selectedId: _selectedCollectionId,
-                appTheme: appTheme,
-                onSelect: (id) => setState(() => _selectedCollectionId = id),
-                onManage: () => _showManageCollectionsSheet(
-                  context,
-                  collectionNotifier,
-                  appTheme,
-                ),
-              ),
-
-              // ── Filter chips ────────────────────────────────
-              FilterChipBar(
-                options: notifier.filterOptionsFor(l10n),
-                selectedValues: notifier.selectedFilters,
-                onFilterChanged: notifier.updateFilter,
-                onReset: () {
-                  notifier.resetFilters();
-                  _searchController.clear();
-                  notifier.updateSearch('');
-                },
-                availableOwners: notifier.hasMultipleOwners
-                    ? notifier.availableOwners
-                    : null,
-                selectedOwnerId: notifier.selectedOwnerId,
-                selectedOwnerName: notifier.selectedOwnerName,
+              // ── Collapsible: collection toggle + filter chips ─
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: _filtersExpanded
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _CollectionToggle(
+                            collections: collections,
+                            selectedId: _selectedCollectionId,
+                            allLabel: l10n.filterAll,
+                            appTheme: appTheme,
+                            onSelect: (id) =>
+                                setState(() => _selectedCollectionId = id),
+                            onManage: () => _showManageCollectionsSheet(
+                              context,
+                              collectionNotifier,
+                              appTheme,
+                            ),
+                          ),
+                          FilterChipBar(
+                            options: notifier.filterOptionsFor(l10n),
+                            selectedValues: notifier.selectedFilters,
+                            onFilterChanged: notifier.updateFilter,
+                            onReset: () {
+                              notifier.resetFilters();
+                              _searchController.clear();
+                              notifier.updateSearch('');
+                            },
+                            availableOwners: notifier.hasMultipleOwners
+                                ? notifier.availableOwners
+                                : null,
+                            selectedOwnerId: notifier.selectedOwnerId,
+                            selectedOwnerName: notifier.selectedOwnerName,
+                          ),
+                        ],
+                      )
+                    : const SizedBox(width: double.infinity, height: 0),
               ),
 
               // ── Item count + sort control (always visible) ──
@@ -427,6 +495,176 @@ class _SortControl extends StatelessWidget {
   }
 }
 
+// ── Collapse toggle button (right of search bar) ──────────────────────────────
+
+class _FilterToggleButton extends StatelessWidget {
+  final bool expanded;
+  final int badgeCount;
+  final AppTheme appTheme;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _FilterToggleButton({
+    required this.expanded,
+    required this.badgeCount,
+    required this.appTheme,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: appTheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onTap,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: appTheme.border, width: 1),
+                ),
+                child: AnimatedRotation(
+                  turns: expanded ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  child: Icon(
+                    Icons.expand_more,
+                    color: appTheme.inkMid,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (badgeCount > 0)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                decoration: BoxDecoration(
+                  color: appTheme.accentPrimary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: appTheme.surface, width: 1.5),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Active-filter summary strip (shown only when collapsed) ────────────────────
+
+class _ActiveFilterStrip extends StatelessWidget {
+  final List<String> values;
+  final AppTheme appTheme;
+  final String clearLabel;
+  final VoidCallback onExpand;
+  final VoidCallback onClear;
+
+  const _ActiveFilterStrip({
+    required this.values,
+    required this.appTheme,
+    required this.clearLabel,
+    required this.onExpand,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 8, 0),
+      child: SizedBox(
+        height: 28,
+        child: Row(
+          children: [
+            // Tapping the strip body re-expands the filter section.
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: onExpand,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.filter_list,
+                        size: 15,
+                        color: appTheme.accentSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          values.join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: appTheme.textHeading,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: onClear,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      clearLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: appTheme.accentPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.close,
+                      size: 14,
+                      color: appTheme.accentPrimary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Sort tile ─────────────────────────────────────────────────────────────────
 
 class _SortOptionTile extends StatelessWidget {
@@ -469,6 +707,7 @@ class _SortOptionTile extends StatelessWidget {
 class _CollectionToggle extends StatelessWidget {
   final List<Collection> collections;
   final String? selectedId;
+  final String allLabel;
   final AppTheme appTheme;
   final ValueChanged<String?> onSelect;
   final VoidCallback onManage;
@@ -476,6 +715,7 @@ class _CollectionToggle extends StatelessWidget {
   const _CollectionToggle({
     required this.collections,
     required this.selectedId,
+    required this.allLabel,
     required this.appTheme,
     required this.onSelect,
     required this.onManage,
@@ -489,7 +729,7 @@ class _CollectionToggle extends StatelessWidget {
       child: Row(
         children: [
           _CollectionChip(
-            label: 'All',
+            label: allLabel,
             icon: Icons.grid_view_rounded,
             isActive: selectedId == null,
             appTheme: appTheme,
