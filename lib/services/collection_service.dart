@@ -36,6 +36,15 @@ class CollectionNotifier extends ChangeNotifier {
     );
   }
 
+  /// Case-insensitive, whitespace-trimmed duplicate check. Pass [excludeId]
+  /// to ignore a specific collection (e.g. the one being renamed).
+  bool nameExists(String name, {String? excludeId}) {
+    final target = name.trim().toLowerCase();
+    return _collections.any(
+      (c) => c.id != excludeId && c.name.trim().toLowerCase() == target,
+    );
+  }
+
   Future<void> createCollection(String name) async {
     final c = Collection(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

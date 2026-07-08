@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/collection.dart';
 import '../services/collection_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
@@ -36,6 +37,15 @@ class _ManageCollectionsSheetState extends State<ManageCollectionsSheet> {
     super.dispose();
   }
 
+  void _snack(AppTheme appTheme, String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: isError ? appTheme.error : appTheme.snackBarBg,
+        content: Text(message),
+      ),
+    );
+  }
+
   Future<void> _create(
     CollectionNotifier notifier,
     AppTheme appTheme,
@@ -43,15 +53,82 @@ class _ManageCollectionsSheetState extends State<ManageCollectionsSheet> {
   ) async {
     final name = _ctrl.text.trim();
     if (name.isEmpty) return;
+    if (notifier.nameExists(name)) {
+      _snack(appTheme, l10n.collectionNameExists, isError: true);
+      return;
+    }
     await notifier.createCollection(name);
     _ctrl.clear();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: appTheme.snackBarBg,
-        content: Text(l10n.collectionCreated(name)),
+    _snack(appTheme, l10n.collectionCreated(name));
+  }
+
+  Future<void> _rename(
+    CollectionNotifier notifier,
+    AppTheme appTheme,
+    AppLocalizations l10n,
+    Collection collection,
+  ) async {
+    final ctrl = TextEditingController(text: collection.name);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: appTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          l10n.renameCollectionTitle,
+          style: TextStyle(
+            color: appTheme.inkDark,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+          style: TextStyle(color: appTheme.inkDark, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: l10n.newCollectionHint,
+            hintStyle: TextStyle(color: appTheme.inkLight, fontSize: 13),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              l10n.cancelButton,
+              style: TextStyle(color: appTheme.inkLight),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appTheme.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: Text(l10n.saveButton),
+          ),
+        ],
       ),
     );
+    ctrl.dispose();
+    if (newName == null || newName.isEmpty || newName == collection.name) {
+      return;
+    }
+    if (!mounted) return;
+    if (notifier.nameExists(newName, excludeId: collection.id)) {
+      _snack(appTheme, l10n.collectionNameExists, isError: true);
+      return;
+    }
+    await notifier.renameCollection(collection.id, newName);
+    if (!mounted) return;
+    _snack(appTheme, l10n.collectionRenamed(newName));
   }
 
   @override
@@ -197,14 +274,32 @@ class _ManageCollectionsSheetState extends State<ManageCollectionsSheet> {
                           fontSize: 11,
                         ),
                       ),
-                      trailing: IconButton(
-                        icon: Icon(
-                          Icons.delete_outline_rounded,
-                          color: appTheme.error,
-                          size: 18,
-                        ),
-                        onPressed: () =>
-                            collectionNotifier.deleteCollection(c.id),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              color: appTheme.inkMid,
+                              size: 18,
+                            ),
+                            onPressed: () => _rename(
+                              collectionNotifier,
+                              appTheme,
+                              l10n,
+                              c,
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: appTheme.error,
+                              size: 18,
+                            ),
+                            onPressed: () =>
+                                collectionNotifier.deleteCollection(c.id),
+                          ),
+                        ],
                       ),
                     );
                   },

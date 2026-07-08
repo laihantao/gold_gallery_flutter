@@ -277,6 +277,18 @@ class AppLocalizations {
     AppLocale.zhCN => '已创建收藏夹“$name”',
     AppLocale.ms => 'Koleksi "$name" dicipta',
   };
+  String get renameCollectionTitle =>
+      _t(en: 'Rename Collection', zh: '重命名收藏夹', ms: 'Namakan Semula Koleksi');
+  String get collectionNameExists => _t(
+    en: 'A collection with that name already exists',
+    zh: '已有同名收藏夹',
+    ms: 'Koleksi dengan nama itu sudah wujud',
+  );
+  String collectionRenamed(String name) => switch (locale) {
+    AppLocale.en => 'Renamed to "$name"',
+    AppLocale.zhCN => '已重命名为“$name”',
+    AppLocale.ms => 'Dinamakan semula kepada "$name"',
+  };
 
   // Share card (Certificate design)
   String get certificateOfOwnership =>
@@ -501,6 +513,21 @@ class AppLocalizations {
     en: "You're on the latest version",
     zh: '已是最新版本',
     ms: 'Anda menggunakan versi terkini',
+  );
+  String get updateOffline => _t(
+    en: "You're offline — can't check for updates",
+    zh: '您处于离线状态，无法检查更新',
+    ms: 'Anda di luar talian — tidak dapat menyemak kemas kini',
+  );
+  String get updateTimeout => _t(
+    en: 'Connection timed out — your network may be too slow',
+    zh: '连接超时，您的网络可能太慢',
+    ms: 'Sambungan tamat masa — rangkaian anda mungkin terlalu perlahan',
+  );
+  String get updateServerError => _t(
+    en: "Couldn't reach the update server. Please try again later.",
+    zh: '无法连接更新服务器，请稍后重试。',
+    ms: 'Tidak dapat menghubungi pelayan kemas kini. Sila cuba lagi kemudian.',
   );
 
   // ── Theme names (proper-noun translations) ───────────────────────────────────

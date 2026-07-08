@@ -137,6 +137,16 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     );
     ctrl.dispose();
     if (name == null || name.isEmpty) return;
+    if (!context.mounted) return;
+    if (collectionNotifier.nameExists(name)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: appTheme.error,
+          content: Text(l10n.collectionNameExists),
+        ),
+      );
+      return;
+    }
     await collectionNotifier.createCollection(name);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
