@@ -234,23 +234,29 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
                     : null,
                 selectedOwnerId: notifier.selectedOwnerId,
                 selectedOwnerName: notifier.selectedOwnerName,
-                onSortTap: () => _showSortSheet(context, notifier, l10n),
               ),
 
-              Padding(
-                padding: const EdgeInsets.only(left: 16, top: 4),
-                child: Text(
-                  '$sortLabel $sortArrow',
-                  style: TextStyle(fontSize: 11, color: appTheme.textBody),
-                ),
-              ),
+              // ── Item count + sort control (always visible) ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: Text(
-                  l10n.itemsFound(filteredItems.length),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: appTheme.inkLight),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        l10n.itemsFound(filteredItems.length),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: appTheme.inkLight),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    _SortControl(
+                      label: '$sortLabel $sortArrow',
+                      appTheme: appTheme,
+                      onTap: () => _showSortSheet(context, notifier, l10n),
+                    ),
+                  ],
                 ),
               ),
 
@@ -372,6 +378,49 @@ class _SearchBar extends StatelessWidget {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: appTheme.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Sort control (item-count row, right side) ─────────────────────────────────
+
+class _SortControl extends StatelessWidget {
+  final String label;
+  final AppTheme appTheme;
+  final VoidCallback onTap;
+
+  const _SortControl({
+    required this.label,
+    required this.appTheme,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.sort, size: 16, color: appTheme.accentSecondary),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: appTheme.accentSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

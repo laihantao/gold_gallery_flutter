@@ -14,7 +14,6 @@ class FilterChipBar extends StatelessWidget {
   final List<User>? availableOwners;
   final String? selectedOwnerId;
   final String? selectedOwnerName;
-  final VoidCallback? onSortTap;
 
   const FilterChipBar({
     super.key,
@@ -25,7 +24,6 @@ class FilterChipBar extends StatelessWidget {
     this.availableOwners,
     this.selectedOwnerId,
     this.selectedOwnerName,
-    this.onSortTap,
   });
 
   bool get _showOwnerChip =>
@@ -67,10 +65,6 @@ class FilterChipBar extends StatelessWidget {
                 ),
               ),
             ),
-          ],
-          if (onSortTap != null) ...[
-            const SizedBox(width: 8),
-            _ChipTouchTarget(child: _SortFilterChip(onTap: onSortTap!)),
           ],
           const SizedBox(width: 8),
           _ChipTouchTarget(child: _ResetFilterChip(onReset: onReset)),
@@ -319,47 +313,6 @@ class _OwnerFilterChip extends StatelessWidget {
                 color: _isActive
                     ? appTheme.backgroundPrimary
                     : appTheme.accentSecondary,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SortFilterChip extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _SortFilterChip({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final appTheme = context.watch<ThemeNotifier>().currentTheme;
-    final inactiveBackground = appTheme.backgroundSubtle;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: inactiveBackground,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: appTheme.accentPrimary.withValues(alpha: 0.85),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.sort,
-                size: 18,
-                color: appTheme.accentSecondary,
               ),
             ],
           ),
