@@ -14,6 +14,7 @@ import '../components/form_section.dart';
 import '../services/backup_service.dart';
 import '../services/gold_price_history_backfill_service.dart';
 import '../services/update_checker.dart';
+import '../widgets/manage_collections_sheet.dart';
 import '../widgets/update_dialog.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -183,6 +184,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     label: l10n.manageTypes,
                     onPressed: () =>
                         GoRouter.of(context).push('/jewellery-types'),
+                  ),
+                  const SizedBox(height: 10),
+                  PrimaryButton(
+                    label: l10n.manageCollections,
+                    onPressed: () => ManageCollectionsSheet.show(context),
                   ),
                 ],
               ),
