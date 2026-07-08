@@ -69,6 +69,11 @@ class UpdateChecker {
   static const String _prodManifestUrl =
       'https://raw.githubusercontent.com/laihantao/pocket-gold-releases/main/release_manifests/version-prod.json';
 
+  /// The manifest URL the current runtime channel resolves to. Exposed for the
+  /// Settings update-diagnostics view.
+  static String get manifestUrl =>
+      activeChannel == AppChannel.dev ? _devManifestUrl : _prodManifestUrl;
+
   /// Silent variant for the unattended startup check: returns the pending
   /// update if any, and `null` for every other outcome (up to date, offline,
   /// timeout, error) so it can never surface as a startup crash.

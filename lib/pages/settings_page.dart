@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import '../config/app_channel.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/locale_notifier.dart';
 import '../services/auth_service.dart';
@@ -353,12 +354,17 @@ class _SettingsPageState extends State<SettingsPage> {
               // floats above this scroll content at bottom-centre.
               Align(
                 alignment: Alignment.centerRight,
-                child: Text(
-                  _versionLabel!,
-                  style: TextStyle(
-                    color: appTheme.inkLight.withValues(alpha: 0.5),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w400,
+                // Long-press reveals hidden update diagnostics (channel,
+                // manifest URL, installed build, live check result).
+                child: GestureDetector(
+                  onLongPress: () => _showUpdateDiagnostics(appTheme),
+                  child: Text(
+                    _versionLabel!,
+                    style: TextStyle(
+                      color: appTheme.inkLight.withValues(alpha: 0.5),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
               ),
@@ -472,6 +478,19 @@ class _SettingsPageState extends State<SettingsPage> {
     } finally {
       if (mounted) setState(() => _isCheckingUpdate = false);
     }
+  }
+
+  Future<void> _showUpdateDiagnostics(AppTheme appTheme) async {
+    final pkg = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _UpdateDiagnosticsDialog(
+        appTheme: appTheme,
+        appVersion: pkg.version,
+        buildNumber: pkg.buildNumber,
+      ),
+    );
   }
 
   void _showSnackBar(
@@ -663,3 +682,124 @@ class _ThemeCard extends StatelessWidget {
   }
 }
 
+// ── Update diagnostics (hidden: long-press the version label) ──────────────────
+//
+// Developer/support aid, intentionally not localized. Surfaces exactly what the
+// update checker sees: which channel/manifest it queries, the installed build,
+// and the live outcome — so "why didn't it update?" is answerable at a glance.
+
+class _UpdateDiagnosticsDialog extends StatefulWidget {
+  final AppTheme appTheme;
+  final String appVersion;
+  final String buildNumber;
+
+  const _UpdateDiagnosticsDialog({
+    required this.appTheme,
+    required this.appVersion,
+    required this.buildNumber,
+  });
+
+  @override
+  State<_UpdateDiagnosticsDialog> createState() =>
+      _UpdateDiagnosticsDialogState();
+}
+
+class _UpdateDiagnosticsDialogState extends State<_UpdateDiagnosticsDialog> {
+  String _result = 'Checking…';
+
+  @override
+  void initState() {
+    super.initState();
+    _run();
+  }
+
+  Future<void> _run() async {
+    final result = await UpdateChecker.checkForUpdateDetailed();
+    if (!mounted) return;
+    setState(() => _result = _describe(result));
+  }
+
+  String _describe(UpdateCheckResult result) => switch (result) {
+    UpdateAvailable(:final info) => 'Update available → ${info.version}',
+    UpToDate() => 'Up to date',
+    UpdateCheckOffline() => 'Offline / no connection',
+    UpdateCheckTimeout() => 'Timed out (slow network)',
+    UpdateCheckServerError(:final statusCode) =>
+      'Server error (${statusCode ?? 'unreadable manifest'})',
+  };
+
+  Widget _row(String label, String value) {
+    final t = widget.appTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: t.inkLight,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: TextStyle(color: t.inkDark, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.appTheme;
+    return AlertDialog(
+      backgroundColor: t.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        'Update diagnostics',
+        style: TextStyle(
+          color: t.inkDark,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _row('Channel', activeChannel.name),
+          _row('Installed', '${widget.appVersion} (${widget.buildNumber})'),
+          _row('Result', _result),
+          const SizedBox(height: 8),
+          Text(
+            'Manifest',
+            style: TextStyle(
+              color: t.inkLight,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          SelectableText(
+            UpdateChecker.manifestUrl,
+            style: TextStyle(color: t.inkMid, fontSize: 11),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Close', style: TextStyle(color: t.primary)),
+        ),
+      ],
+    );
+  }
+}
