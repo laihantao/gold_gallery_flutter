@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
@@ -63,11 +65,36 @@ class JewelleryCard extends StatelessWidget {
     final firstPhoto = jewellery.jewelleryPhoto.isNotEmpty
         ? jewellery.jewelleryPhoto.first
         : null;
+    final dateText = DateFormat('dd/MM/yyyy').format(jewellery.date);
 
-    // Single metadata line: "Brand · Type · Owner" (blanks skipped, no
-    // "Label:" prefixes; date is intentionally omitted — the list is
-    // date-sorted and the date lives on the detail page).
-    final metaLine = [?brandName, ?typeName, ?ownerDisplay].join(' · ');
+    // Row 1 metadata: "Brand · Type · Owner" (blanks skipped, no "Label:"
+    // prefixes). Brand is bold; the rest is regular weight. Date goes on a
+    // second row below.
+    final metaBase = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: appTheme.textBody,
+    );
+    final metaBrand = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+      color: appTheme.textHeading,
+    );
+    final metaParts = <MapEntry<String, bool>>[
+      if (brandName != null) MapEntry(brandName, true),
+      if (typeName != null) MapEntry(typeName, false),
+      if (ownerDisplay != null) MapEntry(ownerDisplay, false),
+    ];
+    final metaSpans = <TextSpan>[];
+    for (var i = 0; i < metaParts.length; i++) {
+      if (i > 0) metaSpans.add(TextSpan(text: ' · ', style: metaBase));
+      metaSpans.add(
+        TextSpan(
+          text: metaParts[i].key,
+          style: metaParts[i].value ? metaBrand : metaBase,
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -132,15 +159,30 @@ class JewelleryCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          metaLine,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: appTheme.textBody,
+                        if (metaSpans.isNotEmpty) ...[
+                          RichText(
+                            text: TextSpan(children: metaSpans),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          const SizedBox(height: 3),
+                        ],
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.event_outlined,
+                              size: 12,
+                              color: appTheme.inkLight,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              dateText,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: appTheme.inkLight,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -189,7 +231,11 @@ class JewelleryCard extends StatelessWidget {
   }
 }
 
-class _JewelleryThumbnail extends StatelessWidget {
+/// Decodes the base64 thumbnail once and caches the bytes, re-decoding only
+/// when the photo actually changes. This keeps unrelated parent rebuilds
+/// (e.g. toggling the filter section) from re-decoding the image, and
+/// `gaplessPlayback` avoids a flash while the new frame resolves.
+class _JewelleryThumbnail extends StatefulWidget {
   final String? base64Photo;
   final AppTheme appTheme;
 
@@ -199,51 +245,60 @@ class _JewelleryThumbnail extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (base64Photo == null || base64Photo!.isEmpty) {
-      return ColoredBox(
-        color: appTheme.backgroundSubtle,
-        child: Center(
-          child: Icon(
-            Icons.diamond_outlined,
-            color: appTheme.accentSecondary,
-            size: 28,
-          ),
-        ),
-      );
-    }
+  State<_JewelleryThumbnail> createState() => _JewelleryThumbnailState();
+}
 
-    try {
-      final bytes = base64Decode(base64Photo!);
-      return Image.memory(
-        bytes,
-        key: ValueKey('thumb_$base64Photo'),
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return ColoredBox(
-            color: appTheme.backgroundSubtle,
-            child: Center(
-              child: Icon(
-                Icons.diamond_outlined,
-                color: appTheme.accentSecondary,
-                size: 28,
-              ),
-            ),
-          );
-        },
-      );
-    } catch (_) {
-      return ColoredBox(
-        color: appTheme.backgroundSubtle,
-        child: Center(
-          child: Icon(
-            Icons.diamond_outlined,
-            color: appTheme.accentSecondary,
-            size: 28,
-          ),
-        ),
-      );
+class _JewelleryThumbnailState extends State<_JewelleryThumbnail> {
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _decode();
+  }
+
+  @override
+  void didUpdateWidget(_JewelleryThumbnail old) {
+    super.didUpdateWidget(old);
+    if (old.base64Photo != widget.base64Photo) _decode();
+  }
+
+  void _decode() {
+    final photo = widget.base64Photo;
+    if (photo == null || photo.isEmpty) {
+      _bytes = null;
+      return;
     }
+    try {
+      _bytes = base64Decode(photo);
+    } catch (_) {
+      _bytes = null;
+    }
+  }
+
+  Widget _placeholder() {
+    return ColoredBox(
+      color: widget.appTheme.backgroundSubtle,
+      child: Center(
+        child: Icon(
+          Icons.diamond_outlined,
+          color: widget.appTheme.accentSecondary,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = _bytes;
+    if (bytes == null) return _placeholder();
+    return Image.memory(
+      bytes,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      errorBuilder: (context, error, stackTrace) => _placeholder(),
+    );
   }
 }
 

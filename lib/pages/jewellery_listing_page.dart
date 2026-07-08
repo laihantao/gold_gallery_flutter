@@ -55,9 +55,9 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
   final TextEditingController _searchController = TextEditingController();
   // null = "All Items" tab; non-null = selected collection id
   String? _selectedCollectionId;
-  // Collapsible collection + filter section. Defaults to expanded; not
+  // Collapsible collection + filter section. Defaults to collapsed; not
   // persisted across app launches (intentionally view-local state).
-  bool _filtersExpanded = true;
+  bool _filtersExpanded = false;
 
   @override
   void dispose() {
