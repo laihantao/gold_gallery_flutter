@@ -455,12 +455,19 @@ class _SettingsPageState extends State<SettingsPage> {
     if (_isCheckingUpdate) return;
     setState(() => _isCheckingUpdate = true);
     try {
-      final info = await UpdateChecker.checkForUpdate();
+      final result = await UpdateChecker.checkForUpdateDetailed();
       if (!mounted) return;
-      if (info == null) {
-        _showSnackBar(l10n.updateUpToDate, appTheme);
-      } else {
-        await UpdateDialog.show(context, info);
+      switch (result) {
+        case UpdateAvailable(:final info):
+          await UpdateDialog.show(context, info);
+        case UpToDate():
+          _showSnackBar(l10n.updateUpToDate, appTheme);
+        case UpdateCheckOffline():
+          _showSnackBar(l10n.updateOffline, appTheme, isError: true);
+        case UpdateCheckTimeout():
+          _showSnackBar(l10n.updateTimeout, appTheme, isError: true);
+        case UpdateCheckServerError():
+          _showSnackBar(l10n.updateServerError, appTheme, isError: true);
       }
     } finally {
       if (mounted) setState(() => _isCheckingUpdate = false);

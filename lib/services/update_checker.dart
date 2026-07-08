@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -20,6 +21,41 @@ class UpdateInfo {
   });
 }
 
+/// Outcome of a manual update check, so the UI can give a meaningful message
+/// per scenario instead of collapsing every failure into "up to date".
+sealed class UpdateCheckResult {
+  const UpdateCheckResult();
+}
+
+/// A newer build is available.
+final class UpdateAvailable extends UpdateCheckResult {
+  final UpdateInfo info;
+  const UpdateAvailable(this.info);
+}
+
+/// Reached the manifest and the installed build is current.
+final class UpToDate extends UpdateCheckResult {
+  const UpToDate();
+}
+
+/// No connectivity — the request failed before reaching the server
+/// (offline, DNS failure, connection refused).
+final class UpdateCheckOffline extends UpdateCheckResult {
+  const UpdateCheckOffline();
+}
+
+/// Had connectivity but the request exceeded [UpdateChecker._timeout].
+final class UpdateCheckTimeout extends UpdateCheckResult {
+  const UpdateCheckTimeout();
+}
+
+/// Reached the network but couldn't read a valid manifest — a non-200
+/// response (e.g. 404/5xx) or malformed/incomplete JSON.
+final class UpdateCheckServerError extends UpdateCheckResult {
+  final int? statusCode;
+  const UpdateCheckServerError(this.statusCode);
+}
+
 /// Checks the GitHub-hosted release manifest for a newer build than the one
 /// currently installed.
 ///
@@ -33,7 +69,18 @@ class UpdateChecker {
   static const String _prodManifestUrl =
       'https://raw.githubusercontent.com/laihantao/pocket-gold-releases/main/release_manifests/version-prod.json';
 
+  /// Silent variant for the unattended startup check: returns the pending
+  /// update if any, and `null` for every other outcome (up to date, offline,
+  /// timeout, error) so it can never surface as a startup crash.
   static Future<UpdateInfo?> checkForUpdate() async {
+    final result = await checkForUpdateDetailed();
+    return result is UpdateAvailable ? result.info : null;
+  }
+
+  /// Full variant for the manual "Check for Updates" action, classifying the
+  /// outcome so the UI can distinguish offline / timeout / server error /
+  /// up to date / update available.
+  static Future<UpdateCheckResult> checkForUpdateDetailed() async {
     try {
       final manifestUrl = channelFromEnv == AppChannel.dev
           ? _devManifestUrl
@@ -42,14 +89,22 @@ class UpdateChecker {
       final response = await http
           .get(Uri.parse(manifestUrl))
           .timeout(_timeout);
-      if (response.statusCode != 200) return null;
+      // Reached the server but it didn't serve the manifest.
+      if (response.statusCode != 200) {
+        return UpdateCheckServerError(response.statusCode);
+      }
 
       final json = jsonDecode(response.body);
-      if (json is! Map<String, dynamic>) return null;
+      // Reached the manifest but couldn't read the fields we need.
+      if (json is! Map<String, dynamic>) {
+        return const UpdateCheckServerError(null);
+      }
 
       final remoteVersion = json['version'];
       final apkUrl = json['apk_url'];
-      if (remoteVersion is! String || apkUrl is! String) return null;
+      if (remoteVersion is! String || apkUrl is! String) {
+        return const UpdateCheckServerError(null);
+      }
 
       final notes = json['notes'] is String ? json['notes'] as String : '';
       final forceUpdate = json['force_update'] == true;
@@ -65,18 +120,25 @@ class UpdateChecker {
           ? remoteBuildNumber > localBuildNumber
           : _isNewer(remoteVersion, localInfo.version);
 
-      if (!isNewer) return null;
+      if (!isNewer) return const UpToDate();
 
-      return UpdateInfo(
-        version: remoteVersion,
-        apkUrl: apkUrl,
-        notes: notes,
-        forceUpdate: forceUpdate,
+      return UpdateAvailable(
+        UpdateInfo(
+          version: remoteVersion,
+          apkUrl: apkUrl,
+          notes: notes,
+          forceUpdate: forceUpdate,
+        ),
       );
+    } on TimeoutException {
+      // Had a connection but the server was too slow to respond in time.
+      return const UpdateCheckTimeout();
     } catch (_) {
-      // Silent failure by design: a broken manifest or offline device must
-      // never block or crash app startup.
-      return null;
+      // Connection-level failures (offline, DNS failure, connection refused)
+      // surface as SocketException / http.ClientException depending on the
+      // platform. Classified as offline without importing dart:io so the
+      // web build stays compilable.
+      return const UpdateCheckOffline();
     }
   }
 
