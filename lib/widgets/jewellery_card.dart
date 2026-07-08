@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
@@ -51,14 +50,24 @@ class JewelleryCard extends StatelessWidget {
         ? _nonBlank(HiveService.getJewelleryType(jewellery.jewelleryTypeId!)
             ?.localizedName(l10n.locale))
         : null;
-    final dateText = DateFormat('dd/MM/yyyy').format(jewellery.date);
+    final ownerName = _nonBlank(item.ownerName);
+    // Treat the "—" placeholder (set when an item has no owner) as absent.
+    final ownerDisplay = (ownerName == null || ownerName == '—')
+        ? null
+        : ownerName;
+    final brandName = _nonBlank(jewellery.brand);
     final totalPrice = jewellery.totalPrice ?? 0.0;
     final priceText =
         '${item.currencySymbol} ${totalPrice.toStringAsFixed(2)}';
-    final purity = _nonBlank(jewellery.goldPurity) ?? '—';
+    final purityValue = _nonBlank(jewellery.goldPurity);
     final firstPhoto = jewellery.jewelleryPhoto.isNotEmpty
         ? jewellery.jewelleryPhoto.first
         : null;
+
+    // Single metadata line: "Brand · Type · Owner" (blanks skipped, no
+    // "Label:" prefixes; date is intentionally omitted — the list is
+    // date-sorted and the date lives on the detail page).
+    final metaLine = [?brandName, ?typeName, ?ownerDisplay].join(' · ');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -74,7 +83,7 @@ class JewelleryCard extends StatelessWidget {
             radius: 16,
             color: appTheme.border,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: appTheme.surface,
                 borderRadius: BorderRadius.circular(16),
@@ -82,15 +91,30 @@ class JewelleryCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(
-                      width: imageSize,
-                      height: imageSize,
-                      child: _JewelleryThumbnail(
-                        base64Photo: firstPhoto,
-                        appTheme: appTheme,
-                      ),
+                  SizedBox(
+                    width: imageSize,
+                    height: imageSize,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: _JewelleryThumbnail(
+                              base64Photo: firstPhoto,
+                              appTheme: appTheme,
+                            ),
+                          ),
+                        ),
+                        if (purityValue != null)
+                          Positioned(
+                            top: 4,
+                            left: 4,
+                            child: _PurityBadge(
+                              purity: purityValue,
+                              appTheme: appTheme,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -100,38 +124,35 @@ class JewelleryCard extends StatelessWidget {
                       children: [
                         Text(
                           _nonBlank(jewellery.name) ?? l10n.untitled,
-                          style: AppTextStyles.title(appTheme.inkDark),
+                          // Inline size override (15) — does not touch the
+                          // shared AppTextStyles.title token (16) used elsewhere.
+                          style: AppTextStyles.title(appTheme.inkDark)
+                              .copyWith(fontSize: 15),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          metaLine,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: appTheme.textBody,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
-                        _MetaGrid(
-                          appTheme: appTheme,
-                          entries: [
-                            _MetaEntry(l10n.rowBrand,
-                                _nonBlank(jewellery.brand) ?? '—'),
-                            _MetaEntry(l10n.rowOwner, item.ownerName),
-                            _MetaEntry(l10n.labelType, typeName ?? '—'),
-                            _MetaEntry(l10n.labelDate, dateText),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
                         Row(
                           children: [
-                            _PurityBadge(
-                              purity: purity,
-                              appTheme: appTheme,
-                            ),
                             if (gl != null &&
                                 jewellery.totalPrice != null &&
-                                jewellery.totalPrice! > 0) ...[
-                              const SizedBox(width: 6),
+                                jewellery.totalPrice! > 0)
                               _GlChip(
                                 gl: gl,
                                 glPct: glPct,
                                 appTheme: appTheme,
                               ),
-                            ],
                             const Spacer(),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -226,88 +247,8 @@ class _JewelleryThumbnail extends StatelessWidget {
   }
 }
 
-class _MetaEntry {
-  final String label;
-  final String value;
-
-  const _MetaEntry(this.label, this.value);
-}
-
-class _MetaGrid extends StatelessWidget {
-  final AppTheme appTheme;
-  final List<_MetaEntry> entries;
-
-  const _MetaGrid({
-    required this.appTheme,
-    required this.entries,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 8) / 2;
-        return Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: entries
-              .map(
-                (entry) => SizedBox(
-                  width: itemWidth,
-                  child: _MetaCell(
-                    label: entry.label,
-                    value: entry.value,
-                    appTheme: appTheme,
-                  ),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-}
-
-class _MetaCell extends StatelessWidget {
-  final String label;
-  final String value;
-  final AppTheme appTheme;
-
-  const _MetaCell({
-    required this.label,
-    required this.value,
-    required this.appTheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return RichText(
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: '$label: ',
-            style: TextStyle(
-              color: appTheme.textBody.withValues(alpha: 0.85),
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          TextSpan(
-            text: value,
-            style: TextStyle(
-              color: appTheme.textHeading.withValues(alpha: 0.95),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+/// Compact purity chip overlaid on the top-left of the thumbnail. Uses a
+/// solid on-brand background + white text so it stays legible over any photo.
 class _PurityBadge extends StatelessWidget {
   final String purity;
   final AppTheme appTheme;
@@ -320,21 +261,25 @@ class _PurityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: appTheme.accentPrimary.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: appTheme.accentPrimary.withValues(alpha: 0.55),
-          width: 1,
-        ),
+        color: appTheme.primaryDark,
+        borderRadius: BorderRadius.circular(7),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Text(
         purity,
-        style: TextStyle(
-          color: appTheme.accentSecondary,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          height: 1.0,
         ),
       ),
     );
