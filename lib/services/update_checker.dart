@@ -82,7 +82,10 @@ class UpdateChecker {
   /// up to date / update available.
   static Future<UpdateCheckResult> checkForUpdateDetailed() async {
     try {
-      final manifestUrl = channelFromEnv == AppChannel.dev
+      // Use the runtime channel the app booted with, not the compile-time
+      // dart-define — the two can drift (e.g. a dev-target build that omits
+      // --dart-define=CHANNEL=dev), which silently checks the wrong manifest.
+      final manifestUrl = activeChannel == AppChannel.dev
           ? _devManifestUrl
           : _prodManifestUrl;
 

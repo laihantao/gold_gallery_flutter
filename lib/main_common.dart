@@ -26,6 +26,10 @@ import 'routes/app_router.dart';
 Future<void> mainCommon(AppChannel channel) async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Make the boot channel authoritative for the rest of the app (e.g. the OTA
+  // update check), independent of the compile-time CHANNEL dart-define.
+  activeChannel = channel;
+
   await Hive.initFlutter();
   Hive.registerAdapter(GoldPriceAdapter());
   await Hive.openBox<GoldPrice>('goldPriceBox');

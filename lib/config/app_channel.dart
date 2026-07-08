@@ -17,3 +17,11 @@ const String _channelEnv = String.fromEnvironment('CHANNEL', defaultValue: 'prod
 
 const AppChannel channelFromEnv =
     _channelEnv == 'dev' ? AppChannel.dev : AppChannel.prod;
+
+/// The channel the running build actually booted with, set once by
+/// [mainCommon] from the entry point (`main_dev.dart` → dev, etc.). This is
+/// authoritative at runtime — prefer it over [channelFromEnv] so a build that
+/// sets `--target lib/main_dev.dart` but forgets `--dart-define=CHANNEL=dev`
+/// still resolves to the correct update channel instead of silently defaulting
+/// to prod. Defaults to [channelFromEnv] until [mainCommon] runs.
+AppChannel activeChannel = channelFromEnv;
