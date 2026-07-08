@@ -472,8 +472,12 @@ class _SettingsPageState extends State<SettingsPage> {
           _showSnackBar(l10n.updateOffline, appTheme, isError: true);
         case UpdateCheckTimeout():
           _showSnackBar(l10n.updateTimeout, appTheme, isError: true);
-        case UpdateCheckServerError():
-          _showSnackBar(l10n.updateServerError, appTheme, isError: true);
+        case UpdateCheckServerError(:final statusCode):
+          _showSnackBar(
+            statusCode == 429 ? l10n.updateRateLimited : l10n.updateServerError,
+            appTheme,
+            isError: true,
+          );
       }
     } finally {
       if (mounted) setState(() => _isCheckingUpdate = false);
@@ -724,8 +728,9 @@ class _UpdateDiagnosticsDialogState extends State<_UpdateDiagnosticsDialog> {
     UpToDate() => 'Up to date',
     UpdateCheckOffline() => 'Offline / no connection',
     UpdateCheckTimeout() => 'Timed out (slow network)',
-    UpdateCheckServerError(:final statusCode) =>
-      'Server error (${statusCode ?? 'unreadable manifest'})',
+    UpdateCheckServerError(:final statusCode) => statusCode == 429
+        ? 'Rate limited (429) — try again later'
+        : 'Server error (${statusCode ?? 'unreadable manifest'})',
   };
 
   Widget _row(String label, String value) {

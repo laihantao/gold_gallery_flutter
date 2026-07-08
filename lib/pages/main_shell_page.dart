@@ -55,7 +55,7 @@ class _MainShellPageState extends State<MainShellPage> {
   }
 
   Future<void> _checkForUpdate() async {
-    final info = await UpdateChecker.checkForUpdate();
+    final info = await UpdateChecker.checkForUpdateOnStartup();
     if (info == null || !mounted) return;
     await UpdateDialog.show(context, info);
   }

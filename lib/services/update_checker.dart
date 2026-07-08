@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_channel.dart';
 
@@ -74,12 +75,46 @@ class UpdateChecker {
   static String get manifestUrl =>
       activeChannel == AppChannel.dev ? _devManifestUrl : _prodManifestUrl;
 
+  /// A descriptive User-Agent + JSON Accept, so the manifest request isn't a
+  /// bare `Dart/x.y` client (which hosts are quicker to throttle).
+  static const Map<String, String> _requestHeaders = {
+    'User-Agent': 'PocketGold-App/1 (OTA update checker)',
+    'Accept': 'application/json',
+  };
+
+  static const String _lastAutoCheckKey = 'update_last_auto_check_ms';
+
+  /// The unattended startup check runs at most once per this window. Repeated
+  /// app launches within it are skipped, so we don't hammer the manifest host
+  /// (raw.githubusercontent.com rate-limits per IP → 429). The manual Settings
+  /// check is never throttled.
+  static const Duration _autoCheckMinInterval = Duration(hours: 6);
+
   /// Silent variant for the unattended startup check: returns the pending
   /// update if any, and `null` for every other outcome (up to date, offline,
   /// timeout, error) so it can never surface as a startup crash.
   static Future<UpdateInfo?> checkForUpdate() async {
     final result = await checkForUpdateDetailed();
     return result is UpdateAvailable ? result.info : null;
+  }
+
+  /// Startup entry point: self-throttles to [_autoCheckMinInterval] so opening
+  /// the app repeatedly doesn't spam the manifest host. Returns `null` (no
+  /// update shown) when it checked too recently.
+  static Future<UpdateInfo?> checkForUpdateOnStartup() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final last = prefs.getInt(_lastAutoCheckKey);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (last != null &&
+          now - last < _autoCheckMinInterval.inMilliseconds) {
+        return null; // checked recently — skip to avoid rate limiting
+      }
+      await prefs.setInt(_lastAutoCheckKey, now);
+    } catch (_) {
+      // Prefs unavailable — fall through and just check.
+    }
+    return checkForUpdate();
   }
 
   /// Full variant for the manual "Check for Updates" action, classifying the
@@ -95,7 +130,7 @@ class UpdateChecker {
           : _prodManifestUrl;
 
       final response = await http
-          .get(Uri.parse(manifestUrl))
+          .get(Uri.parse(manifestUrl), headers: _requestHeaders)
           .timeout(_timeout);
       // Reached the server but it didn't serve the manifest.
       if (response.statusCode != 200) {

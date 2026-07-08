@@ -529,6 +529,11 @@ class AppLocalizations {
     zh: '无法连接更新服务器，请稍后重试。',
     ms: 'Tidak dapat menghubungi pelayan kemas kini. Sila cuba lagi kemudian.',
   );
+  String get updateRateLimited => _t(
+    en: 'Update server is busy (too many requests). Please try again in a few minutes.',
+    zh: '更新服务器繁忙（请求过多），请几分钟后重试。',
+    ms: 'Pelayan kemas kini sibuk (terlalu banyak permintaan). Cuba lagi dalam beberapa minit.',
+  );
 
   // ── Theme names (proper-noun translations) ───────────────────────────────────
   String get themeNameParchment => _t(en: 'Aureate', zh: '暖金', ms: 'Keemasan');
