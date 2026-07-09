@@ -31,7 +31,11 @@ class TabScope extends InheritedWidget {
 }
 
 /// Persistent shell that owns the bottom nav bar and FAB.
-/// The four main tabs animate inside via [AnimatedSwitcher].
+///
+/// The four main tabs live in a lazy [IndexedStack] and are kept alive across
+/// switches. Rebuilding a tab from scratch on every switch (the old
+/// [AnimatedSwitcher] approach) re-ran each page's data load and re-decoded
+/// every base64 image, which showed as a blank-then-flash on landing.
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
 
@@ -40,10 +44,17 @@ class MainShellPage extends StatefulWidget {
 }
 
 class _MainShellPageState extends State<MainShellPage> {
+  // Bottom-nav tab indices (2 is the centre FAB, not a tab).
+  static const List<int> _tabIndices = [0, 1, 3, 4];
+
   int _index = 0;
   int _refreshNonce = 0;
   String? _pendingListingType;
   String? _pendingListingOwnerId;
+
+  // Tabs visited at least once — lets the IndexedStack build a tab on first
+  // visit, then keep it alive, instead of building all four upfront.
+  final Set<int> _visited = {0};
 
   @override
   void initState() {
@@ -68,6 +79,7 @@ class _MainShellPageState extends State<MainShellPage> {
       _index = newIndex;
       _pendingListingType = filterType;
       _pendingListingOwnerId = filterOwnerId;
+      _visited.add(newIndex);
     });
   }
 
@@ -87,8 +99,13 @@ class _MainShellPageState extends State<MainShellPage> {
           refreshNonce: _refreshNonce,
         );
       case 3:
+        // Key encodes the pending filter so a filter-driven navigation
+        // (Dashboard → filtered Listing) rebuilds with the new filter, while
+        // plain tab switches keep the same key and stay alive.
         return JewelleryListingPage(
-          key: const ValueKey('listing'),
+          key: ValueKey(
+            'listing_${_pendingListingType}_$_pendingListingOwnerId',
+          ),
           initialType: _pendingListingType,
           initialOwnerId: _pendingListingOwnerId,
           refreshNonce: _refreshNonce,
@@ -107,28 +124,15 @@ class _MainShellPageState extends State<MainShellPage> {
     return TabScope(
       switchTab: _switchTab,
       child: Scaffold(
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 280),
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeInOut,
-            ),
-            child: SlideTransition(
-              position:
-                  Tween<Offset>(
-                    begin: const Offset(0, 0.015),
-                    end: Offset.zero,
-                  ).animate(
-                    CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
-                    ),
-                  ),
-              child: child,
-            ),
-          ),
-          child: _buildTab(_index),
+        body: IndexedStack(
+          index: _tabIndices.indexOf(_index),
+          children: [
+            for (final i in _tabIndices)
+              if (_visited.contains(i))
+                _buildTab(i)
+              else
+                const SizedBox.shrink(),
+          ],
         ),
         floatingActionButton: FloatingActionButton(
           heroTag: 'main_shell_fab',
