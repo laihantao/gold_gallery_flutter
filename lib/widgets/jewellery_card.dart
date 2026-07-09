@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +10,7 @@ import '../services/market_value_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
+import 'cached_thumbnail.dart';
 import 'money_text.dart';
 import 'sketch_border.dart';
 
@@ -127,9 +125,18 @@ class JewelleryCard extends StatelessWidget {
                         Positioned.fill(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: _JewelleryThumbnail(
-                              base64Photo: firstPhoto,
-                              appTheme: appTheme,
+                            child: CachedThumbnail(
+                              base64: firstPhoto,
+                              placeholder: ColoredBox(
+                                color: appTheme.backgroundSubtle,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.diamond_outlined,
+                                    color: appTheme.accentSecondary,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -226,77 +233,6 @@ class JewelleryCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Decodes the base64 thumbnail once and caches the bytes, re-decoding only
-/// when the photo actually changes. This keeps unrelated parent rebuilds
-/// (e.g. toggling the filter section) from re-decoding the image, and
-/// `gaplessPlayback` avoids a flash while the new frame resolves.
-class _JewelleryThumbnail extends StatefulWidget {
-  final String? base64Photo;
-  final AppTheme appTheme;
-
-  const _JewelleryThumbnail({
-    required this.base64Photo,
-    required this.appTheme,
-  });
-
-  @override
-  State<_JewelleryThumbnail> createState() => _JewelleryThumbnailState();
-}
-
-class _JewelleryThumbnailState extends State<_JewelleryThumbnail> {
-  Uint8List? _bytes;
-
-  @override
-  void initState() {
-    super.initState();
-    _decode();
-  }
-
-  @override
-  void didUpdateWidget(_JewelleryThumbnail old) {
-    super.didUpdateWidget(old);
-    if (old.base64Photo != widget.base64Photo) _decode();
-  }
-
-  void _decode() {
-    final photo = widget.base64Photo;
-    if (photo == null || photo.isEmpty) {
-      _bytes = null;
-      return;
-    }
-    try {
-      _bytes = base64Decode(photo);
-    } catch (_) {
-      _bytes = null;
-    }
-  }
-
-  Widget _placeholder() {
-    return ColoredBox(
-      color: widget.appTheme.backgroundSubtle,
-      child: Center(
-        child: Icon(
-          Icons.diamond_outlined,
-          color: widget.appTheme.accentSecondary,
-          size: 28,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bytes = _bytes;
-    if (bytes == null) return _placeholder();
-    return Image.memory(
-      bytes,
-      fit: BoxFit.cover,
-      gaplessPlayback: true,
-      errorBuilder: (context, error, stackTrace) => _placeholder(),
     );
   }
 }
