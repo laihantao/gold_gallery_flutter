@@ -12,6 +12,7 @@ import '../services/hive_service.dart';
 import '../services/market_value_service.dart';
 import '../widgets/gold_gradient_card.dart';
 import '../widgets/jewellery_type_icon.dart';
+import '../widgets/money_text.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
@@ -391,6 +392,7 @@ class _PortfolioCard extends StatelessWidget {
                               '${data.currencySymbol} ${data.totalValue.toStringAsFixed(2)}',
                           icon: Icons.account_balance_wallet_outlined,
                           alignRight: true,
+                          sensitive: true,
                           l10n: l10n,
                         ),
                       ),
@@ -512,6 +514,7 @@ class _StatBlock extends StatelessWidget {
   final String value;
   final IconData icon;
   final bool alignRight;
+  final bool sensitive;
   final AppLocalizations l10n;
 
   const _StatBlock({
@@ -520,6 +523,7 @@ class _StatBlock extends StatelessWidget {
     required this.icon,
     required this.l10n,
     this.alignRight = false,
+    this.sensitive = false,
   });
 
   @override
@@ -569,16 +573,26 @@ class _StatBlock extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+          if (sensitive)
+            MoneyText(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
         ],
       ),
     );
@@ -757,7 +771,7 @@ class _OwnerRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
+                  MoneyText(
                     '$currencySymbol ${stat.totalValue.toStringAsFixed(2)}',
                     style: AppTextStyles.priceSmall(appTheme.primaryDark),
                   ),
@@ -863,14 +877,12 @@ class _RecentCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
-                    Text(
+                    MoneyText(
                       '$currencySymbol ${price.toStringAsFixed(0)}',
                       style: AppTextStyles.caption(
                         appTheme.primaryDark,
                         locale: l10n.locale,
                       ).copyWith(fontWeight: FontWeight.w700),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

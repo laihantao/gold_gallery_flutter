@@ -13,6 +13,7 @@ import '../services/market_value_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/theme_notifier.dart';
+import 'money_text.dart';
 import 'sketch_border.dart';
 
 class JewelleryCard extends StatelessWidget {
@@ -209,11 +210,9 @@ class JewelleryCard extends StatelessWidget {
                                   width: 1.2,
                                 ),
                               ),
-                              child: Text(
+                              child: MoneyText(
                                 priceText,
                                 style: AppTextStyles.priceSmall(Colors.white),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
