@@ -54,7 +54,11 @@ class _DashboardPageState extends State<DashboardPage> {
     final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppHeader(title: l10n.dashboardTitle, showBackButton: false),
+      appBar: AppHeader(
+        title: l10n.dashboardTitle,
+        showBackButton: false,
+        actions: [PrivacyToggleButton(color: appTheme.inkDark)],
+      ),
       body: PatternedBackground(
         patternColor: appTheme.patternColor,
         child: RefreshIndicator(

@@ -123,6 +123,10 @@ class AppLocalizations {
   String get filtersLabel => _t(en: 'Filters', zh: '筛选', ms: 'Penapis');
   String get clearLabel => _t(en: 'Clear', zh: '清除', ms: 'Kosongkan');
 
+  // Value privacy toggle (eye)
+  String get hideValues => _t(en: 'Hide values', zh: '隐藏金额', ms: 'Sembunyi nilai');
+  String get showValues => _t(en: 'Show values', zh: '显示金额', ms: 'Tunjuk nilai');
+
   // ── Details ─────────────────────────────────────────────────────────────────
   String get detailsTitle => _t(en: 'Details', zh: '详情', ms: 'Butiran');
   String get jewelleryNotFound => _t(

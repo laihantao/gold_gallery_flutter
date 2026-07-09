@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_notifier.dart';
 import '../widgets/filter_chip_bar.dart';
 import '../widgets/jewellery_card.dart';
+import '../widgets/money_text.dart';
 
 class JewelleryListingPage extends StatelessWidget {
   /// Pre-applied type filter name (English) — passed from Dashboard.
@@ -231,7 +232,11 @@ class _JewelleryListingViewState extends State<_JewelleryListingView> {
     final collections = collectionNotifier.collections;
 
     return Scaffold(
-      appBar: AppHeader(title: l10n.listingTitle, showBackButton: false),
+      appBar: AppHeader(
+        title: l10n.listingTitle,
+        showBackButton: false,
+        actions: [PrivacyToggleButton(color: appTheme.inkDark)],
+      ),
       body: Consumer<JewelleryListingNotifier>(
         builder: (context, notifier, _) {
           // Compute filtered items (optionally limited to a collection)
