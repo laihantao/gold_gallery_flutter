@@ -855,8 +855,8 @@ class _TypeGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cols = constraints.maxWidth > 500 ? 3 : 2;
-        const gap = 12.0;
+        final cols = constraints.maxWidth > 520 ? 4 : 3;
+        const gap = 10.0;
         final cardW = (constraints.maxWidth - gap * (cols - 1)) / cols;
 
         return Wrap(
@@ -870,8 +870,8 @@ class _TypeGrid extends StatelessWidget {
               child: Container(
                 width: cardW,
                 padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 12,
+                  vertical: 12,
+                  horizontal: 8,
                 ),
                 decoration: BoxDecoration(
                   color: appTheme.surface,
@@ -888,8 +888,8 @@ class _TypeGrid extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 56,
-                      height: 56,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(
                         color: dimmed
                             ? appTheme.primaryLight.withValues(alpha: 0.4)
@@ -899,14 +899,14 @@ class _TypeGrid extends StatelessWidget {
                       child: Center(
                         child: JewelleryTypeIcon(
                           iconKey: stat.type.iconKey,
-                          size: 36,
+                          size: 28,
                           tintColor: dimmed
                               ? appTheme.primary.withValues(alpha: 0.4)
                               : appTheme.primary,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Text(
                       displayName,
                       style: AppTextStyles.title(
@@ -914,7 +914,7 @@ class _TypeGrid extends StatelessWidget {
                             ? appTheme.inkDark.withValues(alpha: 0.4)
                             : appTheme.inkDark,
                         locale: l10n.locale,
-                      ),
+                      ).copyWith(fontSize: 13),
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
