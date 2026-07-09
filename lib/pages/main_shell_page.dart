@@ -32,10 +32,11 @@ class TabScope extends InheritedWidget {
 
 /// Persistent shell that owns the bottom nav bar and FAB.
 ///
-/// The four main tabs live in a lazy [IndexedStack] and are kept alive across
-/// switches. Rebuilding a tab from scratch on every switch (the old
-/// [AnimatedSwitcher] approach) re-ran each page's data load and re-decoded
-/// every base64 image, which showed as a blank-then-flash on landing.
+/// The four main tabs live in a [PageView] (tap-driven, user-swipe disabled)
+/// and are kept alive via [AutomaticKeepAliveClientMixin], so switching slides
+/// horizontally without tearing down and rebuilding the page — which used to
+/// re-run each page's data load and re-decode every base64 image (a
+/// blank-then-flash on landing).
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
 
@@ -47,14 +48,11 @@ class _MainShellPageState extends State<MainShellPage> {
   // Bottom-nav tab indices (2 is the centre FAB, not a tab).
   static const List<int> _tabIndices = [0, 1, 3, 4];
 
+  final PageController _pageController = PageController();
   int _index = 0;
   int _refreshNonce = 0;
   String? _pendingListingType;
   String? _pendingListingOwnerId;
-
-  // Tabs visited at least once — lets the IndexedStack build a tab on first
-  // visit, then keep it alive, instead of building all four upfront.
-  final Set<int> _visited = {0};
 
   @override
   void initState() {
@@ -63,6 +61,12 @@ class _MainShellPageState extends State<MainShellPage> {
     // silent by design (see UpdateChecker) so a broken manifest or offline
     // device can't surface as a startup crash.
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkForUpdate() async {
@@ -75,12 +79,28 @@ class _MainShellPageState extends State<MainShellPage> {
     if (newIndex == _index && filterType == null && filterOwnerId == null) {
       return;
     }
+    final targetPos = _tabIndices.indexOf(newIndex);
+    if (targetPos < 0) return;
+    final fromPos = _tabIndices.indexOf(_index);
+
     setState(() {
       _index = newIndex;
       _pendingListingType = filterType;
       _pendingListingOwnerId = filterOwnerId;
-      _visited.add(newIndex);
     });
+
+    if (!_pageController.hasClients) return;
+    // Slide for an adjacent tab; jump for a farther one so we don't visibly
+    // whoosh through the tabs in between.
+    if ((targetPos - fromPos).abs() == 1) {
+      _pageController.animateToPage(
+        targetPos,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _pageController.jumpToPage(targetPos);
+    }
   }
 
   Future<void> _onFabPressed() async {
@@ -124,15 +144,14 @@ class _MainShellPageState extends State<MainShellPage> {
     return TabScope(
       switchTab: _switchTab,
       child: Scaffold(
-        body: IndexedStack(
-          index: _tabIndices.indexOf(_index),
-          children: [
-            for (final i in _tabIndices)
-              if (_visited.contains(i))
-                _buildTab(i)
-              else
-                const SizedBox.shrink(),
-          ],
+        body: PageView.builder(
+          controller: _pageController,
+          // Tap-driven only — user swipe is disabled so it can't fight the
+          // horizontal scrollers inside pages (filter chips, recent list).
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _tabIndices.length,
+          itemBuilder: (context, pos) =>
+              _KeepAliveTab(child: _buildTab(_tabIndices[pos])),
         ),
         floatingActionButton: FloatingActionButton(
           heroTag: 'main_shell_fab',
@@ -152,5 +171,28 @@ class _MainShellPageState extends State<MainShellPage> {
         ),
       ),
     );
+  }
+}
+
+/// Keeps a PageView child mounted when it scrolls off-screen, so returning to
+/// a tab doesn't rebuild it from scratch.
+class _KeepAliveTab extends StatefulWidget {
+  final Widget child;
+
+  const _KeepAliveTab({required this.child});
+
+  @override
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
+}
+
+class _KeepAliveTabState extends State<_KeepAliveTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
