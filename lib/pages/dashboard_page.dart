@@ -7,9 +7,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../painters/bg_pattern_painter.dart';
-import '../providers/gold_price_notifier.dart';
 import '../services/hive_service.dart';
-import '../services/market_value_service.dart';
 import '../widgets/gold_gradient_card.dart';
 import '../widgets/jewellery_type_icon.dart';
 import '../widgets/money_text.dart';
@@ -311,30 +309,6 @@ class _PortfolioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notifier = context.watch<GoldPriceNotifier>();
-    final states = notifier.allStates;
-
-    // Compute portfolio-level market value and P&L
-    double marketTotal = 0;
-    double costTotal = 0;
-    bool hasPriceData = false;
-
-    for (final item in data.allItems) {
-      final mv = MarketValueService.currentValue(item, states);
-      if (mv != null) {
-        marketTotal += mv;
-        costTotal += item.totalPrice ?? 0;
-        hasPriceData = true;
-      }
-    }
-
-    final portfolioGl = hasPriceData ? marketTotal - costTotal : null;
-    final portfolioGlPct = (portfolioGl != null && costTotal > 0)
-        ? (portfolioGl / costTotal) * 100
-        : null;
-
-    final isGain = (portfolioGl ?? 0) >= 0;
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -402,65 +376,6 @@ class _PortfolioCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (hasPriceData && portfolioGl != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      height: 1,
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(
-                          isGain
-                              ? Icons.trending_up_rounded
-                              : Icons.trending_down_rounded,
-                          color: isGain
-                              ? appTheme.successOnGradient
-                              : appTheme.errorOnGradient,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${l10n.sectionMarketValue}  ${data.currencySymbol} ${marketTotal.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.85),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.28),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isGain
-                                  ? appTheme.successOnGradient
-                                  : appTheme.errorOnGradient,
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            '${isGain ? '+' : ''}${portfolioGl.toStringAsFixed(0)}'
-                            '  (${portfolioGlPct != null ? '${isGain ? '+' : ''}${portfolioGlPct.toStringAsFixed(1)}%' : '—'})',
-                            style: TextStyle(
-                              color: isGain
-                                  ? appTheme.successOnGradient
-                                  : appTheme.errorOnGradient,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
