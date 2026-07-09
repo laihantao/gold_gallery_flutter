@@ -74,6 +74,38 @@ class _DashboardPageState extends State<DashboardPage> {
                 _PortfolioTrendButton(appTheme: appTheme, l10n: l10n),
                 const SizedBox(height: 24),
 
+                // ── Recently Added ─────────────────────────────
+                if (_data.recentItems.isNotEmpty) ...[
+                  _SectionHeader(
+                    title: l10n.recentlyAdded,
+                    appTheme: appTheme,
+                    l10n: l10n,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 170,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _data.recentItems.length,
+                      itemBuilder: (context, index) => _RecentCard(
+                        item: _data.recentItems[index],
+                        currencySymbol: _data.currencySymbol,
+                        appTheme: appTheme,
+                        l10n: l10n,
+                        onTap: () async {
+                          await GoRouter.of(context).push(
+                            '/details',
+                            extra: _data.recentItems[index].id,
+                          );
+                          if (!mounted) return;
+                          _reload();
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
                 // ── By Jewellery Type ──────────────────────────
                 _SectionHeader(
                   title: l10n.byJewelleryType,
@@ -118,37 +150,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                ],
-
-                // ── Recently Added ─────────────────────────────
-                if (_data.recentItems.isNotEmpty) ...[
-                  _SectionHeader(
-                    title: l10n.recentlyAdded,
-                    appTheme: appTheme,
-                    l10n: l10n,
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 170,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _data.recentItems.length,
-                      itemBuilder: (context, index) => _RecentCard(
-                        item: _data.recentItems[index],
-                        currencySymbol: _data.currencySymbol,
-                        appTheme: appTheme,
-                        l10n: l10n,
-                        onTap: () async {
-                          await GoRouter.of(context).push(
-                            '/details',
-                            extra: _data.recentItems[index].id,
-                          );
-                          if (!mounted) return;
-                          _reload();
-                        },
-                      ),
-                    ),
-                  ),
                 ],
               ],
             ),
