@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../models/index.dart';
 import '../painters/bg_pattern_painter.dart';
 import '../services/hive_service.dart';
+import '../widgets/cached_thumbnail.dart';
 import '../widgets/gold_gradient_card.dart';
 import '../widgets/jewellery_type_icon.dart';
 import '../widgets/money_text.dart';
@@ -1001,16 +1000,17 @@ class _RecentCard extends StatelessWidget {
               child: SizedBox(
                 height: 90,
                 width: double.infinity,
-                child: hasPhoto
-                    ? _Thumb(base64: item.jewelleryPhoto.first)
-                    : Container(
-                        color: appTheme.primaryLight,
-                        child: Icon(
-                          Icons.diamond_outlined,
-                          color: appTheme.primary,
-                          size: 28,
-                        ),
-                      ),
+                child: CachedThumbnail(
+                  base64: hasPhoto ? item.jewelleryPhoto.first : null,
+                  placeholder: Container(
+                    color: appTheme.primaryLight,
+                    child: Icon(
+                      Icons.diamond_outlined,
+                      color: appTheme.primary,
+                      size: 28,
+                    ),
+                  ),
+                ),
               ),
             ),
             Expanded(
@@ -1044,25 +1044,5 @@ class _RecentCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _Thumb extends StatelessWidget {
-  final String base64;
-  const _Thumb({required this.base64});
-
-  @override
-  Widget build(BuildContext context) {
-    try {
-      final bytes = base64Decode(base64);
-      return Image.memory(
-        bytes,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, _) =>
-            const Center(child: Icon(Icons.broken_image_outlined)),
-      );
-    } catch (_) {
-      return const Center(child: Icon(Icons.broken_image_outlined));
-    }
   }
 }
