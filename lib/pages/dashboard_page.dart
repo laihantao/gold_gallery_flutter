@@ -116,6 +116,12 @@ class _DashboardPageState extends State<DashboardPage> {
                     totalItems: _data.totalItems,
                     appTheme: appTheme,
                     l10n: l10n,
+                    onTapType: (type) => TabScope.of(
+                      context,
+                    )?.switchTab(3, filterType: type.name),
+                    onTapOwner: (ownerId) => TabScope.of(
+                      context,
+                    )?.switchTab(3, filterOwnerId: ownerId.toString()),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -141,30 +147,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     },
                   ),
                 const SizedBox(height: 24),
-
-                // ── By Owner ───────────────────────────────────
-                if (_data.ownerStats.isNotEmpty) ...[
-                  _SectionHeader(
-                    title: l10n.byOwner,
-                    appTheme: appTheme,
-                    l10n: l10n,
-                  ),
-                  const SizedBox(height: 12),
-                  ..._data.ownerStats.map(
-                    (stat) => _OwnerRow(
-                      stat: stat,
-                      appTheme: appTheme,
-                      currencySymbol: _data.currencySymbol,
-                      l10n: l10n,
-                      onTap: () {
-                        TabScope.of(
-                          context,
-                        )?.switchTab(3, filterOwnerId: stat.ownerId.toString());
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
               ],
             ),
           ),
@@ -537,13 +519,17 @@ class _StatBlock extends StatelessWidget {
 
 class _Segment {
   final String label;
+  final String? sub;
   final double value;
   final Color color;
+  final VoidCallback onTap;
 
   const _Segment({
     required this.label,
     required this.value,
     required this.color,
+    required this.onTap,
+    this.sub,
   });
 }
 
@@ -554,6 +540,8 @@ class _BreakdownSection extends StatefulWidget {
   final int totalItems;
   final AurumTheme appTheme;
   final AppLocalizations l10n;
+  final void Function(JewelleryType type) onTapType;
+  final void Function(int ownerId) onTapOwner;
 
   const _BreakdownSection({
     required this.typeStats,
@@ -562,6 +550,8 @@ class _BreakdownSection extends StatefulWidget {
     required this.totalItems,
     required this.appTheme,
     required this.l10n,
+    required this.onTapType,
+    required this.onTapOwner,
   });
 
   @override
@@ -591,8 +581,10 @@ class _BreakdownSectionState extends State<_BreakdownSection> {
         for (var i = 0; i < list.length; i++)
           _Segment(
             label: list[i].ownerName,
+            sub: widget.l10n.itemCount(list[i].count),
             value: list[i].totalValue,
             color: _palette[i % _palette.length],
+            onTap: () => widget.onTapOwner(list[i].ownerId),
           ),
       ];
     }
@@ -605,6 +597,7 @@ class _BreakdownSectionState extends State<_BreakdownSection> {
           label: list[i].type.localizedName(locale),
           value: list[i].totalValue,
           color: _palette[i % _palette.length],
+          onTap: () => widget.onTapType(list[i].type),
         ),
     ];
   }
@@ -709,7 +702,7 @@ class _BreakdownSectionState extends State<_BreakdownSection> {
                           appTheme: appTheme,
                         ),
                         if (i != segments.length - 1)
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 2),
                       ],
                     ],
                   ),
@@ -794,44 +787,69 @@ class _LegendRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: seg.color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            seg.label,
-            style: TextStyle(color: appTheme.inkDark, fontSize: 13),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+    return GestureDetector(
+      onTap: seg.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
           children: [
-            Text(
-              '${pct.toStringAsFixed(0)}%',
-              style: TextStyle(
-                color: appTheme.inkDark,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: seg.color,
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
-            MoneyText(
-              '$currencySymbol ${seg.value.toStringAsFixed(0)}',
-              style: TextStyle(color: appTheme.inkLight, fontSize: 11),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    seg.label,
+                    style: TextStyle(color: appTheme.inkDark, fontSize: 13),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (seg.sub != null)
+                    Text(
+                      seg.sub!,
+                      style: TextStyle(color: appTheme.inkLight, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${pct.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    color: appTheme.inkDark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                MoneyText(
+                  '$currencySymbol ${seg.value.toStringAsFixed(0)}',
+                  style: TextStyle(color: appTheme.inkLight, fontSize: 11),
+                ),
+              ],
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: appTheme.inkLight,
+              size: 18,
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -936,109 +954,6 @@ class _TypeGrid extends StatelessWidget {
           }).toList(),
         );
       },
-    );
-  }
-}
-
-// ── Owner row ────────────────────────────────────────────────────────────────
-
-class _OwnerRow extends StatelessWidget {
-  final _OwnerStat stat;
-  final AurumTheme appTheme;
-  final String currencySymbol;
-  final AppLocalizations l10n;
-  final VoidCallback onTap;
-
-  const _OwnerRow({
-    required this.stat,
-    required this.appTheme,
-    required this.currencySymbol,
-    required this.l10n,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = stat.ownerName.isNotEmpty
-        ? stat.ownerName[0].toUpperCase()
-        : '?';
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: appTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: appTheme.border, width: 1),
-          boxShadow: [appTheme.cardShadow],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: appTheme.primaryLight,
-                shape: BoxShape.circle,
-                border: Border.all(color: appTheme.primary, width: 1.2),
-              ),
-              child: Center(
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    color: appTheme.primaryDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    stat.ownerName,
-                    style: AppTextStyles.title(
-                      appTheme.inkDark,
-                      locale: l10n.locale,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  MoneyText(
-                    '$currencySymbol ${stat.totalValue.toStringAsFixed(2)}',
-                    style: AppTextStyles.priceSmall(appTheme.primaryDark),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: appTheme.primaryLight,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                l10n.itemCount(stat.count),
-                style: TextStyle(
-                  color: appTheme.primaryDark,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right_outlined,
-              color: appTheme.inkLight,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
