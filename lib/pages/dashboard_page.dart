@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -102,6 +103,19 @@ class _DashboardPageState extends State<DashboardPage> {
                         },
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                // ── Breakdown donut ────────────────────────────
+                if (_data.totalItems > 0) ...[
+                  _BreakdownSection(
+                    typeStats: _data.typeStats,
+                    ownerStats: _data.ownerStats,
+                    currencySymbol: _data.currencySymbol,
+                    totalItems: _data.totalItems,
+                    appTheme: appTheme,
+                    l10n: l10n,
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -515,6 +529,309 @@ class _StatBlock extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+// ── Breakdown donut (by type / by owner) ─────────────────────────────────────
+
+class _Segment {
+  final String label;
+  final double value;
+  final Color color;
+
+  const _Segment({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+}
+
+class _BreakdownSection extends StatefulWidget {
+  final List<_TypeStat> typeStats;
+  final List<_OwnerStat> ownerStats;
+  final String currencySymbol;
+  final int totalItems;
+  final AurumTheme appTheme;
+  final AppLocalizations l10n;
+
+  const _BreakdownSection({
+    required this.typeStats,
+    required this.ownerStats,
+    required this.currencySymbol,
+    required this.totalItems,
+    required this.appTheme,
+    required this.l10n,
+  });
+
+  @override
+  State<_BreakdownSection> createState() => _BreakdownSectionState();
+}
+
+class _BreakdownSectionState extends State<_BreakdownSection> {
+  bool _byOwner = false;
+
+  // Categorical palette (theme-independent so segments stay distinguishable).
+  static const List<Color> _palette = [
+    Color(0xFFBA7517),
+    Color(0xFF1D9E75),
+    Color(0xFF7F77DD),
+    Color(0xFFD4537E),
+    Color(0xFF378ADD),
+    Color(0xFF639922),
+    Color(0xFFD85A30),
+  ];
+
+  List<_Segment> _segments() {
+    final locale = widget.l10n.locale;
+    if (_byOwner) {
+      final list = widget.ownerStats.where((o) => o.totalValue > 0).toList()
+        ..sort((a, b) => b.totalValue.compareTo(a.totalValue));
+      return [
+        for (var i = 0; i < list.length; i++)
+          _Segment(
+            label: list[i].ownerName,
+            value: list[i].totalValue,
+            color: _palette[i % _palette.length],
+          ),
+      ];
+    }
+    final list =
+        widget.typeStats.where((t) => t.count > 0 && t.totalValue > 0).toList()
+          ..sort((a, b) => b.totalValue.compareTo(a.totalValue));
+    return [
+      for (var i = 0; i < list.length; i++)
+        _Segment(
+          label: list[i].type.localizedName(locale),
+          value: list[i].totalValue,
+          color: _palette[i % _palette.length],
+        ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = widget.appTheme;
+    final l10n = widget.l10n;
+    final segments = _segments();
+    final total = segments.fold<double>(0, (s, seg) => s + seg.value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _SectionHeader(
+                title: l10n.breakdownTitle,
+                appTheme: appTheme,
+                l10n: l10n,
+              ),
+            ),
+            _SegToggle(
+              byOwner: _byOwner,
+              appTheme: appTheme,
+              typeLabel: l10n.breakdownByType,
+              ownerLabel: l10n.breakdownByOwner,
+              onChanged: (v) => setState(() => _byOwner = v),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (segments.isEmpty)
+          _EmptyHint(l10n.noItemsYet, appTheme, l10n)
+        else
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: appTheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: appTheme.border),
+              boxShadow: [appTheme.cardShadow],
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 118,
+                  height: 118,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(
+                        PieChartData(
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 32,
+                          startDegreeOffset: -90,
+                          sections: [
+                            for (final seg in segments)
+                              PieChartSectionData(
+                                value: seg.value,
+                                color: seg.color,
+                                radius: 22,
+                                showTitle: false,
+                              ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${widget.totalItems}',
+                            style: TextStyle(
+                              color: appTheme.inkDark,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            l10n.itemsUnit,
+                            style: TextStyle(
+                              color: appTheme.inkLight,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < segments.length; i++) ...[
+                        _LegendRow(
+                          seg: segments[i],
+                          pct: total > 0 ? segments[i].value / total * 100 : 0,
+                          currencySymbol: widget.currencySymbol,
+                          appTheme: appTheme,
+                        ),
+                        if (i != segments.length - 1)
+                          const SizedBox(height: 10),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SegToggle extends StatelessWidget {
+  final bool byOwner;
+  final AurumTheme appTheme;
+  final String typeLabel;
+  final String ownerLabel;
+  final ValueChanged<bool> onChanged;
+
+  const _SegToggle({
+    required this.byOwner,
+    required this.appTheme,
+    required this.typeLabel,
+    required this.ownerLabel,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: appTheme.backgroundSubtle,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: appTheme.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _seg(typeLabel, !byOwner, () => onChanged(false)),
+          _seg(ownerLabel, byOwner, () => onChanged(true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _seg(String label, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: active ? appTheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : appTheme.inkMid,
+            fontSize: 11,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendRow extends StatelessWidget {
+  final _Segment seg;
+  final double pct;
+  final String currencySymbol;
+  final AurumTheme appTheme;
+
+  const _LegendRow({
+    required this.seg,
+    required this.pct,
+    required this.currencySymbol,
+    required this.appTheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: seg.color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            seg.label,
+            style: TextStyle(color: appTheme.inkDark, fontSize: 13),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${pct.toStringAsFixed(0)}%',
+              style: TextStyle(
+                color: appTheme.inkDark,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            MoneyText(
+              '$currencySymbol ${seg.value.toStringAsFixed(0)}',
+              style: TextStyle(color: appTheme.inkLight, fontSize: 11),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

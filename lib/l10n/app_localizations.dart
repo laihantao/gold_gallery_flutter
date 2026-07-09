@@ -67,6 +67,11 @@ class AppLocalizations {
   String get byJewelleryType =>
       _t(en: 'By Jewellery Type', zh: '按珠宝类型', ms: 'Mengikut Jenis');
   String get byOwner => _t(en: 'By Owner', zh: '按拥有者', ms: 'Mengikut Pemilik');
+  String get breakdownTitle => _t(en: 'Breakdown', zh: '占比分布', ms: 'Pecahan');
+  String get breakdownByType => _t(en: 'By type', zh: '按类型', ms: 'Ikut jenis');
+  String get breakdownByOwner =>
+      _t(en: 'By owner', zh: '按拥有者', ms: 'Ikut pemilik');
+  String get itemsUnit => _t(en: 'items', zh: '件', ms: 'item');
   String get recentlyAdded =>
       _t(en: 'Recently Added', zh: '最新添加', ms: 'Baru Ditambah');
   String get noItemsYet =>
