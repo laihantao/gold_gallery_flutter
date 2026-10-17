@@ -81,7 +81,7 @@ class ChiangHengPriceSource implements GoldPriceSource {
       'https://api-srs.chgold.com.my/api/goldPrice/chGetGoldPrices'
       '?symbolArr%5B%5D=916&symbolArr%5B%5D=999';
   static const _apiToken =
-      'Basic ZDc3ZDAwNzAwYmM3OTM5MmY2OGZhMWI3YTc3MDVhZjY1MjIwNzEwZTIwYTQ1NzIyNTExZjZkYzBjMjY4MzkxNzpZMmhuYjJ4a1gyRmtiV2x1T21Ob1gyOXNaRjl3WVhOemQyOXlaQT09';
+      'Basic ZDc3ZDAwNzAwYmM3OTM5MmY2OGZhMWI3YTc3MDVhZjY1MjIwNzEwZTIwYTQ1NzIyNTExZjZkYzBjMjY4MzkxNzpZMmhuYjJ4a1gyRmtiV2x1T21Ob1oyOXNaRjl3WVhOemQyOXlaQT09';
 
   // Fallback: HTML scrape from chiangheng.com
   static const _htmlUrl = 'https://chiangheng.com/';
