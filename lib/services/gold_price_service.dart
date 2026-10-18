@@ -135,8 +135,10 @@ class ChiangHengPriceSource implements GoldPriceSource {
       final map = item as Map<String, dynamic>;
       final symbol = map['symbol'] as String?;
       // Use sell price (what customers pay); fall back to buy price if zero.
-      final sell = (map['sellPrice'] as num?)?.toDouble() ?? 0;
-      final buy = (map['buyPrice'] as num?)?.toDouble() ?? 0;
+      // The API returns these as strings (e.g. "583.000000"), so parse the
+      // stringified value instead of casting to num (which would throw).
+      final sell = double.tryParse('${map['sellPrice'] ?? ''}') ?? 0;
+      final buy = double.tryParse('${map['buyPrice'] ?? ''}') ?? 0;
       final price = sell > 0 ? sell : (buy > 0 ? buy : null);
       final updatedAt = map['updateDatetime'] as String?;
 
