@@ -119,7 +119,10 @@ class ChiangHengPriceSource implements GoldPriceSource {
       throw GoldPriceFetchException(shopName, reason: 'timeout');
     }
 
-    if (response.statusCode != 200) {
+    // The API answers this GET with 201, not 200, so accept any 2xx instead of
+    // insisting on 200 (which would reject the real response and fall back to
+    // the dead website scrape).
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw GoldPriceFetchException(
           shopName, reason: 'http_${response.statusCode}');
     }
