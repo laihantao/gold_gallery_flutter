@@ -35,20 +35,44 @@ class GoldPriceFetchException implements Exception {
 }
 
 abstract class GoldHttpClient {
-  Future<String> fetchHtml(String url);
+  /// [browserHeaders] false sends the client's own default identity instead
+  /// of the browser-like headers (for sites that reject a request claiming to
+  /// be a browser it doesn't behave like).
+  Future<String> fetchHtml(String url, {bool browserHeaders = true});
 }
 
 class NativeHttpClient implements GoldHttpClient {
   @override
-  Future<String> fetchHtml(String url) async {
+  Future<String> fetchHtml(String url, {bool browserHeaders = true}) async {
     final response = await http
-        .get(Uri.parse(url), headers: _browserHeaders)
+        .get(Uri.parse(url), headers: browserHeaders ? _browserHeaders : null)
         .timeout(kFetchTimeout);
     if (response.statusCode != 200) {
-      throw GoldPriceFetchException(url, reason: 'http_${response.statusCode}');
+      throw GoldPriceFetchException(
+        url,
+        reason: 'http_${response.statusCode}',
+        detail: _describeResponse(response),
+      );
     }
     return response.body;
   }
+}
+
+/// Who answered an error response and what its page says, e.g.
+/// "cloudflare · Just a moment...", so a CDN block page can be told apart
+/// from the shop's own server error.
+String? _describeResponse(http.Response response) {
+  final server = response.headers['server']?.trim();
+  final title = RegExp(r'<title[^>]*>([^<]*)</title>', caseSensitive: false)
+      .firstMatch(response.body)
+      ?.group(1)
+      ?.replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  final parts = [
+    if (server != null && server.isNotEmpty) server,
+    if (title != null && title.isNotEmpty) title,
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
 }
 
 /// A CORS proxy: builds the proxied request URL and extracts the HTML from the
@@ -105,8 +129,9 @@ class ProxyHttpClient implements GoldHttpClient {
     ),
   ];
 
+  // [browserHeaders] has no effect here: this path never sets headers.
   @override
-  Future<String> fetchHtml(String url) async {
+  Future<String> fetchHtml(String url, {bool browserHeaders = true}) async {
     Object? lastError;
 
     for (final proxy in _proxies) {

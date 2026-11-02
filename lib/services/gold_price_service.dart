@@ -246,7 +246,11 @@ class TomeiPriceSource implements GoldPriceSource {
   @override
   Future<GoldPrice> fetch() async {
     try {
-      final html = await _client.fetchHtml(_url);
+      // The API now sits behind Cloudflare, which blocks requests that claim
+      // to be a desktop browser but don't act like one. Send the app's own
+      // identity instead of the browser-like headers. If Cloudflare still
+      // refuses, that's Tomei's choice — don't try to get around it.
+      final html = await _client.fetchHtml(_url, browserHeaders: false);
       final document = html_parser.parse(html);
       final cells = document.querySelectorAll('td');
 

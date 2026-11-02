@@ -665,11 +665,15 @@ void showPriceSnackBar(
 String priceErrorWithDetail(ShopPriceState state, AppLocalizations l10n) {
   final reason = state.errorReason;
   final friendly = friendlyPriceError(reason, l10n);
+  final extra = state.errorDetail;
+  // For HTTP errors also say who answered (e.g. "HTTP 403 · cloudflare ·
+  // Just a moment...") so a CDN block is distinguishable from a server error.
   final detail = reason != null && reason.startsWith('http_')
       ? 'HTTP ${reason.substring(5)}'
+          '${extra != null && extra.isNotEmpty ? ' · $extra' : ''}'
       : reason != null && reason.startsWith('proxy_')
           ? reason
-          : state.errorDetail;
+          : extra;
   return detail == null || detail.isEmpty ? friendly : '$friendly ($detail)';
 }
 
