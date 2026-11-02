@@ -68,16 +68,8 @@ class _GoldPriceSectionState extends State<GoldPriceSection> {
                   e.key, priceErrorWithDetail(e.value, l10n)),
           ].join('\n');
 
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          backgroundColor:
-              failed.isEmpty ? appTheme.snackBarBg : appTheme.error,
-          duration: Duration(seconds: failed.isEmpty ? 3 : 6),
-          content: Text(message),
-        ),
-      );
+    showPriceSnackBar(messenger, appTheme, message,
+        isError: failed.isNotEmpty);
   }
 
   @override

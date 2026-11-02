@@ -632,19 +632,31 @@ void showPriceRefreshResult(
   String rm(double? price) =>
       price == null ? '—' : 'RM${price.toStringAsFixed(0)}';
 
+  showPriceSnackBar(
+    messenger,
+    appTheme,
+    ok
+        ? l10n.priceRefreshed(shopName, rm(data?.price916), rm(data?.price999))
+        : l10n.priceRefreshFailed(shopName, priceErrorWithDetail(state, l10n)),
+    isError: !ok,
+  );
+}
+
+/// Shows a price refresh snackbar, replacing any one already visible.
+/// Success and failure both stay 3 s (swipe to dismiss sooner).
+void showPriceSnackBar(
+  ScaffoldMessengerState messenger,
+  AppTheme appTheme,
+  String message, {
+  required bool isError,
+}) {
   messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        backgroundColor: ok ? appTheme.snackBarBg : appTheme.error,
-        duration: Duration(seconds: ok ? 3 : 6),
-        content: Text(
-          ok
-              ? l10n.priceRefreshed(
-                  shopName, rm(data?.price916), rm(data?.price999))
-              : l10n.priceRefreshFailed(
-                  shopName, priceErrorWithDetail(state, l10n)),
-        ),
+        backgroundColor: isError ? appTheme.error : appTheme.snackBarBg,
+        duration: const Duration(seconds: 3),
+        content: Text(message),
       ),
     );
 }
