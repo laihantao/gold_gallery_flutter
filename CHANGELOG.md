@@ -7,6 +7,8 @@ see `.github/workflows/release-prod.yml`.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+
+## [1.0.11] - 2026-11-02
 - 新增 Tian Si 金价：首页金价区新增 Tian Si 卡片（916／999 每克「We Sell」售价），支持查看历史走势、设置到价提醒，并可在「组合走势」中选用 Tian Si 金价计算组合价值。历史数据从 2026 年 11 月 1 日开始。
 - 修复 Tomei 金价无法刷新的问题：对方更换了价格接口网址，App 已改用新网址，金价恢复正常刷新。
 - 金价刷新结果更清楚：手动刷新（单张卡片或全部）后会弹出提示，显示新价格或失败原因；更新失败但仍显示旧价格时，卡片底部会以红字标明「更新失败」，不再看起来像没反应。
