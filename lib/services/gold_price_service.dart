@@ -283,6 +283,71 @@ class TomeiPriceSource implements GoldPriceSource {
   }
 }
 
+class TianSiPriceSource implements GoldPriceSource {
+  // JSON behind the tiansi.my/gold-price page (same source the Apps Script
+  // writes to the "Tian Si" sheet). The page's daily-prices endpoint returns
+  // the same numbers wrapped in HTML; this one returns plain JSON.
+  static const _url =
+      'https://tiansi.my/wp-json/tian-si-gold/v1/gold-calculator';
+
+  final GoldHttpClient _client;
+
+  TianSiPriceSource(this._client);
+
+  @override
+  String get shopName => 'Tian Si';
+
+  @override
+  String get logoAsset => 'assets/images/brands/logo_tiansi.png';
+
+  @override
+  Future<GoldPrice> fetch() async {
+    try {
+      // "_" busts the site's LiteSpeed page cache, as the site's own JS does.
+      final body = await _client
+          .fetchHtml('$_url?_=${DateTime.now().millisecondsSinceEpoch}');
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      final rows = json['rows'] as Map<String, dynamic>?;
+
+      if (json['status'] != 'success' || rows == null) {
+        throw GoldPriceFetchException(shopName, reason: 'parse');
+      }
+
+      // Use the "We Sell" price (what customers pay), same as the sheet.
+      // Parse the stringified value so both numbers and strings are accepted.
+      double? weSell(String purity) {
+        final row = rows[purity] as Map<String, dynamic>?;
+        final price = double.tryParse('${row?['we_sell'] ?? ''}');
+        return price != null && price > 0 ? price : null;
+      }
+
+      final price916 = weSell('916');
+      final price999 = weSell('999');
+
+      if (price916 == null || price999 == null) {
+        throw GoldPriceFetchException(shopName, reason: 'parse');
+      }
+
+      return GoldPrice(
+        shopName: shopName,
+        price916: price916,
+        price999: price999,
+        fetchedAt: DateTime.now(),
+        websiteDate: json['display_date'] as String?,
+        logoAsset: logoAsset,
+      );
+    } on GoldPriceFetchException catch (error) {
+      if (error.shopName == shopName) rethrow;
+      throw GoldPriceFetchException(shopName, reason: error.reason);
+    } on TimeoutException {
+      throw GoldPriceFetchException(shopName, reason: 'timeout');
+    } on FormatException {
+      // Body wasn't JSON (e.g. an error or challenge page).
+      throw GoldPriceFetchException(shopName, reason: 'parse');
+    }
+  }
+}
+
 class GoldPriceService {
   static final GoldHttpClient _sharedClient = createGoldHttpClient();
 
@@ -290,6 +355,7 @@ class GoldPriceService {
         PohKongPriceSource(_sharedClient),
         ChiangHengPriceSource(_sharedClient),
         TomeiPriceSource(_sharedClient),
+        TianSiPriceSource(_sharedClient),
       ];
 
   List<Future<GoldPrice>> fetchAll() =>

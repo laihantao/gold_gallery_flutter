@@ -359,7 +359,12 @@ class _TestNotificationButton extends StatefulWidget {
 class _TestNotificationButtonState extends State<_TestNotificationButton> {
   bool _isTesting = false;
 
-  static const List<String> _brands = ['Chiang Heng', 'Poh Kong', 'Tomei'];
+  static const List<String> _brands = [
+    'Chiang Heng',
+    'Poh Kong',
+    'Tomei',
+    'Tian Si',
+  ];
   static const List<String> _purities = ['916', '999'];
 
   String _selectedBrand = 'Poh Kong';

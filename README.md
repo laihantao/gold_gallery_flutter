@@ -23,7 +23,7 @@ A personal gold jewellery inventory and price tracking app built with Flutter. T
 - One-tap drill-down from dashboard cards to filtered listing
 
 ### Live Gold Price Tracking
-- Real-time price fetch from three Malaysian vendors: **Poh Kong**, **Chiang Heng**, and **Tomei**
+- Real-time price fetch from four Malaysian vendors: **Poh Kong**, **Chiang Heng**, **Tomei**, and **Tian Si**
 - Displays 916 and 999 gold prices per gram with day-over-day delta badges (↑ / ↓)
 - Per-shop refresh button with loading and error states
 - Stale price indicator when the last fetch failed but cached data exists

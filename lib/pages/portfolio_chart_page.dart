@@ -28,7 +28,7 @@ class PortfolioChartPage extends StatefulWidget {
 }
 
 class _PortfolioChartPageState extends State<PortfolioChartPage> {
-  static const _vendors = ['Poh Kong', 'Chiang Heng', 'Tomei'];
+  static const _vendors = ['Poh Kong', 'Chiang Heng', 'Tomei', 'Tian Si'];
   String _selectedVendor = _vendors.first;
   int? _touchedIndex;
 
