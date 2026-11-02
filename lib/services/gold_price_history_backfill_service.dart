@@ -50,15 +50,26 @@ class GoldPriceHistoryBackfillService {
   /// Auto-backfill on startup — returns the number of records inserted.
   /// Returns 0 when there are no gaps (fast path, no HTTP call made).
   static Future<int> backfillIfNeeded() async {
-    final yesterday = _dateOnly(
-      DateTime.now().subtract(const Duration(days: 1)),
-    );
+    final today = _dateOnly(DateTime.now());
+    final yesterday = today.subtract(const Duration(days: 1));
 
     DateTime? earliestFrom;
+    var to = yesterday;
 
     for (final shopName in _shopNames) {
       final history = GoldPriceHistoryService.historyFor(shopName);
-      if (history.isEmpty) continue;
+
+      if (history.isEmpty) {
+        // No local history yet (e.g. a shop added in an update): pull the
+        // whole lookback window up to today, as a manual sync would.
+        final lookbackStart =
+            today.subtract(const Duration(days: _lookbackDays));
+        if (earliestFrom == null || lookbackStart.isBefore(earliestFrom)) {
+          earliestFrom = lookbackStart;
+        }
+        to = today;
+        continue;
+      }
 
       final latestDate = _dateOnly(history.last.recordedAt);
       if (!latestDate.isBefore(yesterday)) continue; // no gap
@@ -71,7 +82,7 @@ class GoldPriceHistoryBackfillService {
 
     if (earliestFrom == null) return 0; // nothing to do
 
-    return _fetchAndStore(from: earliestFrom, to: yesterday);
+    return _fetchAndStore(from: earliestFrom, to: to);
   }
 
   /// Manual sync triggered by the user — scans the last [_lookbackDays] of
