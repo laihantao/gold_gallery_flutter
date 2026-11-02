@@ -71,6 +71,14 @@ class GoldPriceHistoryService {
   static String _entryKey(String shopName, DateTime date) =>
       '$shopName|${_dayKey(date)}';
 
+  /// Whether [earlier] falls on the calendar day right before [later].
+  ///
+  /// Price deltas are only shown between consecutive days: across a gap in
+  /// the data (days with no record) they would read as a one-day change.
+  static bool isDayBefore(DateTime earlier, DateTime later) =>
+      DateTime(earlier.year, earlier.month, earlier.day + 1) ==
+      DateTime(later.year, later.month, later.day);
+
   /// Records a fetched price as today's snapshot for its shop.
   static Future<void> record(GoldPrice price) async {
     if (price.price916 == null && price.price999 == null) return;

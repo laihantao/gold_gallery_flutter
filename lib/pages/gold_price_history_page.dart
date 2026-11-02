@@ -135,6 +135,19 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
     return rows.sublist(start, end);
   }
 
+  /// The row just older than `rows[index]` (rows are newest first), only if it
+  /// is from the previous day — a delta across missing days would read as a
+  /// one-day change.
+  GoldPriceHistoryPoint? _previousDayRow(
+      List<GoldPriceHistoryPoint> rows, int index) {
+    if (index + 1 >= rows.length) return null;
+    final prev = rows[index + 1];
+    return GoldPriceHistoryService.isDayBefore(
+            prev.recordedAt, rows[index].recordedAt)
+        ? prev
+        : null;
+  }
+
   int _totalPages(int totalRows) =>
       totalRows == 0 ? 1 : ((totalRows + _pageSize - 1) ~/ _pageSize);
 
@@ -417,9 +430,7 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
                 _TableDataRow(
                   appTheme: appTheme,
                   point: pageRows[i],
-                  prevPoint: (startIdx + i + 1) < rows.length
-                      ? rows[startIdx + i + 1]
-                      : null,
+                  prevPoint: _previousDayRow(rows, startIdx + i),
                   shaded: i.isOdd,
                   isToday: _isSameDay(pageRows[i].recordedAt, DateTime.now()),
                   dateFmt: _dateFmt,

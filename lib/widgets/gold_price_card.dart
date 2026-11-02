@@ -165,7 +165,8 @@ class DisplayedPrice {
   /// the sheet) rather than the cached live fetch.
   final bool fromHistory;
 
-  /// Latest history point from an earlier day than [at].
+  /// The history point from the day before [at], for the delta badge; null
+  /// when that day has no record (no delta across a gap).
   final GoldPriceHistoryPoint? previous;
 
   const DisplayedPrice({
@@ -199,12 +200,16 @@ DisplayedPrice resolveDisplayedPrice(
       : null;
   final at = point != null ? point.recordedAt : liveAt;
 
+  // Compare with the latest point from an earlier day, but only if it is the
+  // day right before — otherwise the badge would show a multi-day change.
   GoldPriceHistoryPoint? previous;
   if (at != null) {
     final day = dayOf(at);
     for (var i = history.length - 1; i >= 0; i--) {
       if (dayOf(history[i].recordedAt).isBefore(day)) {
-        previous = history[i];
+        if (GoldPriceHistoryService.isDayBefore(history[i].recordedAt, at)) {
+          previous = history[i];
+        }
         break;
       }
     }
