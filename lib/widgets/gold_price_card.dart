@@ -38,6 +38,10 @@ class BrandPriceCard extends StatelessWidget {
   final bool isError;
   final String? errorReason;
 
+  /// True when the prices come from stored history rather than a live fetch
+  /// (no live price yet): shown muted, footer shows the date only.
+  final bool fromHistory;
+
   /// Null → refresh icon shown but dimmed and non-tappable (layout consistency).
   final VoidCallback? onRefresh;
   final VoidCallback? onTap;
@@ -63,6 +67,7 @@ class BrandPriceCard extends StatelessWidget {
     this.isLoading = false,
     this.isError = false,
     this.errorReason,
+    this.fromHistory = false,
     this.onRefresh,
     this.onTap,
     this.onAlertTap,
@@ -71,7 +76,8 @@ class BrandPriceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isStale = isError && (price916 != null || price999 != null);
+    final isStale =
+        fromHistory || (isError && (price916 != null || price999 != null));
     final screenW = MediaQuery.of(context).size.width;
 
     return Material(
@@ -128,6 +134,7 @@ class BrandPriceCard extends StatelessWidget {
                         hasData: price916 != null || price999 != null,
                         isLoading: isLoading,
                         isError: isError,
+                        fromHistory: fromHistory,
                         errorReason: errorReason,
                         updatedAt: updatedAt,
                         stampFmt: _stampFmt,
@@ -175,21 +182,31 @@ class GoldPriceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = state.data;
-    final prev = GoldPriceHistoryService.previousPoint(shopName);
     final resolvedLogo =
         logoAsset.isNotEmpty ? logoAsset : (data?.logoAsset ?? '');
+
+    // No live or cached price yet (e.g. a newly added shop whose live fetch
+    // failed): fall back to the latest synced history point, shown muted.
+    final history =
+        data == null ? GoldPriceHistoryService.historyFor(shopName) : null;
+    final fallback =
+        history != null && history.isNotEmpty ? history.last : null;
+    final prev = fallback != null
+        ? (history!.length >= 2 ? history[history.length - 2] : null)
+        : GoldPriceHistoryService.previousPoint(shopName);
 
     return BrandPriceCard(
       shopName: shopName,
       logoAsset: resolvedLogo,
-      price916: data?.price916,
-      price999: data?.price999,
+      price916: data?.price916 ?? fallback?.price916,
+      price999: data?.price999 ?? fallback?.price999,
       prevPrice916: prev?.price916,
       prevPrice999: prev?.price999,
-      updatedAt: data?.fetchedAt,
+      updatedAt: data?.fetchedAt ?? fallback?.recordedAt,
       isLoading: state.status == GoldPriceStatus.loading,
       isError: state.status == GoldPriceStatus.error,
       errorReason: state.errorReason,
+      fromHistory: fallback != null,
       onRefresh: onRetry,
       onTap: onTap,
       onAlertTap: onAlertTap,
@@ -446,43 +463,42 @@ class _FooterRow extends StatelessWidget {
   final bool hasData;
   final bool isLoading;
   final bool isError;
+  final bool fromHistory;
   final String? errorReason;
   final DateTime? updatedAt;
   final DateFormat stampFmt;
   final AppTheme appTheme;
 
+  // Shorter stamps for the failure line so it fits beside its prefix; history
+  // points carry only a date (backfilled ones are pinned to noon).
+  static final _failedStampFmt = DateFormat('d MMM yy, HH:mm');
+  static final _dateOnlyFmt = DateFormat('d MMM yy');
+
   const _FooterRow({
     required this.hasData,
     required this.isLoading,
     required this.isError,
+    required this.fromHistory,
     required this.errorReason,
     required this.updatedAt,
     required this.stampFmt,
     required this.appTheme,
   });
 
-  String _friendlyError(String? reason, AppLocalizations l10n) {
-    if (reason == 'timeout') return l10n.errTimeout;
-    if (reason == 'parse') return l10n.errParse;
-    if (reason != null &&
-        (reason.startsWith('http_') || reason.startsWith('proxy_'))) {
-      return l10n.errUnavailable;
-    }
-    return l10n.errFetch;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final errorStyle = TextStyle(
+      color: appTheme.error.withValues(alpha: 0.9),
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+    );
+
     if (isError && !hasData) {
       return Center(
         child: Text(
-          _friendlyError(errorReason, l10n),
-          style: TextStyle(
-            color: appTheme.error.withValues(alpha: 0.9),
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
+          friendlyPriceError(errorReason, l10n),
+          style: errorStyle,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -491,7 +507,25 @@ class _FooterRow extends StatelessWidget {
 
     if (isLoading || updatedAt == null) return const SizedBox.shrink();
 
-    final label = (isError ? l10n.priceStalePrefix : '') + stampFmt.format(updatedAt!);
+    // A failed refresh that still shows older prices must say so in red, or
+    // it looks as if the refresh did nothing.
+    if (isError) {
+      final stamp =
+          (fromHistory ? _dateOnlyFmt : _failedStampFmt).format(updatedAt!);
+      return Align(
+        alignment: Alignment.centerRight,
+        child: Text(
+          l10n.priceUpdateFailedStale(stamp),
+          style: errorStyle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }
+
+    final label = fromHistory
+        ? l10n.priceStalePrefix + _dateOnlyFmt.format(updatedAt!)
+        : stampFmt.format(updatedAt!);
 
     return Align(
       alignment: Alignment.centerRight,
@@ -506,6 +540,66 @@ class _FooterRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Error text + refresh result feedback ─────────────────────────────────────
+
+/// Short, user-facing description of a fetch failure reason code.
+String friendlyPriceError(String? reason, AppLocalizations l10n) {
+  if (reason == 'timeout') return l10n.errTimeout;
+  if (reason == 'parse') return l10n.errParse;
+  if (reason != null &&
+      (reason.startsWith('http_') || reason.startsWith('proxy_'))) {
+    return l10n.errUnavailable;
+  }
+  return l10n.errFetch;
+}
+
+/// Shows the outcome of a manual refresh of one shop: its new prices, or why
+/// the fetch failed (with the technical detail, e.g. "HTTP 403").
+///
+/// Takes the messenger and strings rather than a [BuildContext] so it can be
+/// called after the refresh's `await` completes.
+void showPriceRefreshResult(
+  ScaffoldMessengerState messenger,
+  AppLocalizations l10n,
+  AppTheme appTheme,
+  String shopName,
+  ShopPriceState state,
+) {
+  final data = state.data;
+  final ok = state.status == GoldPriceStatus.success;
+
+  String rm(double? price) =>
+      price == null ? '—' : 'RM${price.toStringAsFixed(0)}';
+
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        backgroundColor: ok ? appTheme.snackBarBg : appTheme.error,
+        duration: Duration(seconds: ok ? 3 : 6),
+        content: Text(
+          ok
+              ? l10n.priceRefreshed(
+                  shopName, rm(data?.price916), rm(data?.price999))
+              : l10n.priceRefreshFailed(
+                  shopName, priceErrorWithDetail(state, l10n)),
+        ),
+      ),
+    );
+}
+
+/// [friendlyPriceError] plus the technical detail in brackets, when known.
+String priceErrorWithDetail(ShopPriceState state, AppLocalizations l10n) {
+  final reason = state.errorReason;
+  final friendly = friendlyPriceError(reason, l10n);
+  final detail = reason != null && reason.startsWith('http_')
+      ? 'HTTP ${reason.substring(5)}'
+      : reason != null && reason.startsWith('proxy_')
+          ? reason
+          : state.errorDetail;
+  return detail == null || detail.isEmpty ? friendly : '$friendly ($detail)';
 }
 
 // ── Delta chip ────────────────────────────────────────────────────────────────

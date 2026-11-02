@@ -23,10 +23,15 @@ class GoldPriceFetchException implements Exception {
   final String shopName;
   final String reason;
 
-  GoldPriceFetchException(this.shopName, {required this.reason});
+  /// Optional technical detail (e.g. the start of an unexpected response body)
+  /// shown to the user after a manual refresh to help diagnose failures.
+  final String? detail;
+
+  GoldPriceFetchException(this.shopName, {required this.reason, this.detail});
 
   @override
-  String toString() => 'GoldPriceFetchException($shopName, $reason)';
+  String toString() => 'GoldPriceFetchException($shopName, $reason'
+      '${detail != null ? ', $detail' : ''})';
 }
 
 abstract class GoldHttpClient {

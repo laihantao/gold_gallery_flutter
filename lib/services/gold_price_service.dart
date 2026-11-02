@@ -68,7 +68,8 @@ class PohKongPriceSource implements GoldPriceSource {
       );
     } on GoldPriceFetchException catch (error) {
       if (error.shopName == shopName) rethrow;
-      throw GoldPriceFetchException(shopName, reason: error.reason);
+      throw GoldPriceFetchException(shopName,
+          reason: error.reason, detail: error.detail);
     } on TimeoutException {
       throw GoldPriceFetchException(shopName, reason: 'timeout');
     }
@@ -218,7 +219,8 @@ class ChiangHengPriceSource implements GoldPriceSource {
       );
     } on GoldPriceFetchException catch (error) {
       if (error.shopName == shopName) rethrow;
-      throw GoldPriceFetchException(shopName, reason: error.reason);
+      throw GoldPriceFetchException(shopName,
+          reason: error.reason, detail: error.detail);
     } on TimeoutException {
       throw GoldPriceFetchException(shopName, reason: 'timeout');
     }
@@ -276,7 +278,8 @@ class TomeiPriceSource implements GoldPriceSource {
       );
     } on GoldPriceFetchException catch (error) {
       if (error.shopName == shopName) rethrow;
-      throw GoldPriceFetchException(shopName, reason: error.reason);
+      throw GoldPriceFetchException(shopName,
+          reason: error.reason, detail: error.detail);
     } on TimeoutException {
       throw GoldPriceFetchException(shopName, reason: 'timeout');
     }
@@ -306,11 +309,21 @@ class TianSiPriceSource implements GoldPriceSource {
       // "_" busts the site's LiteSpeed page cache, as the site's own JS does.
       final body = await _client
           .fetchHtml('$_url?_=${DateTime.now().millisecondsSinceEpoch}');
-      final json = jsonDecode(body) as Map<String, dynamic>;
+
+      final Map<String, dynamic> json;
+      try {
+        json = jsonDecode(body) as Map<String, dynamic>;
+      } on FormatException {
+        // Body wasn't JSON (e.g. an error or challenge page) — keep its start
+        // so the user can tell what the site actually sent back.
+        throw GoldPriceFetchException(shopName,
+            reason: 'parse', detail: _bodySnippet(body));
+      }
       final rows = json['rows'] as Map<String, dynamic>?;
 
       if (json['status'] != 'success' || rows == null) {
-        throw GoldPriceFetchException(shopName, reason: 'parse');
+        throw GoldPriceFetchException(shopName,
+            reason: 'parse', detail: _bodySnippet(body));
       }
 
       // Use the "We Sell" price (what customers pay), same as the sheet.
@@ -338,12 +351,10 @@ class TianSiPriceSource implements GoldPriceSource {
       );
     } on GoldPriceFetchException catch (error) {
       if (error.shopName == shopName) rethrow;
-      throw GoldPriceFetchException(shopName, reason: error.reason);
+      throw GoldPriceFetchException(shopName,
+          reason: error.reason, detail: error.detail);
     } on TimeoutException {
       throw GoldPriceFetchException(shopName, reason: 'timeout');
-    } on FormatException {
-      // Body wasn't JSON (e.g. an error or challenge page).
-      throw GoldPriceFetchException(shopName, reason: 'parse');
     }
   }
 }
@@ -376,6 +387,13 @@ String _textWithLineBreaks(dom.Node node) {
     }
   }
   return buffer.toString();
+}
+
+/// First characters of a response body with whitespace collapsed, for showing
+/// what an unexpected response looked like.
+String _bodySnippet(String body) {
+  final flat = body.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return flat.length <= 80 ? flat : '${flat.substring(0, 80)}…';
 }
 
 double? _extractPriceAfter(String text, String pattern) {

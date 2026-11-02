@@ -227,7 +227,14 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
       isLoading: shopState.status == GoldPriceStatus.loading,
       isError: shopState.status == GoldPriceStatus.error,
       errorReason: shopState.errorReason,
-      onRefresh: () => notifier.retry(widget.shopName),
+      // Without a live price, the latest point is synced history (date only).
+      fromHistory: shopState.data == null && latest != null,
+      onRefresh: () async {
+        final messenger = ScaffoldMessenger.of(context);
+        final result = await notifier.retry(widget.shopName);
+        showPriceRefreshResult(
+            messenger, l10n, appTheme, widget.shopName, result);
+      },
       onTap: null,
       appTheme: appTheme,
     );

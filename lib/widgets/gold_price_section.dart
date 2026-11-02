@@ -44,6 +44,42 @@ class _GoldPriceSectionState extends State<GoldPriceSection> {
     }
   }
 
+  /// Refreshes every shop, then reports the result in one snackbar: either
+  /// "all updated", or how many succeeded plus each failure and its reason.
+  Future<void> _refreshAll(
+    BuildContext context,
+    GoldPriceNotifier notifier,
+    AppLocalizations l10n,
+    AppTheme appTheme,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final results = await notifier.fetchAll();
+    final failed = results.entries
+        .where((e) => e.value.status != GoldPriceStatus.success)
+        .toList();
+
+    final message = failed.isEmpty
+        ? l10n.pricesAllRefreshed
+        : [
+            l10n.pricesRefreshedSome(
+                results.length - failed.length, results.length),
+            for (final e in failed)
+              l10n.priceRefreshFailed(
+                  e.key, priceErrorWithDetail(e.value, l10n)),
+          ].join('\n');
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor:
+              failed.isEmpty ? appTheme.snackBarBg : appTheme.error,
+          duration: Duration(seconds: failed.isEmpty ? 3 : 6),
+          content: Text(message),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<ThemeNotifier>().currentTheme;
@@ -89,8 +125,9 @@ class _GoldPriceSectionState extends State<GoldPriceSection> {
                 ),
                 IconButton(
                   tooltip: l10n.refreshTooltip,
-                  onPressed:
-                      notifier.isAnyLoading ? null : notifier.fetchAll,
+                  onPressed: notifier.isAnyLoading
+                      ? null
+                      : () => _refreshAll(context, notifier, l10n, appTheme),
                   icon: notifier.isAnyLoading
                       ? SizedBox(
                           width: 16,
@@ -119,7 +156,13 @@ class _GoldPriceSectionState extends State<GoldPriceSection> {
                     state: notifier.stateFor(sources[i].shopName),
                     alertNotifier: alertNotifier,
                     appTheme: appTheme,
-                    onRetry: () => notifier.retry(sources[i].shopName),
+                    onRetry: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final shopName = sources[i].shopName;
+                      final result = await notifier.retry(shopName);
+                      showPriceRefreshResult(
+                          messenger, l10n, appTheme, shopName, result);
+                    },
                     onTap: () => context.push(
                       '/gold-history',
                       extra: sources[i].shopName,

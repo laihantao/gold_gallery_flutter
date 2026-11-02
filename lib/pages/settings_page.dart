@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../config/app_channel.dart';
 import '../l10n/app_localizations.dart';
+import '../providers/gold_price_notifier.dart';
 import '../providers/locale_notifier.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -381,11 +382,14 @@ class _SettingsPageState extends State<SettingsPage> {
       BuildContext context, AppTheme appTheme, AppLocalizations l10n) async {
     if (_isSyncingHistory) return;
     setState(() => _isSyncingHistory = true);
+    final priceNotifier = context.read<GoldPriceNotifier>();
     try {
       // Fill any gaps in the last 30 days, then reconcile recent days against
       // Sheets to overwrite stale data (e.g. a morning fetch with wrong price).
       final count = await GoldPriceHistoryBackfillService.manualSync();
       await GoldPriceHistoryBackfillService.reconcileRecentHistory(force: true);
+      // Price cards read history (deltas, fallback when no live price).
+      priceNotifier.notifyHistoryChanged();
       if (!mounted) return;
       _showSnackBar(
         count == 0 ? l10n.syncUpToDate : l10n.syncedCount(count),

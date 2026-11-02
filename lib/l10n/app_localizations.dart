@@ -693,6 +693,34 @@ class AppLocalizations {
       _t(en: 'Fetch failed', zh: '获取失败', ms: 'Gagal dapatkan');
   String get priceStalePrefix =>
       _t(en: 'Last · ', zh: '最后 · ', ms: 'Terakhir · ');
+  String priceUpdateFailedStale(String stamp) => switch (locale) {
+    AppLocale.en => 'Update failed · Last $stamp',
+    AppLocale.zhCN => '更新失败 · 最后 $stamp',
+    AppLocale.ms => 'Gagal kemas kini · Terakhir $stamp',
+  };
+
+  // Refresh result snackbars
+  String priceRefreshed(String shop, String price916, String price999) =>
+      switch (locale) {
+        AppLocale.en => '$shop updated · 916 $price916 · 999 $price999',
+        AppLocale.zhCN => '$shop 已更新 · 916 $price916 · 999 $price999',
+        AppLocale.ms => '$shop dikemas kini · 916 $price916 · 999 $price999',
+      };
+  String priceRefreshFailed(String shop, String reason) => switch (locale) {
+    AppLocale.en => '$shop update failed: $reason',
+    AppLocale.zhCN => '$shop 更新失败：$reason',
+    AppLocale.ms => '$shop gagal dikemas kini: $reason',
+  };
+  String get pricesAllRefreshed => _t(
+    en: 'All prices updated',
+    zh: '全部金价已更新',
+    ms: 'Semua harga dikemas kini',
+  );
+  String pricesRefreshedSome(int ok, int total) => switch (locale) {
+    AppLocale.en => '$ok of $total updated',
+    AppLocale.zhCN => '$ok/$total 家已更新',
+    AppLocale.ms => '$ok daripada $total dikemas kini',
+  };
 
   // ── Private helper ───────────────────────────────────────────────────────────
 
