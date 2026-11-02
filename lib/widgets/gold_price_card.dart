@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/gold_price.dart';
 import '../providers/gold_price_notifier.dart';
 import '../services/gold_price_history_service.dart';
 import '../theme/app_theme.dart';
@@ -152,6 +153,72 @@ class BrandPriceCard extends StatelessWidget {
   }
 }
 
+// ── Which price a card shows ─────────────────────────────────────────────────
+
+/// The price a card shows for a shop, plus the point its delta compares with.
+class DisplayedPrice {
+  final double? price916;
+  final double? price999;
+  final DateTime? at;
+
+  /// True when the shown price is a stored history point (e.g. synced from
+  /// the sheet) rather than the cached live fetch.
+  final bool fromHistory;
+
+  /// Latest history point from an earlier day than [at].
+  final GoldPriceHistoryPoint? previous;
+
+  const DisplayedPrice({
+    required this.price916,
+    required this.price999,
+    required this.at,
+    required this.fromHistory,
+    required this.previous,
+  });
+}
+
+/// Picks the newest price the app has for a shop: the cached live fetch, or
+/// the latest history point when that is from a later day (e.g. the sheet
+/// has days this device's live fetch missed). On the same day the live price
+/// wins, since it carries the real fetch time.
+///
+/// The home card and the history page card both use this, so they always
+/// show the same price and date.
+DisplayedPrice resolveDisplayedPrice(
+  GoldPrice? live,
+  List<GoldPriceHistoryPoint> history,
+) {
+  DateTime dayOf(DateTime t) => DateTime(t.year, t.month, t.day);
+
+  final liveAt = live?.fetchedAt;
+  final latest = history.isNotEmpty ? history.last : null;
+  final point = latest != null &&
+          (liveAt == null ||
+              dayOf(latest.recordedAt).isAfter(dayOf(liveAt)))
+      ? latest
+      : null;
+  final at = point != null ? point.recordedAt : liveAt;
+
+  GoldPriceHistoryPoint? previous;
+  if (at != null) {
+    final day = dayOf(at);
+    for (var i = history.length - 1; i >= 0; i--) {
+      if (dayOf(history[i].recordedAt).isBefore(day)) {
+        previous = history[i];
+        break;
+      }
+    }
+  }
+
+  return DisplayedPrice(
+    price916: point != null ? point.price916 : live?.price916,
+    price999: point != null ? point.price999 : live?.price999,
+    at: at,
+    fromHistory: point != null,
+    previous: previous,
+  );
+}
+
 // ── Home-page convenience wrapper ────────────────────────────────────────────
 //
 // Converts [ShopPriceState] to [BrandPriceCard] params so callers in
@@ -184,29 +251,21 @@ class GoldPriceCard extends StatelessWidget {
     final data = state.data;
     final resolvedLogo =
         logoAsset.isNotEmpty ? logoAsset : (data?.logoAsset ?? '');
-
-    // No live or cached price yet (e.g. a newly added shop whose live fetch
-    // failed): fall back to the latest synced history point, shown muted.
-    final history =
-        data == null ? GoldPriceHistoryService.historyFor(shopName) : null;
-    final fallback =
-        history != null && history.isNotEmpty ? history.last : null;
-    final prev = fallback != null
-        ? (history!.length >= 2 ? history[history.length - 2] : null)
-        : GoldPriceHistoryService.previousPoint(shopName);
+    final shown = resolveDisplayedPrice(
+        data, GoldPriceHistoryService.historyFor(shopName));
 
     return BrandPriceCard(
       shopName: shopName,
       logoAsset: resolvedLogo,
-      price916: data?.price916 ?? fallback?.price916,
-      price999: data?.price999 ?? fallback?.price999,
-      prevPrice916: prev?.price916,
-      prevPrice999: prev?.price999,
-      updatedAt: data?.fetchedAt ?? fallback?.recordedAt,
+      price916: shown.price916,
+      price999: shown.price999,
+      prevPrice916: shown.previous?.price916,
+      prevPrice999: shown.previous?.price999,
+      updatedAt: shown.at,
       isLoading: state.status == GoldPriceStatus.loading,
       isError: state.status == GoldPriceStatus.error,
       errorReason: state.errorReason,
-      fromHistory: fallback != null,
+      fromHistory: shown.fromHistory,
       onRefresh: onRetry,
       onTap: onTap,
       onAlertTap: onAlertTap,

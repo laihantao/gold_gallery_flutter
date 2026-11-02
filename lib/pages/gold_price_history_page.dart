@@ -213,22 +213,21 @@ class _GoldPriceHistoryPageState extends State<GoldPriceHistoryPage> {
   Widget _buildSummaryCard(
       AppTheme appTheme, GoldPriceNotifier notifier, AppLocalizations l10n, List<GoldPriceHistoryPoint> all) {
     final shopState = notifier.stateFor(widget.shopName);
-    final latest = all.isNotEmpty ? all.last : null;
-    final prev = all.length >= 2 ? all[all.length - 2] : null;
+    // Same rule as the home card, so both show the same price and date.
+    final shown = resolveDisplayedPrice(shopState.data, all);
 
     return BrandPriceCard(
       shopName: widget.shopName,
       logoAsset: _logoAsset,
-      price916: latest?.price916,
-      price999: latest?.price999,
-      prevPrice916: prev?.price916,
-      prevPrice999: prev?.price999,
-      updatedAt: latest?.recordedAt,
+      price916: shown.price916,
+      price999: shown.price999,
+      prevPrice916: shown.previous?.price916,
+      prevPrice999: shown.previous?.price999,
+      updatedAt: shown.at,
       isLoading: shopState.status == GoldPriceStatus.loading,
       isError: shopState.status == GoldPriceStatus.error,
       errorReason: shopState.errorReason,
-      // Without a live price, the latest point is synced history (date only).
-      fromHistory: shopState.data == null && latest != null,
+      fromHistory: shown.fromHistory,
       onRefresh: () async {
         final messenger = ScaffoldMessenger.of(context);
         final result = await notifier.retry(widget.shopName);

@@ -107,19 +107,4 @@ class GoldPriceHistoryService {
     points.sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
     return points;
   }
-
-  /// The most recent point strictly before today's, used to compute a
-  /// day-over-day delta on the card.
-  static GoldPriceHistoryPoint? previousPoint(String shopName) {
-    final points = historyFor(shopName);
-    if (points.length < 2) return null;
-    final todayKey = _dayKey(DateTime.now());
-    // Walk backwards to the first point recorded on an earlier day.
-    for (var i = points.length - 1; i >= 0; i--) {
-      if (_dayKey(points[i].recordedAt) != todayKey) {
-        return points[i];
-      }
-    }
-    return null;
-  }
 }
