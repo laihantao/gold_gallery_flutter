@@ -226,8 +226,10 @@ class ChiangHengPriceSource implements GoldPriceSource {
 }
 
 class TomeiPriceSource implements GoldPriceSource {
+  // The old ":62443" port stopped responding around 19 Oct 2026; the same
+  // HTML table is now served on the default HTTPS port.
   static const _url =
-      'https://price-api.tomei.com.my:62443/v1.0/price/gold-jewellery-and-silver-coin-prices/live-quotes-table';
+      'https://price-api.tomei.com.my/v1.0/price/gold-jewellery-and-silver-coin-prices/live-quotes-table';
 
   final GoldHttpClient _client;
 
